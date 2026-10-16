@@ -419,12 +419,20 @@
 
         if (!workflow) {
             dom.workflowDetail.hidden = true;
-            if (dom.workflowNotFound) dom.workflowNotFound.hidden = false;
+            dom.workflowDetail.style.display = 'none';
+            if (dom.workflowNotFound) {
+                dom.workflowNotFound.hidden = false;
+                dom.workflowNotFound.style.display = 'flex';
+            }
             return;
         }
 
         dom.workflowDetail.hidden = false;
-        if (dom.workflowNotFound) dom.workflowNotFound.hidden = true;
+        dom.workflowDetail.style.display = '';
+        if (dom.workflowNotFound) {
+            dom.workflowNotFound.hidden = true;
+            dom.workflowNotFound.style.display = 'none';
+        }
 
         // Header and Summary Badges
         if (dom.wfHeaderStatus) {
@@ -695,7 +703,11 @@
 
         // Show loading
         dom.workflowDetail.hidden = true;
-        if (dom.workflowNotFound) dom.workflowNotFound.hidden = true;
+        dom.workflowDetail.style.display = 'none';
+        if (dom.workflowNotFound) {
+            dom.workflowNotFound.hidden = true;
+            dom.workflowNotFound.style.display = 'none';
+        }
 
         const loadingEl = document.createElement('div');
         loadingEl.className = 'loading';
@@ -711,8 +723,14 @@
         } catch (error) {
             if (loadingEl.parentNode) loadingEl.remove();
             if (error instanceof ApiError && error.status === 404) {
-                if (dom.workflowDetail) dom.workflowDetail.hidden = true;
-                if (dom.workflowNotFound) dom.workflowNotFound.hidden = false;
+                if (dom.workflowDetail) {
+                    dom.workflowDetail.hidden = true;
+                    dom.workflowDetail.style.display = 'none';
+                }
+                if (dom.workflowNotFound) {
+                    dom.workflowNotFound.hidden = false;
+                    dom.workflowNotFound.style.display = 'flex';
+                }
             } else {
                 utils.showToast('Failed to load workflow details');
             }
