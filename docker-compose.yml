@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: relay-postgres-staging
+    environment:
+      POSTGRES_USER: relay
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-relay_staging_password}
+      POSTGRES_DB: relay_staging
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U relay -d relay_staging"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  order-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.order-service
+    container_name: relay-order-service
+    environment:
+      DATABASE_URL: postgresql+psycopg://relay:${POSTGRES_PASSWORD:-relay_staging_password}@postgres:5432/relay_staging
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  relay:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: relay-api
+    environment:
+      DATABASE_URL: postgresql+psycopg://relay:${POSTGRES_PASSWORD:-relay_staging_password}@postgres:5432/relay_staging
+      ORDER_SERVICE_URL: http://order-service:8001
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      DEMO_API_KEY: ${DEMO_API_KEY:-}
+      RUN_MIGRATIONS: "true"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      order-service:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local

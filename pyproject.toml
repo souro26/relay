@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "relay"
+version = "0.1.0"
+description = "Python-first business workflow integration system"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.29.0",
+    "pydantic>=2.7.0",
+    "pydantic-settings>=2.3.0",
+    "sqlalchemy>=2.0.30",
+    "psycopg[binary]>=3.1.18",
+    "alembic>=1.13.0",
+    "python-dotenv>=1.0.1",
+    "httpx>=0.27.0",
+    "openai>=1.40.0",
+    "jinja2>=3.1.0",
+]
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/example/relay"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["relay*", "order_service*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+format.quote-style = "double"
+format.indent-style = "space"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B", "C4", "ARG"]
+ignore = ["ARG001", "ARG002"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "ARG001", "ARG002"]
+"tests/test_order_change.py" = ["F821", "E501", "F821"]
+"tests/test_nl_interpreter.py" = ["F821", "E501", "F821", "W293"]
+"tests/conftest.py" = ["W293", "I001", "W292"]
+"alembic/*" = ["E402", "E501"]
+"scripts/*" = ["E402"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "--strict-markers"
+markers = [
+    "integration: marks tests as integration tests requiring PostgreSQL",
+]

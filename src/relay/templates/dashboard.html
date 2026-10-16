@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Relay{% endblock %}
+
+{% block content %}
+<div class="demo-notice" role="status" aria-label="Demo notice">
+    <div class="demo-notice-content">
+        <svg class="demo-notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4"/>
+            <path d="M12 8h.01"/>
+        </svg>
+        <div class="demo-notice-text">
+            <strong>Prototype Demo</strong> - This dashboard uses demonstration data. All workflow data is for demonstration purposes only.
+        </div>
+    </div>
+
+    <div class="stats-grid" role="region" aria-label="Workflow Statistics">
+        <div class="stat-card">
+            <div class="stat-value" id="total-workflows">—</div>
+            <div class="stat-label">Total Workflows</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="completed-workflows">—</div>
+            <div class="stat-label">Completed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="failed-workflows">—</div>
+            <div class="stat-label">Failed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="success-rate">—</div>
+            <div class="stat-label">Success Rate</div>
+        </div>
+    </div>
+
+    <section aria-labelledby="recent-workflows-heading">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+            <h2 id="recent-workflows-heading" style="font-size: var(--font-size-lg); margin: 0;">Recent Workflow Activity</h2>
+            <a href="{{ url_for('workflow_history') }}" class="btn btn-secondary btn-sm">View All</a>
+        </div>
+
+        <div class="card">
+            <div class="table-container">
+                <table class="table" aria-describedby="recent-workflows-heading">
+                    <thead>
+                        <tr>
+                            <th scope="col">Workflow ID</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Created</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="recent-workflows">
+                        <tr>
+                            <td colspan="5" class="loading">
+                                <span class="spinner" aria-hidden="true"></span> Loading…
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="recent-workflows-empty" class="empty-state" hidden>
+                <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+                <p class="empty-state-title">No workflows yet</p>
+                <p class="empty-state-text">Workflow executions will appear here once you submit requests.</p>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

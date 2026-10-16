@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Workflow History - Relay{% endblock %}
+
+{% block content %}
+<div class="demo-notice" role="status" aria-label="Demo notice">
+    <div class="demo-notice-content">
+        <svg class="demo-notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4"/>
+            <path d="M12 8h.01"/>
+        </svg>
+        <div class="demo-notice-text">
+            <strong>Prototype Demo</strong> - This page shows workflow history using demonstration data.
+        </div>
+    </div>
+
+    <header style="margin-bottom: var(--spacing-lg);">
+        <h1 style="font-size: var(--font-size-2xl); margin: 0;">Workflow History</h1>
+        <p style="color: var(--color-text-secondary); margin-top: var(--spacing-xs);">View and manage all workflow executions</p>
+    </header>
+
+    <div class="card">
+        <div class="table-container">
+            <table class="table" aria-label="Workflow executions">
+                <thead>
+                    <tr>
+                        <th scope="col">Workflow ID</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Created</th>
+                        <th scope="col"></th>
+                    </tr>
+                </thead>
+                <tbody id="workflows-table-body">
+                    <tr>
+                        <td colspan="5" class="loading">
+                            <span class="spinner" aria-hidden="true"></span> Loading workflows…
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="workflows-empty" class="empty-state" hidden>
+            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+            </svg>
+            <p class="empty-state-title">No workflows found</p>
+            <p class="empty-state-text">No workflow executions match the current criteria.</p>
+        </div>
+
+        <nav id="pagination" aria-label="Workflow pagination"></nav>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize workflows page
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const page = parseInt(urlParams.get('page') || '1', 10);
+        if (typeof loadWorkflows === 'function') {
+            loadWorkflows(page);
+        }
+    });
+</script>
+{% endblock %}

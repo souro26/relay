@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Relay - Business Workflow Integration{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="header" role="banner">
+        <div class="container header-content">
+            <a href="{{ url_for('dashboard') }}" class="logo" aria-label="Relay Home">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M4 7V4h16v3"/>
+                    <path d="M9 20h6"/>
+                    <path d="M12 4v16"/>
+                </svg>
+                <span class="logo-text">Relay</span>
+            </a>
+            <nav class="nav" role="navigation" aria-label="Main navigation">
+                <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.url.path == '/' %}active{% endif %}">Dashboard</a>
+                <a href="{{ url_for('workflow_history') }}" class="nav-link {% if request.url.path.startswith('/workflows') and request.url.path != '/request' %}active{% endif %}">Workflows</a>
+                <a href="{{ url_for('nl_request_form') }}" class="nav-link {% if request.url.path == '/request' %}active{% endif %}">New Request</a>
+            </nav>
+            <div class="header-status">
+                <span class="badge badge-info">Demo</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="main" role="main">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="footer" role="contentinfo">
+        <div class="container">
+            <p class="footer-text">
+                <strong>Relay</strong> - Business Workflow Integration Prototype
+            </p>
+            <p class="footer-notice">This is a prototype demonstration. Uses demonstration data only.</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', path='app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

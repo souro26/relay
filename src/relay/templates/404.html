@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Not Found - Relay{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <div class="error-code">404</div>
+    <h1 class="error-title">Page Not Found</h1>
+    <p class="error-message">The page you're looking for doesn't exist or has been moved.</p>
+    <div style="display: flex; gap: var(--spacing-md); justify-content: center; flex-wrap: wrap;">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
+        <a href="{{ url_for('workflow_history') }}" class="btn btn-secondary">View Workflows</a>
+    </div>
+</div>
+{% endblock %}
