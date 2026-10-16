@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, sta
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.middleware.cors import CORSMiddleware
@@ -19,14 +19,18 @@ from relay.core.logging import setup_logging
 from relay.core.ratelimit import RateLimitMiddleware
 from relay.db.session import engine, get_db_session
 from relay.models import (
+    DashboardMetricsResponse,
+    LLMInvocation,
     NLInterpretationRequest,
     NLInterpretationResponse,
     OrderChangeRequest,
     OrderChangeResponse,
+    WorkflowDetailResponse,
     WorkflowErrorCode,
     WorkflowExecution,
-    WorkflowExecutionResponse,
     WorkflowListResponse,
+    WorkflowStatus,
+    WorkflowStep,
 )
 from relay.services import NLInterpreterService, WorkflowOrchestrator, WorkflowOrchestratorError
 
@@ -40,7 +44,7 @@ async def verify_demo_access(
     If DEMO_API_KEY is configured, clients must provide it via X-Demo-Key header.
     If not configured, access is allowed (development mode).
     """
-    if settings.demo_api_key is not None:
+    if bool(settings.demo_api_key):
         if not x_demo_key:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -307,6 +311,7 @@ async def create_order_change_request(
         workflow_type=execution.workflow_type,
         result=execution.result,
         error_details=execution.error_details,
+        correlation_id=execution.correlation_id,
         created_at=execution.created_at,
         updated_at=execution.updated_at,
         completed_at=execution.completed_at,
@@ -324,18 +329,14 @@ async def create_order_change_request_nl(
     request: NLInterpretationRequest, db: DbSession, request_obj: Request
 ):
     """
-    Interpret a natural language order change request and optionally execute it.
-
-    This endpoint accepts natural language text describing an order change,
-    uses an LLM to interpret it into structured data, validates the result,
-    and passes it to the existing workflow orchestrator.
+    Interpret a natural language order change request and execute it with durable telemetry.
 
     Requires X-Demo-Key header if DEMO_API_KEY is configured.
     """
     nl_service = NLInterpreterService()
 
     try:
-        interpretation = await nl_service.interpret(request)
+        interpretation = await nl_service.interpret(request, db=db)
     except Exception as e:
         logger.exception("Unexpected error during NL interpretation")
         raise HTTPException(
@@ -347,7 +348,6 @@ async def create_order_change_request_nl(
         ) from e
 
     if not interpretation.success:
-        # Map error codes to HTTP status codes
         status_code_map = {
             "LLM_NOT_CONFIGURED": 503,
             "LLM_TIMEOUT": 504,
@@ -366,7 +366,6 @@ async def create_order_change_request_nl(
             detail=interpretation.model_dump(mode="json"),
         )
 
-    # Valid interpretation - convert to OrderChangeRequest and execute workflow
     assert interpretation.draft is not None
 
     order_change_request = OrderChangeRequest(
@@ -377,16 +376,29 @@ async def create_order_change_request_nl(
         requested_delivery_date=interpretation.draft.requested_delivery_date,
     )
 
-    # Execute the workflow using the injected DB session for consistency
     orchestrator = WorkflowOrchestrator(db)
-
-    # Get correlation ID from request
     correlation_id = request_obj.headers.get("X-Correlation-ID")
 
     try:
-        _ = orchestrator.execute_order_change(order_change_request, correlation_id)
+        execution = orchestrator.execute_order_change(
+            order_change_request,
+            correlation_id=correlation_id,
+            interpreted_request=interpretation.draft.model_dump(mode="json"),
+        )
+        # Link LLM invocation with newly created workflow execution
+        if interpretation.invocation_id:
+            try:
+                inv_uuid = uuid.UUID(interpretation.invocation_id)
+                db.execute(
+                    update(LLMInvocation)
+                    .where(LLMInvocation.id == inv_uuid)
+                    .values(workflow_execution_id=execution.id)
+                )
+                db.commit()
+            except Exception as link_err:
+                logger.warning("Failed to link LLM invocation to workflow: %s", link_err)
+
     except WorkflowOrchestratorError as e:
-        # Map workflow errors to appropriate HTTP status codes (same as deterministic endpoint)
         if e.error.error_code == WorkflowErrorCode.DUPLICATE_EVENT:
             if e.existing_event and e.existing_event.workflow_execution_id:
                 stmt = select(WorkflowExecution).where(
@@ -457,14 +469,7 @@ async def create_order_change_request_nl(
             detail={"error_code": "INTERNAL_ERROR", "message": "Workflow execution failed"},
         ) from e
 
-    return NLInterpretationResponse(
-        success=True,
-        draft=interpretation.draft,
-        missing_fields=[],
-        ambiguities=[],
-        error=None,
-        error_code=None,
-    )
+    return interpretation
 
 
 @app.get("/api/v1/workflows", response_model=WorkflowListResponse, tags=["workflows"])
@@ -496,6 +501,10 @@ async def list_workflows(
                 "interpreted_request": w.interpreted_request,
                 "result": w.result,
                 "error_details": w.error_details,
+                "failure_category": w.failure_category,
+                "correlation_id": w.correlation_id,
+                "duration_ms": w.duration_ms,
+                "started_at": w.started_at.isoformat() if w.started_at else None,
                 "created_at": w.created_at.isoformat() if w.created_at else None,
                 "updated_at": w.updated_at.isoformat() if w.updated_at else None,
                 "completed_at": w.completed_at.isoformat() if w.completed_at else None,
@@ -510,7 +519,9 @@ async def list_workflows(
 
 
 @app.get(
-    "/api/v1/workflows/{execution_id}", response_model=WorkflowExecutionResponse, tags=["workflows"]
+    "/api/v1/workflows/{execution_id}",
+    response_model=WorkflowDetailResponse,
+    tags=["workflows"],
 )
 async def get_workflow(execution_id: str, db: DbSession):
     try:
@@ -524,15 +535,192 @@ async def get_workflow(execution_id: str, db: DbSession):
     if workflow is None:
         raise HTTPException(status_code=404, detail="Workflow execution not found")
 
+    orig = workflow.original_request if isinstance(workflow.original_request, dict) else {}
+
+    steps_data = [
+        {
+            "id": str(s.id),
+            "step_name": s.step_name,
+            "attempt_number": s.attempt_number,
+            "status": s.status,
+            "started_at": s.started_at.isoformat() if s.started_at else None,
+            "completed_at": s.completed_at.isoformat() if s.completed_at else None,
+            "duration_ms": s.duration_ms,
+            "error_category": s.error_category,
+            "error_details": s.error_details,
+            "metadata": s.step_metadata,
+        }
+        for s in (workflow.steps or [])
+    ]
+
+    llm_data = [
+        {
+            "id": str(inv.id),
+            "step_name": inv.step_name,
+            "provider": inv.provider,
+            "model": inv.model,
+            "started_at": inv.started_at.isoformat() if inv.started_at else None,
+            "completed_at": inv.completed_at.isoformat() if inv.completed_at else None,
+            "latency_ms": inv.latency_ms,
+            "prompt_tokens": inv.prompt_tokens,
+            "completion_tokens": inv.completion_tokens,
+            "total_tokens": inv.total_tokens,
+            "estimated_cost_usd": inv.estimated_cost_usd,
+            "status": inv.status,
+            "error_category": inv.error_category,
+            "error_message": inv.error_message,
+        }
+        for inv in (workflow.llm_invocations or [])
+    ]
+
     return {
         "id": str(workflow.id),
         "workflow_type": workflow.workflow_type,
         "status": workflow.status.value,
+        "source_system": orig.get("source_system"),
+        "external_event_id": orig.get("external_event_id"),
+        "correlation_id": workflow.correlation_id,
+        "idempotency_key": (
+            orig.get("idempotency_key")
+            if isinstance(orig.get("idempotency_key"), str)
+            else (
+                workflow.idempotency_key
+                if isinstance(getattr(workflow, "idempotency_key", None), str)
+                else None
+            )
+        ),
+        "order_id": orig.get("order_id"),
+        "customer_id": orig.get("customer_id"),
         "original_request": workflow.original_request,
         "interpreted_request": workflow.interpreted_request,
         "result": workflow.result,
         "error_details": workflow.error_details,
+        "failure_category": workflow.failure_category,
+        "started_at": workflow.started_at.isoformat() if workflow.started_at else None,
         "created_at": workflow.created_at.isoformat() if workflow.created_at else None,
         "updated_at": workflow.updated_at.isoformat() if workflow.updated_at else None,
         "completed_at": workflow.completed_at.isoformat() if workflow.completed_at else None,
+        "duration_ms": workflow.duration_ms,
+        "steps": steps_data,
+        "llm_invocations": llm_data,
+    }
+
+
+@app.get(
+    "/api/v1/metrics",
+    response_model=DashboardMetricsResponse,
+    tags=["metrics"],
+)
+async def get_dashboard_metrics(db: DbSession):
+    """Aggregate operational metrics calculated directly from persistent database records."""
+    # 1. Status distribution
+    status_counts_raw = db.execute(
+        select(WorkflowExecution.status, func.count(WorkflowExecution.id)).group_by(
+            WorkflowExecution.status
+        )
+    ).all()
+    status_map: dict[str, int] = {}
+    for st, count in status_counts_raw:
+        key = st.value if hasattr(st, "value") else str(st)
+        status_map[key] = int(count)
+
+    completed = status_map.get("completed", 0)
+    failed = status_map.get("failed", 0)
+    uncertain = status_map.get("uncertain", 0)
+    running = status_map.get("running", 0)
+    pending = status_map.get("pending", 0)
+    total = sum(status_map.values())
+
+    resolved = completed + failed
+    if resolved > 0:
+        success_rate = round(completed / resolved, 4)
+        success_rate_percentage = f"{(success_rate * 100):.1f}%"
+    else:
+        success_rate = None
+        success_rate_percentage = "—"
+
+    # 2. Durations of completed executions
+    duration_stmt = (
+        select(WorkflowExecution.duration_ms)
+        .where(
+            WorkflowExecution.duration_ms.is_not(None),
+            WorkflowExecution.status == WorkflowStatus.COMPLETED,
+        )
+        .order_by(WorkflowExecution.duration_ms.asc())
+    )
+    durations = db.execute(duration_stmt).scalars().all()
+
+    median_duration_ms = None
+    p95_duration_ms = None
+    if durations:
+        import statistics
+
+        median_duration_ms = round(float(statistics.median(durations)), 2)
+        idx_p95 = min(int(len(durations) * 0.95), len(durations) - 1)
+        p95_duration_ms = round(float(durations[idx_p95]), 2)
+
+    # 3. Step failure counts
+    step_failures = db.execute(
+        select(WorkflowStep.step_name, func.count(WorkflowStep.id))
+        .where(WorkflowStep.status == "failed")
+        .group_by(WorkflowStep.step_name)
+    ).all()
+    step_failure_counts = {str(name): int(count) for name, count in step_failures}
+
+    # 4. LLM telemetry aggregate
+    llm_row = db.execute(
+        select(
+            func.count(LLMInvocation.id),
+            func.coalesce(func.sum(LLMInvocation.total_tokens), 0),
+            func.coalesce(func.sum(LLMInvocation.estimated_cost_usd), 0.0),
+            func.avg(LLMInvocation.latency_ms),
+        )
+    ).one()
+    llm_total = int(llm_row[0] or 0)
+    total_tokens = int(llm_row[1] or 0)
+    total_cost = round(float(llm_row[2] or 0.0), 6)
+    avg_latency = round(float(llm_row[3]), 2) if llm_row[3] is not None else None
+
+    # Recent workflows
+    recent_stmt = (
+        select(WorkflowExecution).order_by(WorkflowExecution.created_at.desc()).limit(5)
+    )
+    recent_wfs = db.execute(recent_stmt).scalars().all()
+    recent_serialized = [
+        {
+            "id": str(w.id),
+            "workflow_type": w.workflow_type,
+            "status": w.status.value,
+            "original_request": w.original_request,
+            "interpreted_request": w.interpreted_request,
+            "result": w.result,
+            "error_details": w.error_details,
+            "failure_category": w.failure_category,
+            "correlation_id": w.correlation_id,
+            "duration_ms": w.duration_ms,
+            "started_at": w.started_at.isoformat() if w.started_at else None,
+            "created_at": w.created_at.isoformat() if w.created_at else None,
+            "updated_at": w.updated_at.isoformat() if w.updated_at else None,
+            "completed_at": w.completed_at.isoformat() if w.completed_at else None,
+        }
+        for w in recent_wfs
+    ]
+
+    return {
+        "total_workflows": total,
+        "completed_workflows": completed,
+        "failed_workflows": failed,
+        "uncertain_workflows": uncertain,
+        "running_workflows": running,
+        "pending_workflows": pending,
+        "success_rate": success_rate,
+        "success_rate_percentage": success_rate_percentage,
+        "median_duration_ms": median_duration_ms,
+        "p95_duration_ms": p95_duration_ms,
+        "step_failure_counts": step_failure_counts,
+        "total_llm_invocations": llm_total,
+        "total_tokens": int(total_tokens),
+        "total_estimated_cost_usd": round(float(total_cost), 4),
+        "avg_llm_latency_ms": round(float(avg_latency), 2) if avg_latency is not None else None,
+        "recent_workflows": recent_serialized,
     }

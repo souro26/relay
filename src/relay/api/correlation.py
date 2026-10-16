@@ -17,6 +17,11 @@ workflow_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "workflow_id", default=None
 )
 
+# Context variable to store current step name
+step_name_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "step_name", default=None
+)
+
 # Header name for correlation ID
 CORRELATION_ID_HEADER = "X-Correlation-ID"
 
@@ -34,6 +39,11 @@ def get_workflow_id() -> str | None:
     return workflow_id_var.get()
 
 
+def get_step_name() -> str | None:
+    """Get the step name for the current request context."""
+    return step_name_var.get()
+
+
 def set_correlation_id(correlation_id: str) -> None:
     """Set the correlation ID for the current request context."""
     correlation_id_var.set(correlation_id)
@@ -42,6 +52,11 @@ def set_correlation_id(correlation_id: str) -> None:
 def set_workflow_id(workflow_id: str) -> None:
     """Set the workflow ID for the current request context."""
     workflow_id_var.set(workflow_id)
+
+
+def set_step_name(step_name: str | None) -> None:
+    """Set the step name for the current request context."""
+    step_name_var.set(step_name)
 
 
 def generate_correlation_id() -> str:

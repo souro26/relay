@@ -197,3 +197,77 @@ class TestCircularImportRegression:
         assert app is not None
         assert hasattr(app, "title")
         assert app.title == "Relay"
+
+
+class TestTelemetryModelsAndCost:
+    def test_workflow_step_model_instantiation(self):
+        from relay.models.workflow import WorkflowStep
+
+        step_id = uuid.uuid4()
+        wf_id = uuid.uuid4()
+        now = datetime.now(UTC)
+        step = WorkflowStep(
+            id=step_id,
+            workflow_execution_id=wf_id,
+            step_name="validate_inbound_request",
+            attempt_number=1,
+            status="completed",
+            started_at=now,
+            completed_at=now,
+            duration_ms=45.2,
+            error_category=None,
+            error_details=None,
+            step_metadata={"order_id": "ORD-123"},
+        )
+        assert step.id == step_id
+        assert step.workflow_execution_id == wf_id
+        assert step.step_name == "validate_inbound_request"
+        assert step.duration_ms == 45.2
+        assert step.step_metadata == {"order_id": "ORD-123"}
+
+    def test_llm_invocation_model_instantiation(self):
+        from relay.models.workflow import LLMInvocation
+
+        inv_id = uuid.uuid4()
+        wf_id = uuid.uuid4()
+        now = datetime.now(UTC)
+        inv = LLMInvocation(
+            id=inv_id,
+            workflow_execution_id=wf_id,
+            step_name="interpret_nl_request",
+            provider="openai",
+            model="gpt-4o-mini",
+            started_at=now,
+            completed_at=now,
+            latency_ms=312.5,
+            prompt_tokens=150,
+            completion_tokens=42,
+            total_tokens=192,
+            estimated_cost_usd=0.000045,
+            status="success",
+        )
+        assert inv.id == inv_id
+        assert inv.provider == "openai"
+        assert inv.model == "gpt-4o-mini"
+        assert inv.prompt_tokens == 150
+        assert inv.completion_tokens == 42
+        assert inv.total_tokens == 192
+        assert inv.estimated_cost_usd == 0.000045
+
+    def test_estimate_llm_cost(self):
+        from relay.core.config import Settings
+
+        cfg = Settings(
+            llm_input_cost_per_million=0.15,
+            llm_output_cost_per_million=0.60,
+        )
+        cost = cfg.estimate_llm_cost(prompt_tokens=1_000_000, completion_tokens=1_000_000)
+        assert cost == 0.75
+
+        # 1000 prompt tokens (0.00015) + 500 completion tokens (0.00030) = 0.00045
+        cost_small = cfg.estimate_llm_cost(prompt_tokens=1000, completion_tokens=500)
+        assert abs(cost_small - 0.00045) < 1e-8
+
+        # Zero tokens
+        assert cfg.estimate_llm_cost(0, 0) == 0.0
+

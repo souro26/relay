@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import json
 import logging
+import time
+import uuid
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 from relay.adapters.llm import (
     LLMAdapter,
@@ -13,7 +19,9 @@ from relay.adapters.llm import (
     LLMProviderError,
     LLMTimeoutError,
 )
-from relay.core.config import settings
+from relay.core.config import estimate_llm_cost, settings
+from relay.core.logging import log_llm_call
+from relay.models import LLMInvocation
 from relay.models.nl import (
     AmbiguityDetail,
     NLInterpretationRequest,
@@ -73,12 +81,19 @@ class NLInterpreterService:
                 raise RuntimeError(f"LLM adapter not configured: {e}") from e
         return self._llm_adapter
 
-    async def interpret(self, request: NLInterpretationRequest) -> NLInterpretationResponse:
+    async def interpret(
+        self,
+        request: NLInterpretationRequest,
+        db: Session | None = None,
+        workflow_execution_id: uuid.UUID | None = None,
+    ) -> NLInterpretationResponse:
         """
-        Interpret a natural language order change request.
+        Interpret a natural language order change request with durable telemetry.
 
         Args:
             request: The natural language interpretation request.
+            db: Optional SQLAlchemy session for persisting LLM telemetry.
+            workflow_execution_id: Optional workflow execution ID to link telemetry.
 
         Returns:
             NLInterpretationResponse with either a valid draft or error details.
@@ -124,6 +139,8 @@ class NLInterpreterService:
 
         # Build prompt
         prompt = self._build_prompt(request.text)
+        start_mono = time.monotonic()
+        start_utc = datetime.now(UTC)
 
         try:
             # Call LLM with structured output
@@ -134,9 +151,55 @@ class NLInterpreterService:
                 max_tokens=settings.llm_max_output_tokens,
                 response_format=get_response_schema(),
             )
+            latency_ms = (time.monotonic() - start_mono) * 1000
+
+            prompt_tokens = llm_response.usage.prompt_tokens if llm_response.usage else None
+            comp_tokens = llm_response.usage.completion_tokens if llm_response.usage else None
+            total_tokens = llm_response.usage.total_tokens if llm_response.usage else None
+            estimated_cost = estimate_llm_cost(prompt_tokens, comp_tokens)
+
+            invocation_id = None
+            if db is not None:
+                try:
+                    invocation = LLMInvocation(
+                        workflow_execution_id=workflow_execution_id,
+                        step_name="natural_language_interpretation",
+                        provider=getattr(adapter, "provider_name", "unknown"),
+                        model=getattr(adapter, "model_name", settings.llm_model),
+                        started_at=start_utc,
+                        completed_at=datetime.now(UTC),
+                        latency_ms=round(latency_ms, 2),
+                        prompt_tokens=prompt_tokens,
+                        completion_tokens=comp_tokens,
+                        total_tokens=total_tokens,
+                        estimated_cost_usd=estimated_cost,
+                        status="completed",
+                    )
+                    db.add(invocation)
+                    db.flush()
+                    invocation_id = str(invocation.id)
+                except Exception as save_err:
+                    logger.warning("Failed to persist LLM invocation record: %s", save_err)
+
+            log_llm_call(
+                logger,
+                model=getattr(adapter, "model_name", settings.llm_model),
+                prompt_tokens=prompt_tokens,
+                completion_tokens=comp_tokens,
+                total_tokens=total_tokens,
+                duration_ms=latency_ms,
+                estimated_cost_usd=estimated_cost,
+            )
 
             # Parse structured output
-            return self._parse_response(llm_response.content)
+            parsed = self._parse_response(llm_response.content)
+            parsed.invocation_id = invocation_id
+            parsed.prompt_tokens = prompt_tokens
+            parsed.completion_tokens = comp_tokens
+            parsed.total_tokens = total_tokens
+            parsed.estimated_cost_usd = estimated_cost
+            parsed.latency_ms = round(latency_ms, 2)
+            return parsed
 
         except LLMConfigurationError as e:
             logger.error("LLM configuration error: %s", e)
@@ -149,14 +212,19 @@ class NLInterpreterService:
                 error_code="LLM_NOT_CONFIGURED",
             )
         except LLMTimeoutError as e:
+            latency_ms = (time.monotonic() - start_mono) * 1000
+            self._record_failed_invocation(
+                db, workflow_execution_id, adapter, start_utc, latency_ms, "LLM_TIMEOUT", str(e)
+            )
             logger.warning("LLM request timed out: %s", e)
             return NLInterpretationResponse(
                 success=False,
                 error="Interpretation request timed out. Please try again.",
                 error_code="LLM_TIMEOUT",
+                latency_ms=round(latency_ms, 2),
             )
         except LLMProviderError as e:
-            logger.warning("LLM provider error: %s (status: %s)", e, e.status_code)
+            latency_ms = (time.monotonic() - start_mono) * 1000
             if e.status_code == 429:
                 error_code = "LLM_RATE_LIMIT"
                 message = "LLM provider rate limit exceeded. Please try again later."
@@ -166,25 +234,96 @@ class NLInterpreterService:
             else:
                 error_code = "LLM_PROVIDER_ERROR"
                 message = "LLM provider error. Please try again later."
+
+            self._record_failed_invocation(
+                db, workflow_execution_id, adapter, start_utc, latency_ms, error_code, str(e)
+            )
+            logger.warning("LLM provider error: %s (status: %s)", e, e.status_code)
             return NLInterpretationResponse(
                 success=False,
                 error=message,
                 error_code=error_code,
+                latency_ms=round(latency_ms, 2),
             )
         except LLMOutputParseError as e:
+            latency_ms = (time.monotonic() - start_mono) * 1000
+            self._record_failed_invocation(
+                db,
+                workflow_execution_id,
+                adapter,
+                start_utc,
+                latency_ms,
+                "LLM_OUTPUT_PARSE_ERROR",
+                str(e),
+            )
             logger.warning("Failed to parse LLM output: %s", e)
             return NLInterpretationResponse(
                 success=False,
                 error="Failed to parse interpretation result. Please try again.",
                 error_code="LLM_OUTPUT_PARSE_ERROR",
+                latency_ms=round(latency_ms, 2),
             )
-        except Exception:
+        except Exception as e:
+            latency_ms = (time.monotonic() - start_mono) * 1000
+            self._record_failed_invocation(
+                db,
+                workflow_execution_id,
+                adapter,
+                start_utc,
+                latency_ms,
+                "INTERNAL_ERROR",
+                str(e),
+            )
             logger.exception("Unexpected error during NL interpretation")
             return NLInterpretationResponse(
                 success=False,
                 error="Internal error during interpretation. Please try again.",
                 error_code="INTERNAL_ERROR",
+                latency_ms=round(latency_ms, 2),
             )
+
+    def _record_failed_invocation(
+        self,
+        db: Session | None,
+        workflow_execution_id: uuid.UUID | None,
+        adapter: Any,
+        start_utc: datetime,
+        latency_ms: float,
+        error_category: str,
+        error_message: str,
+    ) -> None:
+        """Safely record failed invocation in database and log."""
+        model_name = (
+            getattr(adapter, "model_name", settings.llm_model) if adapter else settings.llm_model
+        )
+        provider_name = (
+            getattr(adapter, "provider_name", "unknown") if adapter else settings.llm_provider
+        )
+        log_llm_call(
+            logger,
+            model=model_name,
+            duration_ms=latency_ms,
+            error=error_message,
+            error_category=error_category,
+        )
+        if db is not None:
+            try:
+                invocation = LLMInvocation(
+                    workflow_execution_id=workflow_execution_id,
+                    step_name="natural_language_interpretation",
+                    provider=provider_name,
+                    model=model_name,
+                    started_at=start_utc,
+                    completed_at=datetime.now(UTC),
+                    latency_ms=round(latency_ms, 2),
+                    status="failed",
+                    error_category=error_category,
+                    error_message=error_message[:500],
+                )
+                db.add(invocation)
+                db.flush()
+            except Exception as err:
+                logger.warning("Failed to persist failed LLM invocation record: %s", err)
 
     def _parse_response(self, response_text: str) -> NLInterpretationResponse:
         """

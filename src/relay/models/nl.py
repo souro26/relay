@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class NLInterpretationRequest(BaseModel):
@@ -60,9 +60,14 @@ class NLInterpretationResponse(BaseModel):
     ambiguities: list["AmbiguityDetail"] = Field(default_factory=list)
     error: str | None = None
     error_code: str | None = None
+    invocation_id: str | None = None
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    total_tokens: int | None = None
+    estimated_cost_usd: float | None = None
+    latency_ms: float | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AmbiguityDetail(BaseModel):

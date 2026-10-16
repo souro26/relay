@@ -125,6 +125,8 @@ def pg_integration_db_session(request, pg_integration_db_engine):
 
     with pg_integration_db_engine.connect() as conn:
         conn.execute(delete(IdempotencyKey))
+        conn.execute(text("DELETE FROM workflow_steps"))
+        conn.execute(text("DELETE FROM llm_invocations"))
         conn.execute(text("DELETE FROM inbound_events"))
         conn.execute(text("DELETE FROM workflow_executions"))
         conn.commit()
@@ -256,6 +258,8 @@ def clean_integration_db(integration_db_engine):
         conn.execute(delete(IdempotencyKey))
         conn.execute(delete(Order))
         # Delete relay tables
+        conn.execute(text("DELETE FROM workflow_steps"))
+        conn.execute(text("DELETE FROM llm_invocations"))
         conn.execute(text("DELETE FROM inbound_events"))
         conn.execute(text("DELETE FROM workflow_executions"))
         conn.commit()
@@ -264,6 +268,8 @@ def clean_integration_db(integration_db_engine):
     with integration_db_engine.connect() as conn:
         conn.execute(delete(IdempotencyKey))
         conn.execute(delete(Order))
+        conn.execute(text("DELETE FROM workflow_steps"))
+        conn.execute(text("DELETE FROM llm_invocations"))
         conn.execute(text("DELETE FROM inbound_events"))
         conn.execute(text("DELETE FROM workflow_executions"))
         conn.commit()
@@ -346,6 +352,13 @@ def sample_workflow():
     workflow.created_at = datetime.now(UTC)
     workflow.updated_at = datetime.now(UTC)
     workflow.completed_at = None
+    workflow.started_at = None
+    workflow.duration_ms = None
+    workflow.correlation_id = "test-corr-id"
+    workflow.idempotency_key = None
+    workflow.failure_category = None
+    workflow.steps = []
+    workflow.llm_invocations = []
     return workflow
 
 

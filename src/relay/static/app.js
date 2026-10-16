@@ -164,6 +164,11 @@
             }
         },
 
+        // Metrics
+        async getMetrics() {
+            return this.request('/metrics');
+        },
+
         // Workflows
         async getWorkflows(page = 1, pageSize = 20) {
             return this.request(`/workflows?page=${page}&page_size=${pageSize}`);
@@ -222,13 +227,19 @@
 
     // Initialize DOM cache
     function cacheDomElements() {
-        // Dashboard
+        // Dashboard Summary
         dom.totalWorkflows = document.getElementById('total-workflows');
         dom.completedWorkflows = document.getElementById('completed-workflows');
         dom.failedWorkflows = document.getElementById('failed-workflows');
         dom.successRate = document.getElementById('success-rate');
         dom.recentWorkflows = document.getElementById('recent-workflows');
         dom.recentWorkflowsEmpty = document.getElementById('recent-workflows-empty');
+
+        // Dashboard Operational Telemetry
+        dom.medianDuration = document.getElementById('median-duration');
+        dom.p95Duration = document.getElementById('p95-duration');
+        dom.totalTokens = document.getElementById('total-tokens');
+        dom.estimatedSpending = document.getElementById('estimated-spending');
 
         // Workflow History
         dom.workflowsTableBody = document.getElementById('workflows-table-body');
@@ -238,6 +249,32 @@
         // Workflow Details
         dom.workflowDetail = document.getElementById('workflow-detail');
         dom.workflowNotFound = document.getElementById('workflow-not-found');
+        dom.wfHeaderStatus = document.getElementById('wf-header-status');
+        dom.wfSummaryStatus = document.getElementById('wf-summary-status');
+        dom.wfId = document.getElementById('wf-id');
+        dom.wfType = document.getElementById('wf-type');
+        dom.wfSourceSystem = document.getElementById('wf-source-system');
+        dom.wfExternalEventId = document.getElementById('wf-external-event-id');
+        dom.wfStarted = document.getElementById('wf-started');
+        dom.wfCreated = document.getElementById('wf-created');
+        dom.wfCompleted = document.getElementById('wf-completed');
+        dom.wfDuration = document.getElementById('wf-duration');
+        dom.wfOrderId = document.getElementById('wf-order-id');
+        dom.wfCustomerId = document.getElementById('wf-customer-id');
+        dom.wfPrevDelivery = document.getElementById('wf-prev-delivery');
+        dom.wfNewDelivery = document.getElementById('wf-new-delivery');
+        dom.wfOrderStatus = document.getElementById('wf-order-status');
+        dom.wfCorrelation = document.getElementById('wf-correlation');
+        dom.wfIdempotencyKey = document.getElementById('wf-idempotency-key');
+        dom.wfFailureCategory = document.getElementById('wf-failure-category');
+        dom.wfStepsTbody = document.getElementById('wf-steps-tbody');
+        dom.wfStepsEmpty = document.getElementById('wf-steps-empty');
+        dom.wfLlmTbody = document.getElementById('wf-llm-tbody');
+        dom.wfLlmEmpty = document.getElementById('wf-llm-empty');
+        dom.wfOriginalRequest = document.getElementById('wf-original-request');
+        dom.wfInterpretedRequest = document.getElementById('wf-interpreted-request');
+        dom.wfResult = document.getElementById('wf-result');
+        dom.wfError = document.getElementById('wf-error');
 
         // NL Request Form
         dom.nlForm = document.getElementById('nl-request-form');
@@ -252,10 +289,10 @@
         dom.nlResult = document.getElementById('nl-result');
         dom.nlErrorCode = document.getElementById('nl-error-code');
         dom.nlErrorMessage = document.getElementById('nl-error-message');
-        nlDraftOrderId = document.getElementById('nl-draft-order-id');
-        nlDraftCustomerId = document.getElementById('nl-draft-customer-id');
-        nlDraftDeliveryDate = document.getElementById('nl-draft-delivery-date');
-        nlWorkflowLink = document.getElementById('nl-workflow-link');
+        dom.nlDraftOrderId = document.getElementById('nl-draft-order-id');
+        dom.nlDraftCustomerId = document.getElementById('nl-draft-customer-id');
+        dom.nlDraftDeliveryDate = document.getElementById('nl-draft-delivery-date');
+        dom.nlWorkflowLink = document.getElementById('nl-workflow-link');
     }
 
     // Dashboard Rendering
@@ -263,7 +300,20 @@
         if (dom.totalWorkflows) dom.totalWorkflows.textContent = utils.formatNumber(data.total_workflows || 0);
         if (dom.completedWorkflows) dom.completedWorkflows.textContent = utils.formatNumber(data.completed_workflows || 0);
         if (dom.failedWorkflows) dom.failedWorkflows.textContent = utils.formatNumber(data.failed_workflows || 0);
-        if (dom.successRate) dom.successRate.textContent = utils.calculateSuccessRate(data.completed_workflows || 0, data.failed_workflows || 0);
+        if (dom.successRate) dom.successRate.textContent = data.success_rate_percentage || '—';
+
+        if (dom.medianDuration) {
+            dom.medianDuration.textContent = data.median_duration_ms != null ? `${data.median_duration_ms}ms` : '—';
+        }
+        if (dom.p95Duration) {
+            dom.p95Duration.textContent = data.p95_duration_ms != null ? `${data.p95_duration_ms}ms` : '—';
+        }
+        if (dom.totalTokens) {
+            dom.totalTokens.textContent = utils.formatNumber(data.total_tokens || 0);
+        }
+        if (dom.estimatedSpending) {
+            dom.estimatedSpending.textContent = data.total_estimated_cost_usd != null ? `$${data.total_estimated_cost_usd.toFixed(4)}` : '$0.0000';
+        }
 
         // Recent workflows
         if (dom.recentWorkflows) {
@@ -368,55 +418,105 @@
         if (!dom.workflowDetail) return;
 
         if (!workflow) {
-            if (dom.workflowDetail) dom.workflowDetail.hidden = true;
+            dom.workflowDetail.hidden = true;
             if (dom.workflowNotFound) dom.workflowNotFound.hidden = false;
             return;
         }
 
-        if (dom.workflowDetail) dom.workflowDetail.hidden = false;
+        dom.workflowDetail.hidden = false;
         if (dom.workflowNotFound) dom.workflowNotFound.hidden = true;
 
-        // Update header info
-        const statusEl = document.getElementById('wf-status');
-        if (statusEl) {
-            statusEl.textContent = workflow.status;
-            statusEl.className = `badge badge-${workflow.status}`;
+        // Header and Summary Badges
+        if (dom.wfHeaderStatus) {
+            dom.wfHeaderStatus.textContent = workflow.status;
+            dom.wfHeaderStatus.className = `badge badge-${workflow.status}`;
+        }
+        if (dom.wfSummaryStatus) {
+            dom.wfSummaryStatus.textContent = workflow.status;
+            dom.wfSummaryStatus.className = `badge badge-${workflow.status}`;
         }
 
-        const idEl = document.getElementById('wf-id');
-        if (idEl) idEl.textContent = workflow.id;
+        if (dom.wfId) dom.wfId.textContent = workflow.id;
+        if (dom.wfType) dom.wfType.textContent = workflow.workflow_type;
+        if (dom.wfSourceSystem) dom.wfSourceSystem.textContent = workflow.source_system || '—';
+        if (dom.wfExternalEventId) dom.wfExternalEventId.textContent = workflow.external_event_id || '—';
 
-        const typeEl = document.getElementById('wf-type');
-        if (typeEl) typeEl.textContent = workflow.workflow_type;
+        if (dom.wfStarted) dom.wfStarted.textContent = utils.formatDate(workflow.started_at);
+        if (dom.wfCreated) dom.wfCreated.textContent = utils.formatDate(workflow.created_at);
+        if (dom.wfCompleted) dom.wfCompleted.textContent = workflow.completed_at ? utils.formatDate(workflow.completed_at) : '—';
+        if (dom.wfDuration) dom.wfDuration.textContent = workflow.duration_ms != null ? `${workflow.duration_ms}ms` : '—';
 
-        const createdEl = document.getElementById('wf-created');
-        if (createdEl) createdEl.textContent = utils.formatDate(workflow.created_at);
+        // Business Fields
+        const orig = workflow.original_request || {};
+        const res = workflow.result || {};
+        if (dom.wfOrderId) dom.wfOrderId.textContent = workflow.order_id || orig.order_id || '—';
+        if (dom.wfCustomerId) dom.wfCustomerId.textContent = workflow.customer_id || orig.customer_id || '—';
+        if (dom.wfPrevDelivery) dom.wfPrevDelivery.textContent = res.previous_delivery_date ? utils.formatDate(res.previous_delivery_date) : '—';
+        if (dom.wfNewDelivery) dom.wfNewDelivery.textContent = res.new_delivery_date ? utils.formatDate(res.new_delivery_date) : (orig.requested_delivery_date ? utils.formatDate(orig.requested_delivery_date) : '—');
+        if (dom.wfOrderStatus) dom.wfOrderStatus.textContent = res.order_status || '—';
 
-        const updatedEl = document.getElementById('wf-updated');
-        if (updatedEl) updatedEl.textContent = utils.formatDate(workflow.updated_at);
+        if (dom.wfCorrelation) dom.wfCorrelation.textContent = workflow.correlation_id || '—';
+        if (dom.wfIdempotencyKey) dom.wfIdempotencyKey.textContent = workflow.idempotency_key || '—';
+        if (dom.wfFailureCategory) dom.wfFailureCategory.textContent = workflow.failure_category || '—';
 
-        const completedEl = document.getElementById('wf-completed');
-        if (completedEl) completedEl.textContent = workflow.completed_at ? utils.formatDate(workflow.completed_at) : '—';
-
-        // Original Request
-        const origReqEl = document.getElementById('wf-original-request');
-        if (origReqEl) origReqEl.textContent = JSON.stringify(workflow.original_request, null, 2);
-
-        // Interpreted Request
-        const interpReqEl = document.getElementById('wf-interpreted-request');
-        if (interpReqEl) {
-            if (workflow.interpreted_request) {
-                interpReqEl.textContent = JSON.stringify(workflow.interpreted_request, null, 2);
+        // Steps Timeline
+        if (dom.wfStepsTbody) {
+            const steps = workflow.steps || [];
+            if (steps.length === 0) {
+                dom.wfStepsTbody.innerHTML = '';
+                if (dom.wfStepsEmpty) dom.wfStepsEmpty.hidden = false;
             } else {
-                interpReqEl.textContent = '—';
+                if (dom.wfStepsEmpty) dom.wfStepsEmpty.hidden = true;
+                dom.wfStepsTbody.innerHTML = steps.map(s => `
+                    <tr>
+                        <td><strong>${utils.escapeHtml(s.step_name)}</strong></td>
+                        <td>#${s.attempt_number}</td>
+                        <td><span class="badge badge-${s.status}">${utils.escapeHtml(s.status)}</span></td>
+                        <td>${utils.formatDate(s.started_at)}</td>
+                        <td>${s.duration_ms != null ? `${s.duration_ms}ms` : '—'}</td>
+                        <td>
+                            ${s.error_category ? `<span style="color: var(--color-error); font-weight: 600;">[${utils.escapeHtml(s.error_category)}]</span> ` : ''}
+                            ${s.metadata ? `<code>${utils.escapeHtml(JSON.stringify(s.metadata))}</code>` : (s.error_details ? `<code>${utils.escapeHtml(JSON.stringify(s.error_details))}</code>` : '—')}
+                        </td>
+                    </tr>
+                `).join('');
             }
         }
 
+        // LLM Telemetry
+        if (dom.wfLlmTbody) {
+            const llmCalls = workflow.llm_invocations || [];
+            if (llmCalls.length === 0) {
+                dom.wfLlmTbody.innerHTML = '';
+                if (dom.wfLlmEmpty) dom.wfLlmEmpty.hidden = false;
+            } else {
+                if (dom.wfLlmEmpty) dom.wfLlmEmpty.hidden = true;
+                dom.wfLlmTbody.innerHTML = llmCalls.map(inv => `
+                    <tr>
+                        <td><strong>${utils.escapeHtml(inv.provider)}</strong> / <code>${utils.escapeHtml(inv.model)}</code></td>
+                        <td><span class="badge badge-${inv.status}">${utils.escapeHtml(inv.status)}</span></td>
+                        <td>${inv.latency_ms != null ? `${inv.latency_ms}ms` : '—'}</td>
+                        <td>${inv.prompt_tokens != null ? utils.formatNumber(inv.prompt_tokens) : '—'}</td>
+                        <td>${inv.completion_tokens != null ? utils.formatNumber(inv.completion_tokens) : '—'}</td>
+                        <td>${inv.total_tokens != null ? utils.formatNumber(inv.total_tokens) : '—'}</td>
+                        <td>${inv.estimated_cost_usd != null ? `$${inv.estimated_cost_usd.toFixed(4)}` : '—'}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        // Original Request
+        if (dom.wfOriginalRequest) dom.wfOriginalRequest.textContent = JSON.stringify(workflow.original_request, null, 2);
+
+        // Interpreted Request
+        if (dom.wfInterpretedRequest) {
+            dom.wfInterpretedRequest.textContent = workflow.interpreted_request ? JSON.stringify(workflow.interpreted_request, null, 2) : '—';
+        }
+
         // Result
-        const resultEl = document.getElementById('wf-result');
-        if (resultEl) {
+        if (dom.wfResult) {
             if (workflow.result) {
-                resultEl.innerHTML = '';
+                dom.wfResult.innerHTML = '';
                 Object.entries(workflow.result).forEach(([key, value]) => {
                     const row = document.createElement('div');
                     row.className = 'detail-row';
@@ -424,21 +524,16 @@
                         <span class="detail-label">${utils.escapeHtml(key)}</span>
                         <span class="detail-value">${utils.escapeHtml(String(value))}</span>
                     `;
-                    resultEl.appendChild(row);
+                    dom.wfResult.appendChild(row);
                 });
             } else {
-                resultEl.textContent = '—';
+                dom.wfResult.textContent = '—';
             }
         }
 
-        // Error Details
-        const errorEl = document.getElementById('wf-error');
-        if (errorEl) {
-            if (workflow.error_details) {
-                errorEl.textContent = JSON.stringify(workflow.error_details, null, 2);
-            } else {
-                errorEl.textContent = '—';
-            }
+        // Error Diagnostics
+        if (dom.wfError) {
+            dom.wfError.textContent = workflow.error_details ? JSON.stringify(workflow.error_details, null, 2) : '—';
         }
     }
 
@@ -532,15 +627,15 @@
         if (dom.nlResult) dom.nlResult.hidden = false;
         if (dom.nlError) dom.nlError.hidden = true;
 
-        if (nlDraftOrderId) nlDraftOrderId.textContent = response.draft?.order_id || '—';
-        if (nlDraftCustomerId) nlDraftCustomerId.textContent = response.draft?.customer_id || '—';
-        if (nlDraftDeliveryDate) nlDraftDeliveryDate.textContent = response.draft?.requested_delivery_date
+        if (dom.nlDraftOrderId) dom.nlDraftOrderId.textContent = response.draft?.order_id || '—';
+        if (dom.nlDraftCustomerId) dom.nlDraftCustomerId.textContent = response.draft?.customer_id || '—';
+        if (dom.nlDraftDeliveryDate) dom.nlDraftDeliveryDate.textContent = response.draft?.requested_delivery_date
             ? new Date(response.draft.requested_delivery_date).toLocaleString()
             : '—';
 
-        if (nlWorkflowLink && response.draft) {
+        if (dom.nlWorkflowLink && response.draft) {
             // We don't have workflow_id in the response, but we can link to workflows list
-            nlWorkflowLink.href = '/workflows';
+            dom.nlWorkflowLink.href = '/workflows';
         }
     }
 
@@ -553,23 +648,7 @@
     // Load Data Functions
     async function loadDashboard() {
         try {
-            // We need to aggregate data from multiple endpoints
-            // For now, we'll use the workflows list to compute stats
-            const workflowsData = await api.getWorkflows(1, 100);
-            const workflows = workflowsData.items || [];
-
-            const total = workflows.length;
-            const completed = workflows.filter(w => w.status === 'completed').length;
-            const failed = workflows.filter(w => w.status === 'failed').length;
-            const recent = workflows.slice(0, 5);
-
-            const data = {
-                total_workflows: total,
-                completed_workflows: completed,
-                failed_workflows: failed,
-                recent_workflows: recent,
-            };
-
+            const data = await api.getMetrics();
             renderDashboard(data);
         } catch (error) {
             console.error('Failed to load dashboard:', error);
@@ -700,6 +779,8 @@
 
     // Expose for global access (pagination, etc.)
     window.loadWorkflows = loadWorkflows;
+    window.loadWorkflowDetail = loadWorkflowDetail;
+    window.loadDashboard = loadDashboard;
     window.utils = utils;
     window.api = api;
 })();

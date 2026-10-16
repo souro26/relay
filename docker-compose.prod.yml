@@ -1,0 +1,90 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: relay-postgres-prod
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-relay}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Database password required}
+      POSTGRES_DB: ${POSTGRES_DB:-relay_production}
+    # No exposed host ports in production; accessed only via internal network
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    networks:
+      - relay-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-relay} -d ${POSTGRES_DB:-relay_production}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: always
+
+  order-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.order-service
+    container_name: relay-order-service-prod
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-relay}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-relay_production}
+      ENVIRONMENT: production
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    # Internal communication only - no public port publishing
+    networks:
+      - relay-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+
+  relay:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: relay-api-prod
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-relay}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-relay_production}
+      ORDER_SERVICE_URL: http://order-service:8001
+      ENVIRONMENT: production
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LLM_PROVIDER: ${LLM_PROVIDER:-nvidia}
+      LLM_MODEL: ${LLM_MODEL:-nvidia/nemotron-3-ultra-550b-a55b}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_TIMEOUT: ${LLM_TIMEOUT:-60.0}
+      LLM_MAX_INPUT_CHARS: ${LLM_MAX_INPUT_CHARS:-2000}
+      LLM_MAX_OUTPUT_TOKENS: ${LLM_MAX_OUTPUT_TOKENS:-500}
+      LLM_MAX_RETRIES: ${LLM_MAX_RETRIES:-1}
+      LLM_RETRY_BACKOFF_BASE: ${LLM_RETRY_BACKOFF_BASE:-1.0}
+      LLM_INPUT_COST_PER_MILLION: ${LLM_INPUT_COST_PER_MILLION:-0.50}
+      LLM_OUTPUT_COST_PER_MILLION: ${LLM_OUTPUT_COST_PER_MILLION:-1.50}
+      DEMO_API_KEY: ${DEMO_API_KEY:-}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-60}
+      RUN_MIGRATIONS: "true"
+    networks:
+      - relay-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+      order-service:
+        condition: service_started
+    restart: always
+
+  proxy:
+    image: nginx:1.27-alpine
+    container_name: relay-proxy-prod
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - relay-internal
+    depends_on:
+      - relay
+    restart: always
+
+networks:
+  relay-internal:
+    driver: bridge
+
+volumes:
+  postgres_prod_data:
+    driver: local

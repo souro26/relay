@@ -23,11 +23,13 @@ class Settings(BaseSettings):
     llm_base_url: str | None = None
     llm_timeout: float = 30.0
 
-    # LLM Cost Controls
+    # LLM Cost Controls & Pricing (USD per 1,000,000 tokens)
     llm_max_input_chars: int = 2000
     llm_max_output_tokens: int = 500
     llm_max_retries: int = 1
     llm_retry_backoff_base: float = 1.0
+    llm_input_cost_per_million: float = 0.50
+    llm_output_cost_per_million: float = 1.50
 
     # Demo Access Control (for expensive NL endpoint)
     demo_api_key: str | None = None
@@ -52,6 +54,13 @@ class Settings(BaseSettings):
             raise ValueError(f"log_level must be one of {allowed}")
         return v_upper
 
+    @field_validator("demo_api_key", "llm_api_key", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v: str | None) -> str | None:
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
     @field_validator("llm_provider")
     @classmethod
     def validate_llm_provider(cls, v: str) -> str:
@@ -75,6 +84,19 @@ class Settings(BaseSettings):
             return v
         raise ValueError("database_url must be a SQLite or PostgreSQL URL")
 
+    def estimate_llm_cost(
+        self,
+        prompt_tokens: int | None,
+        completion_tokens: int | None,
+    ) -> float | None:
+        """Calculate estimated LLM cost based on instance configuration."""
+        return estimate_llm_cost(
+            prompt_tokens,
+            completion_tokens,
+            self.llm_input_cost_per_million,
+            self.llm_output_cost_per_million,
+        )
+
 
 _settings: Settings | None = None
 
@@ -94,3 +116,34 @@ def reload_settings() -> Settings:
 
 
 settings = get_settings()
+
+
+def estimate_llm_cost(
+    prompt_tokens: int | None,
+    completion_tokens: int | None,
+    input_cost_per_million: float | None = None,
+    output_cost_per_million: float | None = None,
+) -> float | None:
+    """Calculate estimated LLM cost in USD based on configurable token rates.
+
+    Returns None if neither prompt nor completion tokens are provided.
+    """
+    if prompt_tokens is None and completion_tokens is None:
+        return None
+
+    in_rate = (
+        input_cost_per_million
+        if input_cost_per_million is not None
+        else settings.llm_input_cost_per_million
+    )
+    out_rate = (
+        output_cost_per_million
+        if output_cost_per_million is not None
+        else settings.llm_output_cost_per_million
+    )
+
+    cost = ((prompt_tokens or 0) / 1_000_000.0) * in_rate + (
+        (completion_tokens or 0) / 1_000_000.0
+    ) * out_rate
+    return round(cost, 6)
+

@@ -6,21 +6,26 @@ import sys
 from datetime import UTC, datetime
 from typing import Any
 
-from relay.api.correlation import get_correlation_id, get_workflow_id
+from relay.api.correlation import get_correlation_id, get_step_name, get_workflow_id
+from relay.core.config import settings
 
 
 class JSONFormatter(logging.Formatter):
-    """JSON log formatter with correlation ID and workflow ID support."""
+    """JSON log formatter with correlation ID, workflow ID, and step support."""
 
-    def __init__(self, include_timestamp: bool = True):
+    def __init__(self, include_timestamp: bool = True, service_name: str = "relay"):
         super().__init__()
         self.include_timestamp = include_timestamp
+        self.service_name = service_name
 
     def format(self, record: logging.LogRecord) -> str:
         """Format log record as JSON."""
         log_data: dict[str, Any] = {
+            "severity": record.levelname,
             "level": record.levelname,
             "logger": record.name,
+            "service_name": self.service_name,
+            "environment": getattr(settings, "environment", "development"),
             "message": record.getMessage(),
         }
 
@@ -38,6 +43,11 @@ class JSONFormatter(logging.Formatter):
         workflow_id = get_workflow_id()
         if workflow_id:
             log_data["workflow_id"] = workflow_id
+
+        # Add step name if available
+        step_name = get_step_name()
+        if step_name:
+            log_data["step_name"] = step_name
 
         # Add extra fields from record
         extra_fields = {
@@ -157,6 +167,7 @@ def log_workflow_event(
     workflow_id: str,
     status: str,
     duration_ms: float | None = None,
+    error_category: str | None = None,
     **extra: Any,
 ) -> None:
     """Log a workflow lifecycle event with structured data."""
@@ -166,10 +177,68 @@ def log_workflow_event(
         "status": status,
     }
     if duration_ms is not None:
-        extra_data["duration_ms"] = duration_ms
+        extra_data["duration_ms"] = round(duration_ms, 2)
+    if error_category is not None:
+        extra_data["error_category"] = error_category
     extra_data.update(extra)
 
-    logger.info(f"Workflow {event}: {status}", extra=extra_data)
+    level = logging.ERROR if status in ("failed", "error") else logging.INFO
+    logger.log(level, f"Workflow {event}: {status}", extra=extra_data)
+
+
+def log_step_event(
+    logger: logging.Logger,
+    event: str,
+    step_name: str,
+    status: str,
+    attempt_number: int = 1,
+    duration_ms: float | None = None,
+    error_category: str | None = None,
+    **extra: Any,
+) -> None:
+    """Log a workflow step lifecycle event with structured data."""
+    extra_data = {
+        "event": event,
+        "step_name": step_name,
+        "status": status,
+        "attempt_number": attempt_number,
+    }
+    if duration_ms is not None:
+        extra_data["duration_ms"] = round(duration_ms, 2)
+    if error_category is not None:
+        extra_data["error_category"] = error_category
+    extra_data.update(extra)
+
+    level = logging.ERROR if status in ("failed", "error") else logging.INFO
+    logger.log(level, f"Step '{step_name}' {event}: {status}", extra=extra_data)
+
+
+def log_api_event(
+    logger: logging.Logger,
+    event: str,
+    method: str,
+    path: str,
+    status_code: int | None = None,
+    duration_ms: float | None = None,
+    error_category: str | None = None,
+    **extra: Any,
+) -> None:
+    """Log an API request event with structured data."""
+    extra_data = {
+        "event": event,
+        "method": method,
+        "path": path,
+    }
+    if status_code is not None:
+        extra_data["status_code"] = status_code
+    if duration_ms is not None:
+        extra_data["duration_ms"] = round(duration_ms, 2)
+    if error_category is not None:
+        extra_data["error_category"] = error_category
+    extra_data.update(extra)
+
+    level = logging.ERROR if (status_code and status_code >= 500) else logging.INFO
+    logger.log(level, f"API {method} {path} - {status_code or event}", extra=extra_data)
 
 
 def log_order_service_call(
@@ -190,7 +259,7 @@ def log_order_service_call(
     if status_code is not None:
         extra_data["status_code"] = status_code
     if duration_ms is not None:
-        extra_data["duration_ms"] = duration_ms
+        extra_data["duration_ms"] = round(duration_ms, 2)
     if error is not None:
         extra_data["error"] = error
     extra_data.update(extra)
@@ -204,8 +273,11 @@ def log_llm_call(
     model: str,
     prompt_tokens: int | None = None,
     completion_tokens: int | None = None,
+    total_tokens: int | None = None,
     duration_ms: float | None = None,
+    estimated_cost_usd: float | None = None,
     error: str | None = None,
+    error_category: str | None = None,
     **extra: Any,
 ) -> None:
     """Log an LLM API call with structured data."""
@@ -217,10 +289,18 @@ def log_llm_call(
         extra_data["prompt_tokens"] = prompt_tokens
     if completion_tokens is not None:
         extra_data["completion_tokens"] = completion_tokens
+    if total_tokens is not None:
+        extra_data["total_tokens"] = total_tokens
+    elif prompt_tokens is not None and completion_tokens is not None:
+        extra_data["total_tokens"] = prompt_tokens + completion_tokens
     if duration_ms is not None:
-        extra_data["duration_ms"] = duration_ms
+        extra_data["duration_ms"] = round(duration_ms, 2)
+    if estimated_cost_usd is not None:
+        extra_data["estimated_cost_usd"] = round(estimated_cost_usd, 6)
     if error is not None:
         extra_data["error"] = error
+    if error_category is not None:
+        extra_data["error_category"] = error_category
     extra_data.update(extra)
 
     level = logging.ERROR if error else logging.INFO

@@ -125,6 +125,97 @@ class TestWorkflowEndpoints:
         assert data["page"] == 2
         assert data["page_size"] == 10
 
+    def test_get_workflow_with_steps_and_llm(self, client, sample_workflow):
+        test_client, mock_session = client
+        from datetime import UTC, datetime
+
+        step = MagicMock()
+        step.id = uuid.uuid4()
+        step.step_name = "fetch_order_details"
+        step.attempt_number = 1
+        step.status = "completed"
+        step.started_at = datetime.now(UTC)
+        step.completed_at = datetime.now(UTC)
+        step.duration_ms = 120.5
+        step.error_category = None
+        step.error_details = None
+        step.step_metadata = {"order_id": "ORD-123"}
+        sample_workflow.steps = [step]
+
+        inv = MagicMock()
+        inv.id = uuid.uuid4()
+        inv.step_name = "interpret_nl_request"
+        inv.provider = "openai"
+        inv.model = "gpt-4o-mini"
+        inv.started_at = datetime.now(UTC)
+        inv.completed_at = datetime.now(UTC)
+        inv.latency_ms = 400.0
+        inv.prompt_tokens = 100
+        inv.completion_tokens = 50
+        inv.total_tokens = 150
+        inv.estimated_cost_usd = 0.000045
+        inv.status = "success"
+        inv.error_category = None
+        inv.error_message = None
+        sample_workflow.llm_invocations = [inv]
+
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = sample_workflow
+        mock_session.execute.return_value = mock_result
+
+        response = test_client.get(f"/api/v1/workflows/{sample_workflow.id}")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["steps"]) == 1
+        assert data["steps"][0]["step_name"] == "fetch_order_details"
+        assert len(data["llm_invocations"]) == 1
+        assert data["llm_invocations"][0]["model"] == "gpt-4o-mini"
+        assert data["llm_invocations"][0]["total_tokens"] == 150
+
+    def test_get_metrics_endpoint(self, client, sample_workflow):
+        test_client, mock_session = client
+
+        # 1. status counts: [('completed', 10), ('failed', 2)]
+        mock_status_res = MagicMock()
+        mock_status_res.all.return_value = [("completed", 10), ("failed", 2)]
+
+        # 2. durations: [100.0, 200.0, 300.0]
+        mock_dur_res = MagicMock()
+        mock_dur_res.scalars.return_value.all.return_value = [100.0, 200.0, 300.0]
+
+        # 3. step failures: [('execute_delivery_update', 2)]
+        mock_failures_res = MagicMock()
+        mock_failures_res.all.return_value = [("execute_delivery_update", 2)]
+
+        # 4. llm stats: (total_inv, sum_tokens, sum_cost, avg_latency)
+        mock_llm_res = MagicMock()
+        mock_llm_res.one.return_value = (5, 1200, 0.005, 350.2)
+
+        # 5. recent workflows
+        mock_recent_res = MagicMock()
+        mock_recent_res.scalars.return_value.all.return_value = [sample_workflow]
+
+        mock_session.execute.side_effect = [
+            mock_status_res,
+            mock_dur_res,
+            mock_failures_res,
+            mock_llm_res,
+            mock_recent_res,
+        ]
+
+        response = test_client.get("/api/v1/metrics")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_workflows"] == 12
+        assert data["completed_workflows"] == 10
+        assert data["failed_workflows"] == 2
+        assert data["success_rate_percentage"] == "83.3%"
+        assert data["median_duration_ms"] == 200.0
+        assert data["step_failure_counts"] == {"execute_delivery_update": 2}
+        assert data["total_tokens"] == 1200
+        assert data["total_estimated_cost_usd"] == 0.005
+
+
 
 class TestApplicationInitialization:
     def test_app_creates_successfully(self):
