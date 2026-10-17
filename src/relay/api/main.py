@@ -174,6 +174,17 @@ async def workflow_history(request: Request):
     )
 
 
+@app.get("/workflows/new", response_class=HTMLResponse, tags=["frontend"])
+@app.get("/request", response_class=HTMLResponse, tags=["frontend"])
+async def nl_request_form(request: Request):
+    """Natural language request form page."""
+    return templates.TemplateResponse(
+        request,
+        "nl_request.html",
+        {"request": request},
+    )
+
+
 @app.get("/workflows/{execution_id}", response_class=HTMLResponse, tags=["frontend"])
 async def workflow_detail(execution_id: str, request: Request):
     """Workflow detail page."""
@@ -190,17 +201,6 @@ async def workflow_detail(execution_id: str, request: Request):
         request,
         "workflow_detail.html",
         {"request": request, "execution_id": execution_id},
-    )
-
-
-@app.get("/workflows/new", response_class=HTMLResponse, tags=["frontend"])
-@app.get("/request", response_class=HTMLResponse, tags=["frontend"])
-async def nl_request_form(request: Request):
-    """Natural language request form page."""
-    return templates.TemplateResponse(
-        request,
-        "nl_request.html",
-        {"request": request},
     )
 
 

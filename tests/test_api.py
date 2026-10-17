@@ -223,3 +223,51 @@ class TestApplicationInitialization:
 
         assert app is not None
         assert app.title == "Relay"
+
+
+class TestFrontendDataIntegrity:
+    """Regression tests verifying frontend truthful representation and data integrity."""
+
+    def test_no_unsupported_marketing_or_sla_claims_in_templates(self):
+        """Verify no fraudulent certification, node, or static SLA claims exist in templates."""
+        import os
+
+        template_dir = "src/relay/templates"
+        forbidden_phrases = [
+            "SOC2",
+            "Zero Purple Guarantee",
+            "Production Node #04",
+            "p95~14ms",
+            "Budget $250",
+            "5/5 Nodes Succeeded",
+            "Optimal +0.04%",
+            "+12.4% 24h rolling",
+            "Target reliability SLA",
+        ]
+
+        for filename in os.listdir(template_dir):
+            if filename.endswith(".html"):
+                path = os.path.join(template_dir, filename)
+                with open(path, encoding="utf-8") as f:
+                    content = f.read()
+                    for phrase in forbidden_phrases:
+                        msg = f"Found forbidden phrase '{phrase}' in {filename}"
+                        assert phrase not in content, msg
+
+    def test_frontend_routes_render_cleanly(self, client):
+        """Verify all frontend HTML routes render successfully."""
+        test_client, _ = client
+
+        routes = ["/", "/workflows", "/request", "/workflows/new"]
+        for route in routes:
+            res = test_client.get(route)
+            assert res.status_code == 200, f"Route {route} returned {res.status_code}"
+            assert "text/html" in res.headers["content-type"]
+
+    def test_openai_adapter_model_fallback(self):
+        """Verify OpenAIAdapter safely falls back to gpt-4o-mini when default model is nvidia."""
+        from relay.adapters.llm.openai import OpenAIAdapter
+
+        adapter = OpenAIAdapter(api_key="test-key")
+        assert adapter.model_name == "gpt-4o-mini"
+        assert adapter.provider_name == "openai"

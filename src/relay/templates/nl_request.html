@@ -1,26 +1,20 @@
 {% extends "base.html" %}
 
-{% block title %}Natural Language Workflow Orchestrator - Relay{% endblock %}
+{% block title %}Natural Language Workflow Request - Relay{% endblock %}
 
 {% block content %}
 <div id="nl-studio-view">
     <!-- Page Header -->
     <div class="page-header">
         <div class="page-title-group">
-            <h1>Natural Language Workflow Orchestrator</h1>
-            <p>Translate plain-text business intents into deterministic, policy-guarded executable DAG pipelines.</p>
-        </div>
-        <div class="header-actions">
-            <span class="system-status-pill" style="background: var(--color-bg-card); border-color: var(--color-border); color: var(--color-text-secondary);">
-                <span class="pulse-dot"></span>
-                <span>Engine: <strong>GPT-4o Synthesis Active</strong></span>
-            </span>
+            <h1>Natural Language Workflow Request</h1>
+            <p>Submit natural language business requests for AI interpretation and automated workflow execution.</p>
         </div>
     </div>
 
     <!-- 2-Column Studio Grid -->
     <div class="studio-grid">
-        <!-- Left Column: Input & Policy Guardrails -->
+        <!-- Left Column: Input Console -->
         <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
             <!-- Card 1: Prompt Input Console -->
             <div class="analytics-card">
@@ -30,31 +24,27 @@
                             <rect x="2" y="4" width="20" height="16" rx="2"/>
                             <path d="m10 15 5-3-5-3v6z"/>
                         </svg>
-                        <span class="analytics-card-title" style="text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Prompt Input Console</span>
+                        <span class="analytics-card-title" style="text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Natural Language Prompt</span>
                     </div>
-                    <span class="metric-subtext" id="nl-char-counter">64 / 500 chars &bull; ~16 tokens</span>
+                    <span class="metric-subtext" id="nl-char-counter">0 / 2000 chars</span>
                 </div>
 
                 <form id="nl-request-form">
-                    <textarea id="nl-text" class="prompt-textarea" placeholder="Describe the business workflow mutation in natural language (e.g. 'Delay order ORD-1002 by 7 days due to supplier warehouse backlog')">Delay order ORD-1002 by 7 days due to supplier warehouse backlog</textarea>
+                    <textarea id="nl-text" class="prompt-textarea" placeholder="Enter request text (e.g. 'Please postpone order ORD-12345678 to 2026-12-01')">Please delay order ORD-12345678 to 2026-12-15</textarea>
 
-                    <input type="hidden" id="nl-source-system" value="shopify">
+                    <input type="hidden" id="nl-source-system" value="web-console">
                     <input type="hidden" id="nl-external-event-id" value="">
 
                     <!-- Pre-filled Prompt Suggestions -->
                     <div style="margin-top: var(--spacing-md);">
-                        <span class="metric-label" style="display: block; margin-bottom: 6px;">Pre-Filled Prompt Suggestions</span>
+                        <span class="metric-label" style="display: block; margin-bottom: 6px;">Example Requests</span>
                         <div class="suggestion-chips-list">
-                            <div class="suggestion-chip" data-prompt="Delay order ORD-1002 by 7 days due to supplier warehouse backlog">
-                                <span>Delay order ORD-1002 by 7 days due to supplier warehouse backlog</span>
+                            <div class="suggestion-chip" data-prompt="Please delay order ORD-12345678 to 2026-12-15">
+                                <span>Please delay order ORD-12345678 to 2026-12-15</span>
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
                             </div>
-                            <div class="suggestion-chip" data-prompt="Expedite shipping for VIP customer CUST-8492 on order ORD-993">
-                                <span>Expedite shipping for VIP customer CUST-8492 on order ORD-993</span>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
-                            </div>
-                            <div class="suggestion-chip" data-prompt="Cancel order ORD-3041 and notify customer of full refund">
-                                <span>Cancel order ORD-3041 and notify customer of full refund</span>
+                            <div class="suggestion-chip" data-prompt="Reschedule delivery for order ORD-A1B2C3D4 to November 20, 2026">
+                                <span>Reschedule delivery for order ORD-A1B2C3D4 to November 20, 2026</span>
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
                             </div>
                         </div>
@@ -62,161 +52,74 @@
                 </form>
             </div>
 
-            <!-- Card 2: Execution Guardrails & Policy -->
-            <div class="analytics-card">
-                <div class="analytics-card-header">
-                    <span class="analytics-card-title" style="text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Execution Guardrails &amp; Policy</span>
-                    <span class="brand-tag">Deterministic Policy Engine v2.4</span>
-                </div>
-
-                <!-- Segmented Mode Toggle: Dry Run vs Live Execution -->
-                <div class="segmented-toggle" id="execution-mode-toggle">
-                    <button type="button" class="segmented-btn active" id="btn-mode-dryrun" data-mode="dry_run">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                        </svg>
-                        <span>Dry Run / Simulation</span>
-                    </button>
-                    <button type="button" class="segmented-btn" id="btn-mode-live" data-mode="live">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                        </svg>
-                        <span>Execute Live Workflow</span>
-                    </button>
-                </div>
-
-                <!-- Informational Banner -->
-                <div style="background: var(--color-info-bg); border: 1px solid var(--color-info-border); border-radius: var(--radius-md); padding: 10px 12px; margin-top: var(--spacing-sm); display: flex; gap: 8px; align-items: flex-start;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--color-info); flex-shrink: 0; margin-top: 2px;">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="12" y1="16" x2="12" y2="12"/>
-                        <line x1="12" y1="8" x2="12.01" y2="8"/>
-                    </svg>
-                    <span style="font-size: 12px; color: var(--color-info-text);" id="execution-mode-banner">
-                        Dry run validates schema integrity, customer tier SLA limits, and simulates downstream ERP mutation before commit.
-                    </span>
-                </div>
-
-                <!-- Auto-escalate switch -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--spacing-md); padding-top: var(--spacing-sm); border-top: 1px solid var(--color-border);">
-                    <div>
-                        <div style="font-size: 12px; font-weight: 600; color: var(--color-text-primary);">Auto-escalate if confidence &lt; 85%</div>
-                        <div class="metric-subtext">Routes ambiguous entity trees to human-in-the-loop review</div>
-                    </div>
-                    <label style="position: relative; display: inline-block; width: 36px; height: 20px;">
-                        <input type="checkbox" id="chk-auto-escalate" checked style="opacity: 0; width: 0; height: 0;">
-                        <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--color-primary); transition: .2s; border-radius: 20px;">
-                            <span style="position: absolute; content: ''; height: 14px; width: 14px; left: 19px; bottom: 3px; background-color: white; transition: .2s; border-radius: 50%;"></span>
-                        </span>
-                    </label>
-                </div>
-            </div>
-
             <!-- Action Buttons Row -->
             <div style="display: flex; gap: var(--spacing-sm);">
                 <button type="button" class="btn btn-primary" id="btn-synthesize-workflow" style="flex: 1; padding: 10px 16px; font-size: 13.5px; font-weight: 600;">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                     </svg>
-                    <span>Synthesize &amp; Orchestrate Workflow</span>
+                    <span>Interpret &amp; Execute Workflow</span>
                 </button>
                 <button type="button" class="btn btn-secondary" id="btn-reset-studio">
-                    <span>Reset Console</span>
+                    <span>Clear</span>
                 </button>
             </div>
 
             <!-- Error Banner -->
-            <div id="nl-studio-error" class="alert alert-error" style="display: none; padding: 10px; border-radius: var(--radius-md); background: var(--color-error-bg); border: 1px solid var(--color-error-border); color: var(--color-error-text); font-size: 12px;"></div>
+            <div id="nl-studio-error" style="display: none; padding: 12px; border-radius: var(--radius-md); background: var(--color-error-bg); border: 1px solid var(--color-error-border); color: var(--color-error-text); font-size: 12.5px;"></div>
         </div>
 
-        <!-- Right Column: Real-Time Extraction & DAG Plan Preview -->
+        <!-- Right Column: Extracted Entities & Execution Result -->
         <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
-            <!-- Card 1: Real-Time Extraction -->
+            <!-- Card 1: Parsed Preview -->
             <div class="analytics-card">
                 <div class="analytics-card-header">
                     <div>
-                        <div class="metric-label" style="font-size: 10px;">Real-Time Extraction</div>
-                        <div class="analytics-card-title">Extracted Intent &amp; Entities</div>
+                        <div class="metric-label" style="font-size: 10px;">Client Parameter Detection</div>
+                        <div class="analytics-card-title">Detected Request Entities</div>
                     </div>
-                    <span class="metric-pill success" id="extract-confidence-pill">99.4% Confidence</span>
-                </div>
-
-                <div style="margin-bottom: var(--spacing-xs);">
-                    <span class="metric-subtext" style="font-size: 11px;">Target Schema Path:</span>
-                    <code style="font-size: 11.5px; background: var(--color-bg-page); padding: 2px 6px; border-radius: 4px; color: var(--color-text-primary); margin-left: 6px;" id="extract-schema-path">order.delivery_date.delay</code>
                 </div>
 
                 <!-- 2x2 Entities Grid -->
                 <div class="entities-2x2">
                     <div class="entity-card gold">
-                        <div class="entity-card-title">Target Order ID</div>
-                        <div class="entity-card-val" id="extract-order-id">ORD-1002</div>
-                    </div>
-                    <div class="entity-card blue">
-                        <div class="entity-card-title">Schedule Delta</div>
-                        <div class="entity-card-val" id="extract-delta">+7 Days</div>
+                        <div class="entity-card-title">Order ID</div>
+                        <div class="entity-card-val" id="extract-order-id">ORD-12345678</div>
                     </div>
                     <div class="entity-card green">
-                        <div class="entity-card-title">Calculated Target Date</div>
-                        <div class="entity-card-val" id="extract-target-date">2026-11-25</div>
-                    </div>
-                    <div class="entity-card slate">
-                        <div class="entity-card-title">Downstream Sinks</div>
-                        <div class="entity-card-val" id="extract-sinks">ERP &amp; SendGrid</div>
+                        <div class="entity-card-title">Requested Delivery Date</div>
+                        <div class="entity-card-val" id="extract-target-date">2026-12-15</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Card 2: Generated DAG Execution Plan -->
+            <!-- Card 2: Execution Status / Outcome Card -->
             <div class="analytics-card" style="flex: 1;">
                 <div class="analytics-card-header">
                     <div>
-                        <div class="analytics-card-title">Generated DAG Execution Plan</div>
-                    </div>
-                    <span class="metric-subtext">4 Nodes &bull; Sequential Flow</span>
-                </div>
-
-                <!-- Vertical DAG Step List -->
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--color-bg-page); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span class="pulse-dot" style="background: var(--color-success);"></span>
-                            <span style="font-size: 12.5px; font-weight: 500;">01 Validate Schema &amp; Policy</span>
-                        </div>
-                        <span class="badge badge-success" style="font-size: 10px;">PASS</span>
-                    </div>
-
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--color-bg-page); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span class="pulse-dot" style="background: var(--color-info);"></span>
-                            <span style="font-size: 12.5px; font-weight: 500;">02 Verify VIP Account Status</span>
-                        </div>
-                        <span class="badge badge-running" style="font-size: 10px;">TIER-1</span>
-                    </div>
-
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--color-bg-page); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span class="pulse-dot" style="background: var(--color-text-muted);"></span>
-                            <span style="font-size: 12.5px; font-weight: 500;">03 Patch SAP/ERP Order Record</span>
-                        </div>
-                        <span class="badge badge-pending" style="font-size: 10px;" id="dag-node-3-badge">SIMULATE</span>
-                    </div>
-
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--color-bg-page); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span class="pulse-dot" style="background: var(--color-text-muted);"></span>
-                            <span style="font-size: 12.5px; font-weight: 500;">04 Send Notification (SendGrid)</span>
-                        </div>
-                        <span class="badge badge-pending" style="font-size: 10px;">QUEUED</span>
+                        <div class="analytics-card-title">Execution Outcome</div>
+                        <div class="analytics-card-subtitle">Server response from /api/v1/order-change-requests/nl</div>
                     </div>
                 </div>
 
-                <!-- Plan Telemetry Summary Footer -->
-                <div class="analytics-card-footer" style="margin-top: auto; padding-top: 12px;">
-                    <div style="display: flex; gap: var(--spacing-md); font-family: var(--font-mono); font-size: 11px;">
-                        <span>Latency: <strong>~340ms</strong></span>
-                        <span>Tokens: <strong>~450</strong></span>
-                        <span>Cost: <strong>&lt;$0.0005</strong></span>
+                <div id="nl-outcome-empty" style="text-align: center; padding: var(--spacing-xl); color: var(--color-text-muted); font-size: 12.5px;">
+                    Submit a prompt to run natural language interpretation and execute the workflow.
+                </div>
+
+                <div id="nl-outcome-content" style="display: none; flex-direction: column; gap: var(--spacing-sm);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--color-bg-page); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+                        <span style="font-size: 12.5px; font-weight: 500;">Workflow Execution:</span>
+                        <span class="badge" id="nl-outcome-badge">UNKNOWN</span>
+                    </div>
+
+                    <div style="padding: 12px; background: var(--color-bg-page); border: 1px solid var(--color-border); border-radius: var(--radius-md); font-family: var(--font-mono); font-size: 12px;">
+                        <div>Workflow ID: <strong id="nl-outcome-wfid">—</strong></div>
+                        <div style="margin-top: 4px;">Tokens Consumed: <span id="nl-outcome-tokens">—</span></div>
+                        <div style="margin-top: 4px;">Estimated Cost: <span id="nl-outcome-cost">—</span></div>
+                    </div>
+
+                    <div style="margin-top: var(--spacing-sm);" id="nl-outcome-action">
+                        <!-- Populated by JS -->
                     </div>
                 </div>
             </div>

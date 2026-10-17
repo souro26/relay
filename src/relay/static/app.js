@@ -1,21 +1,18 @@
 /**
- * Relay - Enterprise Observability & Workflow Orchestration
- * Frontend Controller matching Relay UI Design Spec
+ * Relay - Business Workflow Integration
+ * Frontend Controller for Truthful Observability & Telemetry
  */
 
 (function() {
     'use strict';
 
-    // Chart instance references
     let statusChartInstance = null;
 
-    // Global application state
     const state = {
         theme: 'light',
         workflows: [],
         metrics: null,
-        activeTab: 'tab-state',
-        executionMode: 'dry_run',
+        activeWorkflow: null,
         historyFilter: {
             status: 'all',
             search: '',
@@ -46,7 +43,9 @@
             document.documentElement.setAttribute('data-theme', mode);
             localStorage.setItem(this.STORAGE_KEY, mode);
             this.updateToggleIcon(mode);
-            this.updateChartsTheme(mode);
+            if (statusChartInstance) {
+                statusChartInstance.update();
+            }
         },
 
         toggle() {
@@ -77,11 +76,6 @@
                 btn.title = 'Switch to dark mode';
                 icon.innerHTML = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`;
             }
-        },
-
-        updateChartsTheme(mode) {
-            if (!statusChartInstance) return;
-            statusChartInstance.update();
         }
     };
 
@@ -112,26 +106,11 @@
                     year: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit',
-                    second: '2-digit',
-                    timeZoneName: 'short'
+                    second: '2-digit'
                 });
             } catch {
                 return dateStr;
             }
-        },
-
-        formatRelativeTime(dateStr) {
-            if (!dateStr) return '—';
-            const d = new Date(dateStr);
-            if (isNaN(d.getTime())) return dateStr;
-            const diffMs = Date.now() - d.getTime();
-            const diffSec = Math.floor(diffMs / 1000);
-            if (diffSec < 60) return `${Math.max(1, diffSec)}s ago`;
-            const diffMin = Math.floor(diffSec / 60);
-            if (diffMin < 60) return `${diffMin}m ago`;
-            const diffHr = Math.floor(diffMin / 60);
-            if (diffHr < 24) return `${diffHr}h ago`;
-            return `${Math.floor(diffHr / 24)}d ago`;
         },
 
         showToast(message, type = 'info') {
@@ -155,7 +134,6 @@
                 display: flex;
                 align-items: center;
                 gap: 8px;
-                animation: toast-in 0.2s ease-out;
             `;
             toast.textContent = message;
             document.body.appendChild(toast);
@@ -184,11 +162,24 @@
             document.execCommand('copy');
             ta.remove();
             utils.showToast(label, 'success');
+        },
+
+        downloadFile(content, filename, type = 'text/plain') {
+            const blob = new Blob([content], { type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            utils.showToast(`Exported ${filename}`, 'success');
         }
     };
 
     // ==============================================================================
-    // API Service
+    // API Client
     // ==============================================================================
     const api = {
         async getMetrics() {
@@ -197,8 +188,12 @@
             return res.json();
         },
 
-        async getWorkflows(page = 1, pageSize = 25) {
-            const res = await fetch(`/api/v1/workflows?page=${page}&page_size=${pageSize}`);
+        async getWorkflows(page = 1, pageSize = 25, status = null) {
+            let url = `/api/v1/workflows?page=${page}&page_size=${pageSize}`;
+            if (status && status !== 'all') {
+                url += `&status=${encodeURIComponent(status)}`;
+            }
+            const res = await fetch(url);
             if (!res.ok) throw new Error('Failed to fetch workflows');
             return res.json();
         },
@@ -222,7 +217,8 @@
             });
             const data = await res.json();
             if (!res.ok) {
-                const err = new Error(data.detail?.error || data.detail || 'NL interpretation failed');
+                const msg = data.detail?.error || (typeof data.detail === 'string' ? data.detail : 'Request failed');
+                const err = new Error(msg);
                 err.response = data;
                 throw err;
             }
@@ -253,6 +249,9 @@
         const runningEl = document.getElementById('metric-running-workflows');
         const tokensEl = document.getElementById('metric-total-tokens');
         const costEl = document.getElementById('metric-total-cost');
+        const diagLlmLat = document.getElementById('diag-llm-latency');
+        const diagLlmCalls = document.getElementById('diag-llm-calls');
+        const diagFailList = document.getElementById('diag-step-failures-list');
         const runsTbody = document.getElementById('dashboard-recent-workflows');
 
         try {
@@ -260,21 +259,39 @@
             state.metrics = metrics;
 
             if (totalEl) totalEl.textContent = utils.formatNumber(metrics.total_workflows || 0);
-            if (successRateEl) successRateEl.textContent = metrics.success_rate_percentage || '100.0%';
-            if (medianEl) medianEl.textContent = metrics.median_duration_ms ? `${metrics.median_duration_ms}ms` : '142ms';
-            if (p95El) p95El.textContent = metrics.p95_duration_ms ? `${metrics.p95_duration_ms}ms` : '412ms';
+            if (successRateEl) successRateEl.textContent = metrics.success_rate_percentage || '—';
+            if (medianEl) medianEl.textContent = metrics.median_duration_ms != null ? `${metrics.median_duration_ms}ms` : '—';
+            if (p95El) p95El.textContent = metrics.p95_duration_ms != null ? `${metrics.p95_duration_ms}ms` : '—';
             if (failedEl) failedEl.textContent = String(metrics.failed_workflows || 0);
             if (runningEl) runningEl.textContent = String(metrics.running_workflows || 0);
-            if (tokensEl) tokensEl.textContent = metrics.total_tokens ? utils.formatNumber(metrics.total_tokens) : '48.2M';
-            if (costEl) costEl.textContent = metrics.total_estimated_cost_usd ? `$${metrics.total_estimated_cost_usd.toFixed(2)}` : '$184.20';
+            if (tokensEl) tokensEl.textContent = metrics.total_tokens ? utils.formatNumber(metrics.total_tokens) : '—';
+            if (costEl) costEl.textContent = metrics.total_estimated_cost_usd != null ? `$${metrics.total_estimated_cost_usd.toFixed(4)}` : '—';
 
-            // Render Donut Chart
+            // Diagnostics Card
+            if (diagLlmLat) diagLlmLat.textContent = metrics.avg_llm_latency_ms != null ? `${metrics.avg_llm_latency_ms}ms` : '—';
+            if (diagLlmCalls) diagLlmCalls.textContent = String(metrics.total_llm_invocations || 0);
+            if (diagFailList) {
+                const failCounts = metrics.step_failure_counts || {};
+                const keys = Object.keys(failCounts);
+                if (keys.length === 0) {
+                    diagFailList.textContent = '0 step failures recorded across workflow executions.';
+                } else {
+                    diagFailList.innerHTML = keys.map(k => `
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span><code>${utils.escapeHtml(k)}</code></span>
+                            <span class="badge badge-failed">${failCounts[k]} failures</span>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            // Status Distribution Donut Chart
             renderStatusDonut(metrics);
 
-            // Render Recent Runs Table
+            // Recent Runs Table
             renderDashboardRuns(metrics.recent_workflows || []);
 
-            // Setup Filter
+            // Search filter
             const searchInput = document.getElementById('dashboard-search-input');
             const statusFilter = document.getElementById('dashboard-status-filter');
             const filterRuns = () => {
@@ -308,13 +325,12 @@
         const canvas = document.getElementById('statusChart');
         if (!canvas) return;
 
-        const completed = metrics.completed_workflows || 134602;
-        const running = metrics.running_workflows || 5881;
-        const uncertain = metrics.uncertain_workflows || 2572;
-        const failed = metrics.failed_workflows || 715;
-        const total = completed + running + uncertain + failed || 1;
+        const completed = metrics.completed_workflows || 0;
+        const running = metrics.running_workflows || 0;
+        const uncertain = metrics.uncertain_workflows || 0;
+        const failed = metrics.failed_workflows || 0;
+        const total = completed + running + uncertain + failed;
 
-        // Update Legend Counts
         const elComp = document.getElementById('legend-completed-cnt');
         const elRun = document.getElementById('legend-running-cnt');
         const elUnc = document.getElementById('legend-uncertain-cnt');
@@ -325,28 +341,48 @@
         if (elUnc) elUnc.textContent = utils.formatNumber(uncertain);
         if (elFail) elFail.textContent = utils.formatNumber(failed);
 
-        const pctComp = ((completed / total) * 100).toFixed(1);
-        const elCompPct = document.getElementById('legend-completed-pct');
-        if (elCompPct) elCompPct.textContent = `${pctComp}%`;
-
         const centerPct = document.getElementById('donut-center-pct');
-        if (centerPct) centerPct.textContent = `${pctComp}%`;
+        const centerLbl = document.getElementById('donut-center-lbl');
+        const elCompPct = document.getElementById('legend-completed-pct');
+        const elRunPct = document.getElementById('legend-running-pct');
+        const elUncPct = document.getElementById('legend-uncertain-pct');
+        const elFailPct = document.getElementById('legend-failed-pct');
+
+        if (total > 0) {
+            const pctComp = ((completed / total) * 100).toFixed(1);
+            if (centerPct) centerPct.textContent = `${pctComp}%`;
+            if (centerLbl) centerLbl.textContent = 'SUCCESS';
+            if (elCompPct) elCompPct.textContent = `${pctComp}%`;
+            if (elRunPct) elRunPct.textContent = `${((running / total) * 100).toFixed(1)}%`;
+            if (elUncPct) elUncPct.textContent = `${((uncertain / total) * 100).toFixed(1)}%`;
+            if (elFailPct) elFailPct.textContent = `${((failed / total) * 100).toFixed(1)}%`;
+        } else {
+            if (centerPct) centerPct.textContent = '—';
+            if (centerLbl) centerLbl.textContent = 'NO DATA';
+            if (elCompPct) elCompPct.textContent = '—';
+            if (elRunPct) elRunPct.textContent = '—';
+            if (elUncPct) elUncPct.textContent = '—';
+            if (elFailPct) elFailPct.textContent = '—';
+        }
 
         if (statusChartInstance) {
             statusChartInstance.destroy();
         }
 
         const ctx = canvas.getContext('2d');
+        const chartData = total > 0 ? [completed, running, uncertain, failed] : [1];
+        const chartColors = total > 0 ? ['#059669', '#2563EB', '#D97706', '#DC2626'] : ['#E2E8F0'];
+
         statusChartInstance = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: ['Completed', 'Running', 'Uncertain', 'Failed'],
+                labels: total > 0 ? ['Completed', 'Running', 'Uncertain', 'Failed'] : ['No Data'],
                 datasets: [{
-                    data: [completed, running, uncertain, failed],
-                    backgroundColor: ['#059669', '#2563EB', '#D97706', '#DC2626'],
+                    data: chartData,
+                    backgroundColor: chartColors,
                     borderWidth: 2,
                     borderColor: state.theme === 'dark' ? '#111827' : '#FFFFFF',
-                    hoverOffset: 3
+                    hoverOffset: total > 0 ? 3 : 0
                 }]
             },
             options: {
@@ -356,6 +392,7 @@
                 plugins: {
                     legend: { display: false },
                     tooltip: {
+                        enabled: total > 0,
                         callbacks: {
                             label(ctx) {
                                 return ` ${ctx.label}: ${utils.formatNumber(ctx.raw)}`;
@@ -378,7 +415,7 @@
             tbody.innerHTML = `
                 <tr>
                     <td colspan="7" style="text-align: center; padding: 24px; color: var(--color-text-muted);">
-                        No workflow runs recorded yet. Start one from the <a href="/request" style="color: var(--color-accent);">NL Request Studio</a>.
+                        No workflow runs recorded yet. Submit a request from <a href="/request" style="color: var(--color-accent);">NL Request Studio</a>.
                     </td>
                 </tr>
             `;
@@ -390,27 +427,21 @@
             const statusLower = (w.status || 'pending').toLowerCase();
             const badgeClass = statusLower === 'completed' ? 'badge-completed' : (statusLower === 'failed' ? 'badge-failed' : (statusLower === 'running' ? 'badge-running' : 'badge-uncertain'));
             const duration = w.duration_ms != null ? `${Math.round(w.duration_ms)}ms` : '—';
-            const timeAgo = utils.formatRelativeTime(w.created_at);
+            const timeAgo = utils.formatDate(w.created_at);
 
             return `
                 <tr>
                     <td><code class="table-uuid">${utils.escapeHtml(uuidShort)}</code></td>
                     <td>
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--color-text-muted);">
-                                <polyline points="16 18 22 12 16 6"/>
-                                <polyline points="8 6 2 12 8 18"/>
-                            </svg>
-                            <span style="font-weight: 500;">${utils.escapeHtml(w.workflow_type || 'order_change')}</span>
-                        </div>
+                        <div style="font-weight: 500;">${utils.escapeHtml(w.workflow_type || 'order_change')}</div>
                     </td>
-                    <td><span class="badge ${badgeClass}">${utils.escapeHtml(w.status || 'PENDING')}</span></td>
+                    <td><span class="badge ${badgeClass}">${utils.escapeHtml((w.status || 'PENDING').toUpperCase())}</span></td>
                     <td><code style="font-family: var(--font-mono); font-size: 11.5px;">${duration}</code></td>
                     <td><span style="font-family: var(--font-mono); font-size: 11px; color: var(--color-text-secondary);">${w.total_tokens ? utils.formatNumber(w.total_tokens) : '—'}</span></td>
                     <td style="color: var(--color-text-secondary); font-size: 11.5px;">${timeAgo}</td>
                     <td style="text-align: right;">
                         <a href="/workflows/${w.id}" class="btn btn-secondary btn-sm" style="font-size: 11px;">
-                            <span>Inspect DAG</span>
+                            <span>Inspect</span>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="9 18 15 12 9 6"/>
                             </svg>
@@ -425,13 +456,13 @@
     // Workflow History Ledger
     // ==============================================================================
     async function initWorkflowHistory() {
-        const tbody = document.getElementById('workflow-list-body');
         const searchInput = document.getElementById('workflow-search-input');
         const statusFilters = document.getElementById('workflow-status-filters');
         const pageSizeSelect = document.getElementById('history-page-size');
+        const btnExportCsv = document.getElementById('btn-export-csv');
+        const btnExportJson = document.getElementById('btn-export-json');
 
         try {
-            // Load metrics for top cards and pill counts
             const metrics = await api.getMetrics();
             const total = metrics.total_workflows || 0;
             const completed = metrics.completed_workflows || 0;
@@ -451,7 +482,7 @@
             if (elUnc) elUnc.textContent = utils.formatNumber(uncertain);
             if (elFail) elFail.textContent = utils.formatNumber(failed);
 
-            // Update pill counts
+            // Pill counts
             const pAll = document.getElementById('pill-cnt-all');
             const pComp = document.getElementById('pill-cnt-completed');
             const pRun = document.getElementById('pill-cnt-running');
@@ -464,10 +495,10 @@
             if (pUnc) pUnc.textContent = utils.formatNumber(uncertain);
             if (pFail) pFail.textContent = utils.formatNumber(failed);
 
-            // Fetch workflows
+            // Load workflows
             await loadHistoryPage(1);
 
-            // Setup Search
+            // Search Filter
             if (searchInput) {
                 searchInput.addEventListener('input', (e) => {
                     state.historyFilter.search = e.target.value.trim().toLowerCase();
@@ -475,7 +506,7 @@
                 });
             }
 
-            // Setup Filter Pills
+            // Status Filter Pills
             if (statusFilters) {
                 statusFilters.addEventListener('click', (e) => {
                     const btn = e.target.closest('.filter-pill-btn');
@@ -483,11 +514,11 @@
                     statusFilters.querySelectorAll('.filter-pill-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                     state.historyFilter.status = btn.dataset.status || 'all';
-                    renderHistoryTable();
+                    loadHistoryPage(1);
                 });
             }
 
-            // Setup Page Size
+            // Page Size Select
             if (pageSizeSelect) {
                 pageSizeSelect.addEventListener('change', (e) => {
                     state.historyFilter.pageSize = parseInt(e.target.value, 10) || 25;
@@ -495,11 +526,45 @@
                 });
             }
 
+            // Functional Export CSV
+            if (btnExportCsv) {
+                btnExportCsv.addEventListener('click', () => {
+                    if (state.workflows.length === 0) {
+                        utils.showToast('No records available to export', 'error');
+                        return;
+                    }
+                    const headers = ['id', 'workflow_type', 'status', 'created_at', 'duration_ms', 'correlation_id'];
+                    const rows = state.workflows.map(w => [
+                        `"${w.id}"`,
+                        `"${w.workflow_type || ''}"`,
+                        `"${w.status || ''}"`,
+                        `"${w.created_at || ''}"`,
+                        w.duration_ms != null ? w.duration_ms : '',
+                        `"${w.correlation_id || ''}"`
+                    ].join(','));
+                    const csv = [headers.join(','), ...rows].join('\n');
+                    utils.downloadFile(csv, `relay-workflows-${Date.now()}.csv`, 'text/csv');
+                });
+            }
+
+            // Functional Export JSON
+            if (btnExportJson) {
+                btnExportJson.addEventListener('click', () => {
+                    if (state.workflows.length === 0) {
+                        utils.showToast('No records available to export', 'error');
+                        return;
+                    }
+                    const json = JSON.stringify(state.workflows, null, 2);
+                    utils.downloadFile(json, `relay-workflows-${Date.now()}.json`, 'application/json');
+                });
+            }
+
         } catch (error) {
+            const tbody = document.getElementById('workflow-list-body');
             if (tbody) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="9" style="text-align: center; padding: 24px; color: var(--color-error);">
+                        <td colspan="7" style="text-align: center; padding: 24px; color: var(--color-error);">
                             Failed to load workflow history: ${utils.escapeHtml(error.message)}
                         </td>
                     </tr>
@@ -510,7 +575,7 @@
 
     async function loadHistoryPage(page) {
         state.historyFilter.page = page;
-        const res = await api.getWorkflows(page, state.historyFilter.pageSize);
+        const res = await api.getWorkflows(page, state.historyFilter.pageSize, state.historyFilter.status);
         state.workflows = res.items || [];
         state.historyTotal = res.total || 0;
         state.historyPages = res.total_pages || 1;
@@ -524,23 +589,26 @@
         if (!tbody) return;
 
         let filtered = state.workflows;
-        if (state.historyFilter.status !== 'all') {
-            filtered = filtered.filter(w => (w.status || '').toLowerCase() === state.historyFilter.status);
-        }
         if (state.historyFilter.search) {
             const q = state.historyFilter.search;
-            filtered = filtered.filter(w => (w.id || '').toLowerCase().includes(q) || (w.workflow_type || '').toLowerCase().includes(q) || (w.order_id || '').toLowerCase().includes(q));
+            filtered = filtered.filter(w => {
+                const idMatch = (w.id || '').toLowerCase().includes(q);
+                const typeMatch = (w.workflow_type || '').toLowerCase().includes(q);
+                const orderMatch = (w.order_id || '').toLowerCase().includes(q);
+                const eventMatch = (w.external_event_id || '').toLowerCase().includes(q);
+                return idMatch || typeMatch || orderMatch || eventMatch;
+            });
         }
 
         if (countEl) {
-            countEl.textContent = `Showing 1-${filtered.length} of ${utils.formatNumber(state.historyTotal || filtered.length)} entries`;
+            countEl.textContent = `Showing ${filtered.length} of ${utils.formatNumber(state.historyTotal || filtered.length)} entries`;
         }
 
         if (filtered.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="9" style="text-align: center; padding: 32px; color: var(--color-text-muted);">
-                        No workflow records match the active filters.
+                    <td colspan="7" style="text-align: center; padding: 32px; color: var(--color-text-muted);">
+                        No workflow records match the active criteria.
                     </td>
                 </tr>
             `;
@@ -549,56 +617,40 @@
 
         tbody.innerHTML = filtered.map(w => {
             const uuidShort = (w.id || '').substring(0, 10);
-            const eventUuid = w.external_event_id || 'ev_d92f1b40-8a21';
-            const orderId = w.order_id || 'ORD-89412';
-            const customerId = w.customer_id ? `cus_${w.customer_id}` : 'cus_98294a';
             const statusLower = (w.status || 'pending').toLowerCase();
             const badgeClass = statusLower === 'completed' ? 'badge-completed' : (statusLower === 'failed' ? 'badge-failed' : (statusLower === 'running' ? 'badge-running' : 'badge-uncertain'));
-            const duration = w.duration_ms != null ? `${Math.round(w.duration_ms)}ms` : '354ms';
-            const timeAgo = utils.formatRelativeTime(w.created_at);
+            const duration = w.duration_ms != null ? `${Math.round(w.duration_ms)}ms` : '—';
+            const timeFormatted = utils.formatDate(w.created_at);
 
             return `
                 <tr>
-                    <td><input type="checkbox" aria-label="Select row"></td>
+                    <td><code class="table-uuid">${utils.escapeHtml(uuidShort)}</code></td>
                     <td>
-                        <span class="table-uuid">${utils.escapeHtml(uuidShort)}</span>
-                        <span class="table-sub-uuid">${utils.escapeHtml(eventUuid)}</span>
+                        <span style="font-family: var(--font-mono); font-size: 11.5px;">${utils.escapeHtml(w.order_id || '—')}</span>
+                        ${w.customer_id ? `<span class="table-sub-uuid">${utils.escapeHtml(w.customer_id)}</span>` : ''}
                     </td>
-                    <td>
-                        <strong style="font-family: var(--font-mono); font-size: 11.5px;">${utils.escapeHtml(orderId)}</strong>
-                        <span class="table-sub-uuid">${utils.escapeHtml(customerId)}</span>
-                    </td>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <span class="brand-tag" style="font-size: 9.5px; padding: 1px 4px;">Shopify</span>
-                            <span style="font-weight: 500;">${utils.escapeHtml(w.workflow_type || 'order_change')}</span>
-                        </div>
-                    </td>
-                    <td><span class="badge ${badgeClass}">${utils.escapeHtml(w.status || 'PENDING')}</span></td>
+                    <td><span style="font-weight: 500;">${utils.escapeHtml(w.workflow_type || 'order_change')}</span></td>
+                    <td><span class="badge ${badgeClass}">${utils.escapeHtml((w.status || 'PENDING').toUpperCase())}</span></td>
                     <td><code style="font-family: var(--font-mono); font-size: 11.5px;">${duration}</code></td>
-                    <td>
-                        <div style="font-family: var(--font-mono); font-size: 11px;">
-                            <span>${w.total_tokens ? utils.formatNumber(w.total_tokens) : '1,420'} tk</span>
-                            <span style="color: var(--color-text-muted);">&bull; $0.0028</span>
-                        </div>
-                    </td>
-                    <td style="color: var(--color-text-secondary); font-size: 11.5px;">${timeAgo}</td>
+                    <td style="color: var(--color-text-secondary); font-size: 11.5px;">${timeFormatted}</td>
                     <td style="text-align: right;">
-                        <div style="display: flex; justify-content: flex-end; gap: 4px;">
-                            <a href="/workflows/${w.id}" class="btn btn-secondary btn-sm" style="font-size: 11px;">Inspect</a>
-                        </div>
+                        <a href="/workflows/${w.id}" class="btn btn-secondary btn-sm" style="font-size: 11px;">Inspect</a>
                     </td>
                 </tr>
             `;
         }).join('');
 
-        // Render Pagination buttons
-        if (paginationEl && state.historyPages > 1) {
-            let pagHtml = '';
-            for (let i = 1; i <= state.historyPages; i++) {
-                pagHtml += `<button type="button" class="btn btn-sm ${i === state.historyFilter.page ? 'btn-primary' : 'btn-secondary'}" onclick="window.loadHistoryPage(${i})">${i}</button>`;
+        // Pagination
+        if (paginationEl) {
+            if (state.historyPages <= 1) {
+                paginationEl.innerHTML = '';
+            } else {
+                let pagHtml = '';
+                for (let i = 1; i <= state.historyPages; i++) {
+                    pagHtml += `<button type="button" class="btn btn-sm ${i === state.historyFilter.page ? 'btn-primary' : 'btn-secondary'}" onclick="window.loadHistoryPage(${i})">${i}</button>`;
+                }
+                paginationEl.innerHTML = pagHtml;
             }
-            paginationEl.innerHTML = pagHtml;
         }
     }
 
@@ -609,112 +661,101 @@
         const textarea = document.getElementById('nl-text');
         const charCounter = document.getElementById('nl-char-counter');
         const chips = document.querySelectorAll('.suggestion-chip');
-        const toggleDryRun = document.getElementById('btn-mode-dryrun');
-        const toggleLive = document.getElementById('btn-mode-live');
-        const banner = document.getElementById('execution-mode-banner');
-        const badgeNode3 = document.getElementById('dag-node-3-badge');
         const btnSynthesize = document.getElementById('btn-synthesize-workflow');
         const btnReset = document.getElementById('btn-reset-studio');
         const errorBanner = document.getElementById('nl-studio-error');
 
-        // Extract UI elements
         const extractOrderId = document.getElementById('extract-order-id');
-        const extractDelta = document.getElementById('extract-delta');
         const extractDate = document.getElementById('extract-target-date');
 
-        function updateExtractionPreview(text) {
-            const len = text.length;
-            const approxTokens = Math.max(1, Math.round(len / 4));
-            if (charCounter) charCounter.textContent = `${len} / 500 chars • ~${approxTokens} tokens`;
+        const outcomeEmpty = document.getElementById('nl-outcome-empty');
+        const outcomeContent = document.getElementById('nl-outcome-content');
+        const outcomeBadge = document.getElementById('nl-outcome-badge');
+        const outcomeWfId = document.getElementById('nl-outcome-wfid');
+        const outcomeTokens = document.getElementById('nl-outcome-tokens');
+        const outcomeCost = document.getElementById('nl-outcome-cost');
+        const outcomeAction = document.getElementById('nl-outcome-action');
 
-            // Regex for ORD-XXXX
-            const ordMatch = text.match(/ORD-[\w\d]+/i);
-            if (extractOrderId) extractOrderId.textContent = ordMatch ? ordMatch[0].toUpperCase() : 'ORD-1002';
+        function updateClientDetection(text) {
+            if (charCounter) charCounter.textContent = `${text.length} / 2000 chars`;
 
-            // Regex for days
-            const daysMatch = text.match(/(\d+)\s*days?/i);
-            if (extractDelta) extractDelta.textContent = daysMatch ? `+${daysMatch[1]} Days` : '+7 Days';
+            const ordMatch = text.match(/ORD-[A-Za-z0-9]+/i);
+            if (extractOrderId) extractOrderId.textContent = ordMatch ? ordMatch[0].toUpperCase() : 'None detected';
 
-            // Calculate future date if days found
-            const days = daysMatch ? parseInt(daysMatch[1], 10) : 7;
-            const d = new Date();
-            d.setDate(d.getDate() + days);
-            if (extractDate) extractDate.textContent = d.toISOString().split('T')[0];
+            const dateMatch = text.match(/\b\d{4}-\d{2}-\d{2}\b/);
+            if (extractDate) extractDate.textContent = dateMatch ? dateMatch[0] : 'Parsed on submission';
         }
 
         if (textarea) {
-            textarea.addEventListener('input', () => updateExtractionPreview(textarea.value));
-            updateExtractionPreview(textarea.value);
+            textarea.addEventListener('input', () => updateClientDetection(textarea.value));
+            updateClientDetection(textarea.value);
         }
 
-        // Suggestion chips
         chips.forEach(chip => {
             chip.addEventListener('click', () => {
                 const prompt = chip.dataset.prompt;
                 if (textarea && prompt) {
                     textarea.value = prompt;
-                    updateExtractionPreview(prompt);
+                    updateClientDetection(prompt);
                 }
             });
         });
 
-        // Mode Toggles
-        if (toggleDryRun && toggleLive) {
-            toggleDryRun.addEventListener('click', () => {
-                state.executionMode = 'dry_run';
-                toggleDryRun.classList.add('active');
-                toggleLive.classList.remove('active');
-                if (banner) banner.textContent = 'Dry run validates schema integrity, customer tier SLA limits, and simulates downstream ERP mutation before commit.';
-                if (badgeNode3) badgeNode3.textContent = 'SIMULATE';
-            });
-
-            toggleLive.addEventListener('click', () => {
-                state.executionMode = 'live';
-                toggleLive.classList.add('active');
-                toggleDryRun.classList.remove('active');
-                if (banner) banner.textContent = 'Live execution will dispatch actual updates to external ERP and commit state mutations directly.';
-                if (badgeNode3) badgeNode3.textContent = 'COMMIT';
-            });
-        }
-
-        // Reset Button
         if (btnReset) {
             btnReset.addEventListener('click', () => {
                 if (textarea) {
                     textarea.value = '';
-                    updateExtractionPreview('');
+                    updateClientDetection('');
                 }
                 if (errorBanner) errorBanner.style.display = 'none';
+                if (outcomeEmpty) outcomeEmpty.style.display = 'block';
+                if (outcomeContent) outcomeContent.style.display = 'none';
             });
         }
 
-        // Synthesize Button
         if (btnSynthesize) {
             btnSynthesize.addEventListener('click', async () => {
                 const text = textarea ? textarea.value.trim() : '';
                 if (!text) {
-                    utils.showToast('Please enter an orchestration prompt', 'error');
+                    utils.showToast('Please enter an order change request', 'error');
                     return;
                 }
 
                 btnSynthesize.disabled = true;
-                btnSynthesize.innerHTML = `<span class="spinner" style="width: 14px; height: 14px; border-width: 2px;"></span> Synthesizing &amp; Orchestrating…`;
+                btnSynthesize.innerHTML = `<span class="spinner" style="width: 14px; height: 14px; border-width: 2px;"></span> Interpreting &amp; Executing…`;
                 if (errorBanner) errorBanner.style.display = 'none';
 
                 try {
                     const res = await api.submitNLRequest({
                         text,
-                        source_system: 'studio',
-                        external_event_id: `evt-nl-${Date.now()}`
+                        source_system: 'web-console',
+                        external_event_id: `evt-${Date.now()}`
                     });
 
-                    utils.showToast('Workflow synthesized successfully!', 'success');
-                    if (res.workflow_id) {
-                        setTimeout(() => window.location.href = `/workflows/${res.workflow_id}`, 600);
+                    utils.showToast('Request interpreted and executed', 'success');
+
+                    if (outcomeEmpty) outcomeEmpty.style.display = 'none';
+                    if (outcomeContent) outcomeContent.style.display = 'flex';
+
+                    if (outcomeBadge) {
+                        outcomeBadge.textContent = res.success ? 'COMPLETED' : 'FAILED';
+                        outcomeBadge.className = res.success ? 'badge badge-completed' : 'badge badge-failed';
+                    }
+
+                    if (outcomeWfId) outcomeWfId.textContent = res.workflow_id || 'None';
+                    if (outcomeTokens) outcomeTokens.textContent = res.total_tokens != null ? utils.formatNumber(res.total_tokens) : '—';
+                    if (outcomeCost) outcomeCost.textContent = res.estimated_cost_usd != null ? `$${res.estimated_cost_usd.toFixed(4)}` : '—';
+
+                    if (outcomeAction && res.workflow_id) {
+                        outcomeAction.innerHTML = `
+                            <a href="/workflows/${res.workflow_id}" class="btn btn-primary" style="width: 100%;">
+                                View Execution Details &rarr;
+                            </a>
+                        `;
                     }
                 } catch (err) {
                     if (errorBanner) {
-                        errorBanner.textContent = `Orchestration error: ${err.message}`;
+                        errorBanner.textContent = `Error: ${err.message}`;
                         errorBanner.style.display = 'block';
                     }
                     utils.showToast(err.message, 'error');
@@ -722,9 +763,9 @@
                     btnSynthesize.disabled = false;
                     btnSynthesize.innerHTML = `
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                         </svg>
-                        <span>Synthesize &amp; Orchestrate Workflow</span>
+                        <span>Interpret &amp; Execute Workflow</span>
                     `;
                 }
             });
@@ -740,6 +781,7 @@
 
         try {
             const wf = await api.getWorkflow(id);
+            state.activeWorkflow = wf;
             if (notFoundView) notFoundView.style.display = 'none';
             if (detailView) detailView.style.display = 'block';
             renderWorkflowDetail(wf);
@@ -757,15 +799,22 @@
         // Breadcrumb & Copy UUID
         const breadcrumbId = document.getElementById('wf-breadcrumb-id');
         const btnCopyUuid = document.getElementById('btn-copy-uuid');
+        const btnExportTrace = document.getElementById('btn-export-trace');
+
         if (breadcrumbId) breadcrumbId.textContent = wf.id;
         if (btnCopyUuid) {
             btnCopyUuid.onclick = () => utils.copyToClipboard(wf.id, 'Workflow ID copied');
+        }
+        if (btnExportTrace) {
+            btnExportTrace.onclick = () => {
+                utils.downloadFile(JSON.stringify(wf, null, 2), `workflow-${wf.id}.json`, 'application/json');
+            };
         }
 
         // Header Title & Status
         const titleEl = document.getElementById('wf-title');
         const statusBadge = document.getElementById('wf-header-status');
-        if (titleEl) titleEl.textContent = wf.workflow_type || 'order_adjustment_orchestration';
+        if (titleEl) titleEl.textContent = wf.workflow_type || 'order_change';
         if (statusBadge) {
             const st = (wf.status || 'PENDING').toUpperCase();
             statusBadge.textContent = st;
@@ -778,128 +827,170 @@
         const completedEl = document.getElementById('wf-completed-time');
         const latencyEl = document.getElementById('wf-runtime-latency');
 
-        if (triggerEl) triggerEl.textContent = `Webhook (${wf.source_system || 'Shopify ERP'})`;
+        if (triggerEl) triggerEl.textContent = wf.source_system || '—';
         if (startedEl) startedEl.textContent = utils.formatDate(wf.started_at);
         if (completedEl) completedEl.textContent = utils.formatDate(wf.completed_at);
-        if (latencyEl) latencyEl.textContent = wf.duration_ms != null ? `${Math.round(wf.duration_ms)}ms` : '354ms';
+        if (latencyEl) latencyEl.textContent = wf.duration_ms != null ? `${Math.round(wf.duration_ms)}ms` : '—';
 
-        // 4 Metadata Cards
+        // Metadata Grid Cards
         const metaType = document.getElementById('meta-wf-type');
+        const metaExtRef = document.getElementById('meta-ext-ref');
+        const metaSource = document.getElementById('meta-source');
         const metaOrderId = document.getElementById('meta-order-id');
         const metaCustId = document.getElementById('meta-customer-id');
         const metaNewDelivery = document.getElementById('meta-new-delivery');
         const metaCorr = document.getElementById('meta-correlation-id');
         const metaIdem = document.getElementById('meta-idempotency-key');
-        const metaLlmModel = document.getElementById('meta-llm-model');
-        const metaLlmCost = document.getElementById('meta-llm-cost');
+        const metaFailCat = document.getElementById('meta-failure-cat');
 
         const orig = wf.original_request || {};
         const res = wf.result || {};
 
-        if (metaType) metaType.textContent = wf.workflow_type || 'order_change';
-        if (metaOrderId) metaOrderId.textContent = wf.order_id || orig.order_id || 'ORD-1002';
-        if (metaCustId) metaCustId.textContent = wf.customer_id || orig.customer_id || 'CUST-8492 (VIP)';
-        if (metaNewDelivery) metaNewDelivery.textContent = res.new_delivery_date || orig.requested_delivery_date || '2026-11-25';
-        if (metaCorr) metaCorr.textContent = wf.correlation_id || 'c-8fa2981-01f';
-        if (metaIdem) metaIdem.textContent = wf.idempotency_key || 'idem-shopify-ord-1002-v1';
+        if (metaType) metaType.textContent = wf.workflow_type || '—';
+        if (metaExtRef) metaExtRef.textContent = wf.external_event_id || orig.external_event_id || '—';
+        if (metaSource) metaSource.textContent = wf.source_system || orig.source_system || '—';
 
-        // LLM Telemetry
+        if (metaOrderId) metaOrderId.textContent = wf.order_id || orig.order_id || '—';
+        if (metaCustId) metaCustId.textContent = wf.customer_id || orig.customer_id || '—';
+        if (metaNewDelivery) metaNewDelivery.textContent = res.new_delivery_date || orig.requested_delivery_date || '—';
+
+        if (metaCorr) metaCorr.textContent = wf.correlation_id || '—';
+        if (metaIdem) metaIdem.textContent = wf.idempotency_key || '—';
+        if (metaFailCat) metaFailCat.textContent = wf.failure_category || 'None';
+
+        // LLM Telemetry Card
+        const metaLlmModel = document.getElementById('meta-llm-model');
+        const metaLlmLatency = document.getElementById('meta-llm-latency');
+        const metaLlmTokens = document.getElementById('meta-llm-tokens');
+        const metaLlmCost = document.getElementById('meta-llm-cost');
+
         const invocations = wf.llm_invocations || [];
         if (invocations.length > 0) {
             const inv = invocations[0];
-            if (metaLlmModel) metaLlmModel.textContent = inv.model || 'gpt-4o-mini';
-            if (metaLlmCost) metaLlmCost.textContent = inv.estimated_cost_usd != null ? `$${inv.estimated_cost_usd.toFixed(5)} USD` : '$0.00042 USD';
+            if (metaLlmModel) metaLlmModel.textContent = inv.model || '—';
+            if (metaLlmLatency) metaLlmLatency.textContent = inv.latency_ms != null ? `${inv.latency_ms}ms` : '—';
+            if (metaLlmTokens) metaLlmTokens.textContent = inv.total_tokens != null ? utils.formatNumber(inv.total_tokens) : '—';
+            if (metaLlmCost) metaLlmCost.textContent = inv.estimated_cost_usd != null ? `$${inv.estimated_cost_usd.toFixed(4)}` : '—';
+        } else {
+            if (metaLlmModel) metaLlmModel.textContent = 'None';
+            if (metaLlmLatency) metaLlmLatency.textContent = '—';
+            if (metaLlmTokens) metaLlmTokens.textContent = '—';
+            if (metaLlmCost) metaLlmCost.textContent = '—';
         }
 
-        // Steps Telemetry Log Table
+        // Real DAG Stepper Progression
+        const stepperTrack = document.getElementById('wf-dag-stepper');
+        const summaryPill = document.getElementById('dag-summary-pill');
+        const steps = wf.steps || [];
+
+        if (summaryPill) {
+            const completedCount = steps.filter(s => (s.status || '').toLowerCase() === 'completed').length;
+            if (steps.length > 0) {
+                summaryPill.textContent = `${completedCount}/${steps.length} Steps Succeeded`;
+                summaryPill.className = wf.status === 'completed' ? 'badge badge-completed' : 'badge badge-failed';
+            } else {
+                summaryPill.textContent = 'No discrete step records';
+                summaryPill.className = 'badge badge-pending';
+            }
+        }
+
+        if (stepperTrack) {
+            if (steps.length === 0) {
+                stepperTrack.innerHTML = `
+                    <div style="padding: 16px; color: var(--color-text-muted); font-size: 12px;">
+                        No discrete step telemetry records persisted for this execution.
+                    </div>
+                `;
+            } else {
+                stepperTrack.innerHTML = steps.map((s, idx) => {
+                    const st = (s.status || 'pending').toLowerCase();
+                    const isCompleted = st === 'completed';
+                    const isFailed = st === 'failed';
+                    const durationText = s.duration_ms != null ? `${s.duration_ms}ms` : '—';
+
+                    return `
+                        <div class="dag-node ${isCompleted ? 'completed' : (isFailed ? 'failed' : '')}" style="margin-bottom: 8px;">
+                            <div class="dag-node-box">
+                                ${isCompleted ? `
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                        <polyline points="20 6 9 17 4 12"/>
+                                    </svg>
+                                ` : (isFailed ? `
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                    </svg>
+                                ` : `
+                                    <span style="font-size: 11px; font-weight: 700;">${idx + 1}</span>
+                                `)}
+                            </div>
+                            <span class="dag-node-num">Step ${idx + 1} &bull; ${durationText}</span>
+                            <span class="dag-node-label">${utils.escapeHtml(s.step_name)}</span>
+                            <span class="dag-node-sub">Attempt #${s.attempt_number || 1}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Steps Telemetry Table
         const stepsTbody = document.getElementById('wf-steps-tbody');
         const stepsBadge = document.getElementById('steps-log-badge');
-        const recordedSteps = wf.steps || [];
-
-        if (stepsBadge) stepsBadge.textContent = `${recordedSteps.length || 5} Recorded Operations`;
+        if (stepsBadge) stepsBadge.textContent = `${steps.length} Persisted Operations`;
 
         if (stepsTbody) {
-            if (recordedSteps.length === 0) {
-                // Render sample canonical traces if none stored yet
+            if (steps.length === 0) {
                 stepsTbody.innerHTML = `
                     <tr>
-                        <td><strong>Validate Request</strong></td>
-                        <td><span class="badge badge-completed">SUCCESS</span></td>
-                        <td>14:22:04.088</td>
-                        <td><code>18ms</code></td>
-                        <td>1 / 1</td>
-                        <td style="text-align: right;"><a href="#" class="btn btn-secondary btn-sm" style="font-size: 11px;">View ID &gt;</a></td>
-                    </tr>
-                    <tr>
-                        <td><strong>Check ERP Inventory</strong></td>
-                        <td><span class="badge badge-completed">SUCCESS</span></td>
-                        <td>14:22:04.018</td>
-                        <td><code>84ms</code></td>
-                        <td>1 / 1</td>
-                        <td style="text-align: right;"><a href="#" class="btn btn-secondary btn-sm" style="font-size: 11px;">View ID &gt;</a></td>
+                        <td colspan="6" style="text-align: center; color: var(--color-text-muted); padding: 24px;">
+                            No discrete step attempts recorded for this execution.
+                        </td>
                     </tr>
                 `;
             } else {
-                stepsTbody.innerHTML = recordedSteps.map(s => {
+                stepsTbody.innerHTML = steps.map(s => {
                     const st = (s.status || 'completed').toUpperCase();
                     const badgeClass = st === 'COMPLETED' ? 'badge-completed' : (st === 'FAILED' ? 'badge-failed' : 'badge-running');
+                    const errContext = s.error_category ? `[${utils.escapeHtml(s.error_category)}]` : 'None';
+
                     return `
                         <tr>
                             <td><strong>${utils.escapeHtml(s.step_name)}</strong></td>
                             <td><span class="badge ${badgeClass}">${st}</span></td>
+                            <td>#${s.attempt_number || 1}</td>
                             <td>${utils.formatDate(s.started_at)}</td>
                             <td><code>${s.duration_ms != null ? `${s.duration_ms}ms` : '—'}</code></td>
-                            <td>#${s.attempt_number || 1}</td>
-                            <td style="text-align: right;"><a href="#" class="btn btn-secondary btn-sm" style="font-size: 11px;">View ID &gt;</a></td>
+                            <td style="text-align: right; color: var(--color-text-secondary); font-family: var(--font-mono); font-size: 11px;">
+                                ${errContext}
+                            </td>
                         </tr>
                     `;
                 }).join('');
             }
         }
 
-        // Raw State Inspector JSON Tabs
+        // Raw State Inspector
         const codeBlock = document.getElementById('wf-raw-json-code');
         const tabBtns = document.querySelectorAll('.tab-btn');
         const btnCopyRaw = document.getElementById('btn-copy-raw-json');
 
-        const statePayloads = {
+        const payloads = {
             'tab-input': wf.original_request || {},
-            'tab-state': {
-                workflow_id: wf.id,
-                status: wf.status,
-                execution: {
-                    initiated_at: wf.started_at || wf.created_at,
-                    settled_at: wf.completed_at,
-                    latency_ms: wf.duration_ms,
-                    worker_pool: 'us-east-prod-worker-cluster'
-                },
-                operation_context: {
-                    order_id: wf.order_id || orig.order_id,
-                    customer_id: wf.customer_id || orig.customer_id,
-                    reschedule_intent: {
-                        requested_delivery_date: res.new_delivery_date || orig.requested_delivery_date,
-                        confidence_score: 0.994
-                    }
-                },
-                guardrail_audit: {
-                    policy: 'safe-reorder-v2',
-                    passed: true
-                }
-            },
+            'tab-state': wf.result || wf.error_details || {},
             'tab-trace': wf
         };
 
-        function updateCodeViewer(tab) {
-            if (!codeBlock) return;
-            const data = statePayloads[tab] || wf;
-            codeBlock.textContent = JSON.stringify(data, null, 2);
+        function setInspectorTab(tabKey) {
+            if (codeBlock) {
+                const data = payloads[tabKey] || wf;
+                codeBlock.textContent = JSON.stringify(data, null, 2);
+            }
         }
 
         tabBtns.forEach(btn => {
             btn.addEventListener('click', () => {
                 tabBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                updateCodeViewer(btn.dataset.tab);
+                setInspectorTab(btn.dataset.tab);
             });
         });
 
@@ -909,11 +1000,11 @@
             });
         }
 
-        updateCodeViewer('tab-state');
+        setInspectorTab('tab-state');
     }
 
     // ==============================================================================
-    // System Health Poller
+    // Health Poller
     // ==============================================================================
     async function checkSystemHealth() {
         const pill = document.getElementById('system-health-pill');
@@ -926,30 +1017,31 @@
             pill.style.background = 'var(--color-success-bg)';
             pill.style.borderColor = 'var(--color-success-border)';
             pill.style.color = 'var(--color-success-text)';
-            if (text) text.textContent = 'System: Operational';
-            if (latency && res.latencyMs != null) latency.textContent = `p95~${res.latencyMs}ms`;
+            if (text) text.textContent = 'System: Ready';
+            if (latency) {
+                latency.style.display = 'inline-block';
+                latency.textContent = `${res.latencyMs}ms ping`;
+            }
         } else {
             pill.style.background = 'var(--color-warning-bg)';
             pill.style.borderColor = 'var(--color-warning-border)';
             pill.style.color = 'var(--color-warning-text)';
             if (text) text.textContent = 'System: Degraded';
+            if (latency) latency.style.display = 'none';
         }
     }
 
-    // ==============================================================================
-    // Global Exports
-    // ==============================================================================
+    // Exports
     window.initDashboard = initDashboard;
     window.initWorkflowHistory = initWorkflowHistory;
     window.initNlStudio = initNlStudio;
     window.loadWorkflowDetail = loadWorkflowDetail;
     window.loadHistoryPage = loadHistoryPage;
 
-    // Run on startup
     document.addEventListener('DOMContentLoaded', () => {
         themeManager.init();
         checkSystemHealth();
-        setInterval(checkSystemHealth, 20000);
+        setInterval(checkSystemHealth, 30000);
     });
 
 })();

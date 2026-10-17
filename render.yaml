@@ -39,7 +39,7 @@ services:
       - key: RUN_MIGRATIONS
         value: "true"
       - key: LLM_PROVIDER
-        value: openai
+        value: nvidia
       - key: LOG_LEVEL
         value: INFO
       - key: APP_ENV

@@ -1,20 +1,17 @@
 {% extends "base.html" %}
 
-{% block title %}Workflow Execution Ledger - Relay{% endblock %}
+{% block title %}Workflow Execution History - Relay{% endblock %}
 
 {% block content %}
 <div id="workflow-history-view">
     <!-- Page Header -->
     <div class="page-header">
         <div class="page-title-group">
-            <h1>
-                <span>Workflow Execution Ledger</span>
-                <span class="brand-tag">AUDIT v2.4.1</span>
-            </h1>
-            <p>Comprehensive immutable audit trail of all automated and human-in-the-loop orchestrations.</p>
+            <h1>Workflow Execution History</h1>
+            <p>Immutable audit trail of automated business workflow orchestrations.</p>
         </div>
         <div class="header-actions">
-            <button type="button" class="btn btn-secondary" id="btn-export-csv">
+            <button type="button" class="btn btn-secondary" id="btn-export-csv" title="Export current records as CSV">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <polyline points="7 10 12 15 17 10"/>
@@ -22,19 +19,12 @@
                 </svg>
                 <span>Export CSV</span>
             </button>
-            <button type="button" class="btn btn-secondary" id="btn-export-json">
+            <button type="button" class="btn btn-secondary" id="btn-export-json" title="Export current records as JSON">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="16 18 22 12 16 6"/>
                     <polyline points="8 6 2 12 8 18"/>
                 </svg>
                 <span>Export JSON</span>
-            </button>
-            <button type="button" class="btn btn-primary" id="btn-bulk-retry">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                    <path d="M3 3v5h5"/>
-                </svg>
-                <span>Bulk Retry</span>
             </button>
         </div>
     </div>
@@ -44,8 +34,7 @@
         <!-- 1. Total Traces -->
         <div class="metric-card">
             <div class="metric-header">
-                <span class="metric-label">Total Traces</span>
-                <span class="metric-subtext">100%</span>
+                <span class="metric-label">Total Executions</span>
             </div>
             <div class="metric-value" id="history-total-traces">—</div>
             <div class="metric-bar-track">
@@ -57,95 +46,70 @@
         <div class="metric-card">
             <div class="metric-header">
                 <span class="metric-label">Completed</span>
-                <span class="metric-pill success" id="history-completed-pill">&bull; 94.5%</span>
             </div>
             <div class="metric-value-row">
                 <span class="metric-value" id="history-completed-cnt" style="color: var(--color-success);">—</span>
-                <span class="metric-subtext">Healthy</span>
+                <span class="metric-subtext">Successful</span>
             </div>
             <div class="metric-bar-track">
-                <div class="metric-bar-fill success" style="width: 94%;"></div>
+                <div class="metric-bar-fill success" style="width: 100%;"></div>
             </div>
         </div>
 
-        <!-- 3. Running / In-Flight -->
+        <!-- 3. Running -->
         <div class="metric-card">
             <div class="metric-header">
-                <span class="metric-label">Running / In-Flight</span>
-                <span class="metric-pill info">&bull; Live</span>
+                <span class="metric-label">Running</span>
             </div>
             <div class="metric-value-row">
                 <span class="metric-value" id="history-running-cnt" style="color: var(--color-info);">0</span>
-                <span class="metric-subtext">Parallel</span>
+                <span class="metric-subtext">In-flight</span>
             </div>
             <div class="metric-bar-track">
-                <div class="metric-bar-fill accent" style="width: 15%;"></div>
+                <div class="metric-bar-fill accent" style="width: 100%;"></div>
             </div>
         </div>
 
-        <!-- 4. Action Required -->
+        <!-- 4. Uncertain -->
         <div class="metric-card">
             <div class="metric-header">
-                <span class="metric-label">Action Required</span>
-                <span class="metric-pill warning">Needs Review</span>
+                <span class="metric-label">Uncertain</span>
             </div>
             <div class="metric-value-row">
                 <span class="metric-value" id="history-uncertain-cnt" style="color: var(--color-warning);">0</span>
-                <span class="metric-subtext">HITL Gate</span>
+                <span class="metric-subtext">Requires attention</span>
             </div>
             <div class="metric-bar-track">
-                <div class="metric-bar-fill dark" style="width: 8%; background: var(--color-warning);"></div>
+                <div class="metric-bar-fill dark" style="width: 100%; background: var(--color-warning);"></div>
             </div>
         </div>
 
-        <!-- 5. Failed / Halted -->
+        <!-- 5. Failed -->
         <div class="metric-card">
             <div class="metric-header">
-                <span class="metric-label">Failed / Halted</span>
-                <span class="metric-pill error" id="history-failed-pill">1.12%</span>
+                <span class="metric-label">Failed</span>
             </div>
             <div class="metric-value-row">
                 <span class="metric-value" id="history-failed-cnt" style="color: var(--color-error);">0</span>
-                <span class="metric-subtext">Err Log</span>
+                <span class="metric-subtext">Execution error</span>
             </div>
             <div class="metric-bar-track">
-                <div class="metric-bar-fill error" style="width: 5%;"></div>
+                <div class="metric-bar-fill error" style="width: 100%;"></div>
             </div>
         </div>
     </div>
 
     <!-- Ledger Table Card -->
     <div class="ledger-card">
-        <!-- Search & Dropdown Controls Bar -->
+        <!-- Search Controls Bar -->
         <div class="ledger-controls-bar">
             <div class="search-input-wrapper">
                 <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="11" cy="11" r="8"/>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
-                <input type="text" id="workflow-search-input" class="search-input" placeholder="Search by Workflow ID, Order ID, Event UUID&hellip;">
-                <span class="search-shortcut">⌘K</span>
-            </div>
-
-            <div style="display: flex; align-items: center; gap: var(--spacing-sm); flex-wrap: wrap;">
-                <select id="filter-time" class="dropdown-select">
-                    <option value="24h">Time: Last 24 Hours</option>
-                    <option value="7d">Time: Last 7 Days</option>
-                    <option value="30d">Time: Last 30 Days</option>
-                </select>
-
-                <select id="filter-source" class="dropdown-select">
-                    <option value="all">Source: All Systems</option>
-                    <option value="shopify">Shopify ERP</option>
-                    <option value="sap">SAP-B1</option>
-                    <option value="zendesk">Zendesk</option>
-                    <option value="stripe">Stripe</option>
-                </select>
-
-                <select id="filter-pipeline" class="dropdown-select">
-                    <option value="all">Pipeline: All Workflows</option>
-                    <option value="order_change">Order Change</option>
-                </select>
+                <input type="text" id="workflow-search-input" class="search-input" placeholder="Search by Workflow ID, Order ID, or Event ID&hellip;">
+                <span class="search-shortcut">Filter</span>
             </div>
         </div>
 
@@ -165,7 +129,7 @@
             </button>
             <button type="button" class="filter-pill-btn" data-status="uncertain">
                 <span class="legend-dot" style="background: var(--color-warning);"></span>
-                <span>Uncertain / Review</span> <span class="badge" id="pill-cnt-uncertain" style="padding: 1px 5px; font-size: 10px;">—</span>
+                <span>Uncertain</span> <span class="badge" id="pill-cnt-uncertain" style="padding: 1px 5px; font-size: 10px;">—</span>
             </button>
             <button type="button" class="filter-pill-btn" data-status="failed">
                 <span class="legend-dot" style="background: var(--color-error);"></span>
@@ -178,21 +142,19 @@
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th style="width: 32px;"><input type="checkbox" id="check-all" aria-label="Select all"></th>
-                        <th>Workflow ID &amp; Event UUID</th>
-                        <th>Business Entity</th>
-                        <th>Pipeline Operation</th>
-                        <th>Execution Status</th>
-                        <th>Total Latency</th>
-                        <th>LLM Tokens / Cost</th>
-                        <th>Started Time</th>
-                        <th style="text-align: right;">Actions</th>
+                        <th>Workflow ID</th>
+                        <th>Order &amp; Customer</th>
+                        <th>Workflow Type</th>
+                        <th>Status</th>
+                        <th>Duration</th>
+                        <th>Created</th>
+                        <th style="text-align: right;">Action</th>
                     </tr>
                 </thead>
                 <tbody id="workflow-list-body">
                     <tr>
-                        <td colspan="9" style="text-align: center; padding: var(--spacing-xl); color: var(--color-text-muted);">
-                            <span class="spinner"></span> Loading immutable workflow executions&hellip;
+                        <td colspan="7" style="text-align: center; padding: var(--spacing-xl); color: var(--color-text-muted);">
+                            <span class="spinner"></span> Loading persistent workflow records&hellip;
                         </td>
                     </tr>
                 </tbody>

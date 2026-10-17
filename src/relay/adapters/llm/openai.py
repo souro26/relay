@@ -55,13 +55,17 @@ class OpenAIAdapter(LLMAdapter):
                 "OpenAI API key not configured. Set LLM_API_KEY environment variable.",
                 "openai",
             )
-
         self._client = AsyncOpenAI(
             api_key=api_key,
             base_url=base_url or settings.llm_base_url,
             timeout=timeout or settings.llm_timeout,
         )
-        self._model = model or settings.llm_model
+        if model:
+            self._model = model
+        elif settings.llm_model and not settings.llm_model.startswith("nvidia/"):
+            self._model = settings.llm_model
+        else:
+            self._model = "gpt-4o-mini"
         self._timeout = timeout or settings.llm_timeout
         self._max_retries = max_retries if max_retries is not None else settings.llm_max_retries
         self._retry_backoff_base = (
