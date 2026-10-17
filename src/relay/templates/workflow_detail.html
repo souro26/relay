@@ -1,250 +1,388 @@
 {% extends "base.html" %}
 
-{% block title %}Workflow {{ execution_id[:8] }}… - Relay Inspection{% endblock %}
+{% block title %}Workflow {{ execution_id[:8] }}&hellip; - Relay Detail{% endblock %}
 
 {% block content %}
-<div id="workflow-detail">
-    <!-- Header with Breadcrumb and Status Badge -->
-    <header style="display: flex; flex-wrap: wrap; gap: var(--spacing-md); align-items: flex-start; justify-content: space-between; margin-bottom: var(--spacing-lg);">
-        <div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
-                <a href="{{ url_for('workflow_history') }}" style="color: var(--color-text-muted); font-size: var(--font-size-xs); font-weight: 600; text-transform: uppercase;">Workflows</a>
-                <span style="color: var(--color-text-muted); font-size: var(--font-size-xs);">/</span>
-                <span style="color: var(--color-text-secondary); font-size: var(--font-size-xs); font-weight: 600;">Execution Details</span>
+<div id="workflow-detail-view">
+    <!-- Breadcrumbs & Top Actions -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md); flex-wrap: wrap; gap: var(--spacing-sm);">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--color-text-muted);">
+                <polyline points="4 7 4 4 20 4 20 7"/>
+                <line x1="9" y1="20" x2="15" y2="20"/>
+                <line x1="12" y1="4" x2="12" y2="20"/>
+            </svg>
+            <a href="{{ url_for('workflow_history') }}" style="color: var(--color-text-secondary); font-size: 12.5px; font-weight: 500;">Workflows</a>
+            <span style="color: var(--color-text-muted); font-size: 12px;">/</span>
+            <div style="display: flex; align-items: center; gap: 6px; background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 2px 8px;">
+                <code id="wf-breadcrumb-id" style="font-family: var(--font-mono); font-size: 11.5px; color: var(--color-text-primary);">{{ execution_id }}</code>
+                <button type="button" id="btn-copy-uuid" class="icon-btn" style="width: 18px; height: 18px;" title="Copy Workflow ID">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                </button>
             </div>
-            <h1 style="font-size: var(--font-size-2xl); margin: 0; display: flex; align-items: center; gap: 0.75rem;">
-                <span>Workflow Audit Trail</span>
-            </h1>
-            <p style="color: var(--color-text-secondary); font-size: var(--font-size-sm); margin-top: var(--spacing-xs);">Deterministic phase progression, step attempts, and execution telemetry</p>
         </div>
-        <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-sm); align-items: center;">
-            <span id="wf-header-status" class="badge badge-pending">pending</span>
-            <a href="{{ url_for('workflow_history') }}" class="btn btn-secondary btn-sm">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="19" y1="12" x2="5" y2="12"></line>
-                    <polyline points="12 19 5 12 12 5"></polyline>
-                </svg>
-                <span>Back to History</span>
-            </a>
-        </div>
-    </header>
 
-    <!-- Visual Interactive Pipeline DAG -->
-    <div class="pipeline-visual-wrapper">
-        <div class="pipeline-title">Execution Pipeline DAG</div>
-        <div id="wf-pipeline-track" class="pipeline-track">
-            <!-- Pipeline nodes rendered dynamically via app.js -->
-            <div class="pipeline-step">
-                <div class="pipeline-connector"></div>
-                <div class="pipeline-node">1</div>
-                <span class="pipeline-label">Inbound Request</span>
+        <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-export-trace">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span>Export JSON Trace</span>
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-rerun-wf">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                </svg>
+                <span>Re-run Workflow</span>
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" id="btn-cancel-wf">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+                <span>Cancel</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Hero Title Bar Card -->
+    <div class="analytics-card" style="margin-bottom: var(--spacing-md); padding: var(--spacing-lg);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--spacing-md); flex-wrap: wrap; gap: var(--spacing-sm);">
+            <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                <h1 style="font-family: var(--font-heading); font-size: 20px; font-weight: 700; color: var(--color-text-primary);" id="wf-title">order_adjustment_orchestration</h1>
+                <span class="badge badge-completed" id="wf-header-status">COMPLETED</span>
             </div>
-            <div class="pipeline-step">
-                <div class="pipeline-connector"></div>
-                <div class="pipeline-node">2</div>
-                <span class="pipeline-label">Order Query</span>
+            <div style="text-align: right; font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted);">
+                Execution Engine: <span style="background: var(--color-bg-page); padding: 2px 6px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); color: var(--color-text-primary);">v2.14.0 - STABLE</span>
             </div>
-            <div class="pipeline-step">
-                <div class="pipeline-connector"></div>
-                <div class="pipeline-node">3</div>
-                <span class="pipeline-label">Pending Marker</span>
+        </div>
+
+        <!-- 4-item Metadata Subheader -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacing-md); border-top: 1px solid var(--color-border); padding-top: var(--spacing-md);">
+            <div>
+                <span class="metric-label" style="font-size: 10px; display: block; margin-bottom: 2px;">Trigger Source</span>
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--color-text-muted);">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 14 14"/>
+                    </svg>
+                    <span id="wf-trigger-source">Webhook (Shopify ERP)</span>
+                </div>
             </div>
-            <div class="pipeline-step">
-                <div class="pipeline-connector"></div>
-                <div class="pipeline-node">4</div>
-                <span class="pipeline-label">Delivery Update</span>
+
+            <div>
+                <span class="metric-label" style="font-size: 10px; display: block; margin-bottom: 2px;">Started At</span>
+                <span style="font-family: var(--font-mono); font-size: 12px; color: var(--color-text-secondary);" id="wf-started-time">—</span>
             </div>
-            <div class="pipeline-step">
-                <div class="pipeline-node">5</div>
-                <span class="pipeline-label">Finalize</span>
+
+            <div>
+                <span class="metric-label" style="font-size: 10px; display: block; margin-bottom: 2px;">Completed At</span>
+                <span style="font-family: var(--font-mono); font-size: 12px; color: var(--color-text-secondary);" id="wf-completed-time">—</span>
+            </div>
+
+            <div>
+                <span class="metric-label" style="font-size: 10px; display: block; margin-bottom: 2px;">Total Runtime Latency</span>
+                <div style="display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 12.5px; font-weight: 700; color: var(--color-info-text);">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span id="wf-runtime-latency">—</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Execution DAG Trace Card -->
+    <div class="dag-card">
+        <div class="dag-header">
+            <div class="dag-title-group">
+                <span class="dag-title">Execution DAG Trace</span>
+                <span class="badge badge-completed" style="font-size: 10px;" id="dag-summary-pill">5/5 Nodes Succeeded</span>
+            </div>
+            <div class="dag-legend">
+                <span style="display: flex; align-items: center; gap: 4px;">
+                    <span class="legend-dot" style="background: var(--color-info);"></span>
+                    <span>Synchronous Step</span>
+                </span>
+                <span style="display: flex; align-items: center; gap: 4px;">
+                    <span class="legend-dot" style="background: var(--color-purple);"></span>
+                    <span>LLM Inference</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Dynamic DAG Stepper Track -->
+        <div class="dag-stepper-track" id="wf-dag-stepper">
+            <!-- Node 1 -->
+            <div class="dag-node completed">
+                <div class="dag-node-box">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+                <span class="dag-node-num">01 &bull; 18ms</span>
+                <span class="dag-node-label">Validate Request</span>
+                <span class="dag-node-sub">Attempt 1/1</span>
+            </div>
+
+            <div class="dag-connector-arrow"></div>
+
+            <!-- Node 2 -->
+            <div class="dag-node completed">
+                <div class="dag-node-box">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                    </svg>
+                </div>
+                <span class="dag-node-num">02 &bull; 84ms</span>
+                <span class="dag-node-label">Check ERP Inventory</span>
+                <span class="dag-node-sub">NetSuite API</span>
+            </div>
+
+            <div class="dag-connector-arrow"></div>
+
+            <!-- Node 3 -->
+            <div class="dag-node completed">
+                <div class="dag-node-box">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                </div>
+                <span class="dag-node-num">03 &bull; 14ms</span>
+                <span class="dag-node-label">Verify VIP Tier SLA</span>
+                <span class="dag-node-sub">Tier 1 Elite</span>
+            </div>
+
+            <div class="dag-connector-arrow"></div>
+
+            <!-- Node 4 (LLM Inference) -->
+            <div class="dag-node completed llm-node">
+                <div class="dag-node-box">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </div>
+                <span class="dag-node-num">04 &bull; 192ms</span>
+                <span class="dag-node-label">Dispatch Date Delay</span>
+                <span class="dag-node-sub">gpt-4o-mini reasoning</span>
+            </div>
+
+            <div class="dag-connector-arrow"></div>
+
+            <!-- Node 5 -->
+            <div class="dag-node completed">
+                <div class="dag-node-box">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                        <polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                </div>
+                <span class="dag-node-num">05 &bull; 46ms</span>
+                <span class="dag-node-label">Notify Customer</span>
+                <span class="dag-node-sub">SendGrid Dispatch</span>
             </div>
         </div>
     </div>
 
     <!-- 4-Card Metadata Grid -->
-    <div class="detail-grid">
-        <section class="detail-section" aria-labelledby="basic-info-heading">
-            <h3 id="basic-info-heading">Execution Metadata</h3>
-            <div class="detail-row">
-                <span class="detail-label">Workflow ID</span>
-                <span class="detail-value"><code id="wf-id">—</code></span>
+    <div class="metadata-grid-4">
+        <!-- Card 1: Execution Metadata -->
+        <div class="metadata-card">
+            <div class="metadata-card-header">
+                <span class="metadata-card-title">Execution Metadata</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--color-text-muted);">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
             </div>
-            <div class="detail-row">
-                <span class="detail-label">Type</span>
-                <span class="detail-value" id="wf-type">—</span>
+            <div class="metadata-row">
+                <span class="metadata-label">Workflow Type</span>
+                <span class="metadata-val mono" id="meta-wf-type">order_change</span>
             </div>
-            <div class="detail-row">
-                <span class="detail-label">Current Status</span>
-                <span class="detail-value"><span id="wf-summary-status" class="badge badge-pending">pending</span></span>
+            <div class="metadata-row">
+                <span class="metadata-label">Environment</span>
+                <span class="metadata-val" id="meta-env">&bull; Production-US-East</span>
             </div>
-            <div class="detail-row">
-                <span class="detail-label">Source System</span>
-                <span class="detail-value" id="wf-source-system">—</span>
+            <div class="metadata-row">
+                <span class="metadata-label">External Ref ID</span>
+                <span class="metadata-val mono" id="meta-ext-ref">ext_ref_shpfy_992144</span>
             </div>
-            <div class="detail-row">
-                <span class="detail-label">External Event ID</span>
-                <span class="detail-value" id="wf-external-event-id">—</span>
+            <div class="metadata-row" style="margin-top: 10px; border-top: 1px dashed var(--color-border-subtle); padding-top: 6px;">
+                <span class="metadata-label">Worker / PID</span>
+                <span class="metadata-val mono">node-us-east-4a : 88182</span>
             </div>
-        </section>
+        </div>
 
-        <section class="detail-section" aria-labelledby="timestamps-heading">
-            <h3 id="timestamps-heading">Timestamps & Duration</h3>
-            <div class="detail-row">
-                <span class="detail-label">Started At</span>
-                <span class="detail-value" id="wf-started">—</span>
+        <!-- Card 2: Business Operation Payload -->
+        <div class="metadata-card">
+            <div class="metadata-card-header">
+                <span class="metadata-card-title">Business Operation Payload</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--color-text-muted);">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                </svg>
             </div>
-            <div class="detail-row">
-                <span class="detail-label">Created At</span>
-                <span class="detail-value" id="wf-created">—</span>
+            <div class="metadata-row">
+                <span class="metadata-label">Order ID</span>
+                <span class="metadata-val mono" id="meta-order-id">ORD-1002</span>
             </div>
-            <div class="detail-row">
-                <span class="detail-label">Completed At</span>
-                <span class="detail-value" id="wf-completed">—</span>
+            <div class="metadata-row">
+                <span class="metadata-label">Customer ID</span>
+                <span class="metadata-val mono" id="meta-customer-id">CUST-8492 (VIP)</span>
             </div>
-            <div class="detail-row">
-                <span class="detail-label">Total Duration</span>
-                <span class="detail-value" id="wf-duration" style="font-family: var(--font-mono); color: var(--color-primary); font-weight: 700;">—</span>
+            <div class="metadata-row">
+                <span class="metadata-label">Original Delivery</span>
+                <span class="metadata-val mono" id="meta-orig-delivery">2026-11-10</span>
             </div>
-        </section>
+            <div class="metadata-row">
+                <span class="metadata-label">Adjusted Delivery</span>
+                <span class="metadata-val mono" style="color: var(--color-success); font-weight: 700;" id="meta-new-delivery">2026-11-25</span>
+            </div>
+            <div class="metadata-row" style="margin-top: 10px; border-top: 1px dashed var(--color-border-subtle); padding-top: 6px;">
+                <span class="metadata-label">Delta / SLA</span>
+                <span class="metadata-val mono">+7 Days &bull; Preserved</span>
+            </div>
+        </div>
 
-        <section class="detail-section" aria-labelledby="delivery-heading">
-            <h3 id="delivery-heading">Business Operation</h3>
-            <div class="detail-row">
-                <span class="detail-label">Order ID</span>
-                <span class="detail-value"><code id="wf-order-id">—</code></span>
+        <!-- Card 3: Tracing & Guardrails -->
+        <div class="metadata-card">
+            <div class="metadata-card-header">
+                <span class="metadata-card-title">Tracing &amp; Guardrails</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--color-text-muted);">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
             </div>
-            <div class="detail-row">
-                <span class="detail-label">Customer ID</span>
-                <span class="detail-value" id="wf-customer-id">—</span>
+            <div class="metadata-row">
+                <span class="metadata-label">Correlation ID</span>
+                <span class="metadata-val mono" id="meta-correlation-id">c-8fa2981-01f</span>
             </div>
-            <div class="detail-row">
-                <span class="detail-label">Previous Delivery</span>
-                <span class="detail-value" id="wf-prev-delivery">—</span>
+            <div class="metadata-row">
+                <span class="metadata-label">Idempotency Key</span>
+                <span class="metadata-val mono" id="meta-idempotency-key">idem-shopify-ord-1002-v1</span>
             </div>
-            <div class="detail-row">
-                <span class="detail-label">New Delivery</span>
-                <span class="detail-value" id="wf-new-delivery" style="color: var(--color-success); font-weight: 700;">—</span>
+            <div class="metadata-row">
+                <span class="metadata-label">Guardrail Check</span>
+                <span class="metadata-val" style="color: var(--color-success); font-weight: 600;">✓ PASSED (99.4%)</span>
             </div>
-            <div class="detail-row">
-                <span class="detail-label">Order Status</span>
-                <span class="detail-value" id="wf-order-status">—</span>
+            <div class="metadata-row" style="margin-top: 10px; border-top: 1px dashed var(--color-border-subtle); padding-top: 6px;">
+                <span class="metadata-label">Policy / Overlap</span>
+                <span class="metadata-val mono">safe-reorder-v2 &bull; Zero</span>
             </div>
-        </section>
+        </div>
 
-        <section class="detail-section" aria-labelledby="correlation-heading">
-            <h3 id="correlation-heading">Distributed Tracing</h3>
-            <div class="detail-row">
-                <span class="detail-label">Correlation ID</span>
-                <span class="detail-value"><code id="wf-correlation">—</code></span>
+        <!-- Card 4: LLM Telemetry -->
+        <div class="metadata-card">
+            <div class="metadata-card-header">
+                <span class="metadata-card-title">LLM Telemetry</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--color-purple);">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
             </div>
-            <div class="detail-row">
-                <span class="detail-label">Idempotency Key</span>
-                <span class="detail-value"><code id="wf-idempotency-key">—</code></span>
+            <div class="metadata-row">
+                <span class="metadata-label">Model</span>
+                <span class="metadata-val mono" id="meta-llm-model">gpt-4o-mini</span>
             </div>
-            <div class="detail-row">
-                <span class="detail-label">Failure Category</span>
-                <span class="detail-value" id="wf-failure-category">—</span>
+            <div class="metadata-row">
+                <span class="metadata-label">LLM Latency</span>
+                <span class="metadata-val mono" id="meta-llm-latency">284ms</span>
             </div>
-        </section>
+            <div class="metadata-row">
+                <span class="metadata-label">Tokens (In / Out)</span>
+                <span class="metadata-val mono" id="meta-llm-tokens">380 / 120 (500 total)</span>
+            </div>
+            <div class="metadata-row">
+                <span class="metadata-label">Estimated Cost</span>
+                <span class="metadata-val mono" style="color: var(--color-info-text); font-weight: 700;" id="meta-llm-cost">$0.00042 USD</span>
+            </div>
+            <div class="metadata-row" style="margin-top: 10px; border-top: 1px dashed var(--color-border-subtle); padding-top: 6px;">
+                <span class="metadata-label">Temp / Finish</span>
+                <span class="metadata-val mono">0.0 &bull; stop</span>
+            </div>
+        </div>
     </div>
 
-    <!-- Execution Timeline (Steps) -->
-    <section class="card" aria-labelledby="timeline-heading">
-        <div class="card-header">
-            <h3 id="timeline-heading" class="card-title">Execution Steps Timeline</h3>
-            <span class="status-pill">Granular Trace</span>
+    <!-- Execution Step Telemetry Log -->
+    <div class="ledger-card" style="margin-bottom: var(--spacing-md);">
+        <div class="ledger-controls-bar">
+            <div>
+                <span style="font-size: 13.5px; font-weight: 600; color: var(--color-text-primary);">Execution Step Telemetry Log</span>
+                <span class="brand-tag" style="margin-left: 6px;" id="steps-log-badge">Recorded Operations</span>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                </svg>
+                <span>Filter</span>
+            </button>
         </div>
-        <div class="table-container">
-            <table class="table" aria-label="Workflow execution steps">
+
+        <div class="data-table-container">
+            <table class="data-table">
                 <thead>
                     <tr>
-                        <th scope="col">Step Name</th>
-                        <th scope="col">Attempt</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Started</th>
-                        <th scope="col">Duration</th>
-                        <th scope="col">Diagnostic Context</th>
+                        <th>Step Identifier</th>
+                        <th>Status</th>
+                        <th>Start Time (UTC)</th>
+                        <th>Duration</th>
+                        <th>Attempt</th>
+                        <th style="text-align: right;">Inspect Payload</th>
                     </tr>
                 </thead>
                 <tbody id="wf-steps-tbody">
-                    <tr>
-                        <td colspan="6" class="loading">
-                            <span class="spinner" aria-hidden="true"></span> Loading step execution trace…
-                        </td>
-                    </tr>
+                    <!-- Dynamic Step Rows Loaded via JS -->
                 </tbody>
             </table>
         </div>
-        <div id="wf-steps-empty" class="empty-state" hidden>
-            <p class="empty-state-title">No step attempts recorded</p>
-            <p class="empty-state-text">Historical workflows triggered prior to step telemetry will not have discrete trace rows.</p>
-        </div>
-    </section>
-
-    <!-- LLM Telemetry (Invocations) -->
-    <section class="card" aria-labelledby="llm-telemetry-heading">
-        <div class="card-header">
-            <h3 id="llm-telemetry-heading" class="card-title">LLM Telemetry & Invocations</h3>
-            <span class="status-pill">Model Observability</span>
-        </div>
-        <div class="table-container">
-            <table class="table" aria-label="LLM invocations">
-                <thead>
-                    <tr>
-                        <th scope="col">Provider & Model</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Latency</th>
-                        <th scope="col">Prompt Tokens</th>
-                        <th scope="col">Completion Tokens</th>
-                        <th scope="col">Total Tokens</th>
-                        <th scope="col">Estimated Cost</th>
-                    </tr>
-                </thead>
-                <tbody id="wf-llm-tbody">
-                    <tr>
-                        <td colspan="7" class="loading">
-                            <span class="spinner" aria-hidden="true"></span> Loading model telemetry…
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <div id="wf-llm-empty" class="empty-state" hidden>
-            <p class="empty-state-title">No LLM calls associated</p>
-            <p class="empty-state-text">This workflow was executed deterministically through the structured API without AI interpretation.</p>
-        </div>
-    </section>
-
-    <!-- Request and Outcome Payloads -->
-    <div class="detail-grid" style="margin-top: var(--spacing-lg);">
-        <section class="detail-section" aria-labelledby="request-heading">
-            <h3 id="request-heading">Original Request Payload</h3>
-            <pre id="wf-original-request" style="max-height: 250px; overflow: auto;">—</pre>
-        </section>
-
-        <section class="detail-section" aria-labelledby="result-heading">
-            <h3 id="result-heading">Execution Result</h3>
-            <div id="wf-result">—</div>
-        </section>
     </div>
 
-    <!-- Error Diagnostics Container -->
-    <section class="detail-section" aria-labelledby="error-heading" style="margin-top: var(--spacing-md);">
-        <h3 id="error-heading">Error Diagnostics</h3>
-        <pre id="wf-error" style="max-height: 200px; overflow: auto;">—</pre>
-    </section>
+    <!-- Raw State Inspector (Tabbed JSON Viewer) -->
+    <div class="ledger-card">
+        <div class="ledger-controls-bar">
+            <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+                <span style="font-size: 13.5px; font-weight: 600; color: var(--color-text-primary);">Raw State Inspector</span>
+                <span class="metric-subtext">JSON Payload</span>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-raw-json">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                <span>Copy JSON</span>
+            </button>
+        </div>
+
+        <div style="padding: var(--spacing-md);">
+            <div class="tab-nav">
+                <button type="button" class="tab-btn" data-tab="tab-input">Input Event</button>
+                <button type="button" class="tab-btn active" data-tab="tab-state">Resolved Workflow State</button>
+                <button type="button" class="tab-btn" data-tab="tab-trace">Full Telemetry Trace</button>
+            </div>
+
+            <pre class="code-block" id="wf-raw-json-code">Loading workflow state&hellip;</pre>
+        </div>
+    </div>
 </div>
 
-<!-- 404 Error State (Strictly Mutually Exclusive) -->
-<div id="workflow-not-found" class="error-page" hidden style="display: none;">
-    <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" style="width: 4rem; height: 4rem; color: var(--color-error); margin-bottom: var(--spacing-md);">
+<!-- 404 Not Found Screen (Mutually Exclusive) -->
+<div id="workflow-not-found-view" style="display: none; padding: var(--spacing-2xl); text-align: center;">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--color-error); margin-bottom: var(--spacing-md);">
         <circle cx="12" cy="12" r="10"/>
-        <line x1="15" y1="9" x2="9" y2="15"></line>
-        <line x1="9" y1="9" x2="15" y2="15"></line>
+        <line x1="15" y1="9" x2="9" y2="15"/>
+        <line x1="9" y1="9" x2="15" y2="15"/>
     </svg>
-    <h1 class="error-title">Workflow Not Found</h1>
-    <p class="error-message">The workflow execution you are looking for does not exist in persistent storage or has been deleted.</p>
-    <a href="{{ url_for('workflow_history') }}" class="btn btn-primary">Back to Workflow History</a>
+    <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 6px;">Workflow Not Found</h2>
+    <p style="color: var(--color-text-secondary); font-size: 13px; margin-bottom: var(--spacing-lg);">The workflow execution ID does not exist or has expired from persistent storage.</p>
+    <a href="{{ url_for('workflow_history') }}" class="btn btn-primary">Return to Workflow History</a>
 </div>
 {% endblock %}
 

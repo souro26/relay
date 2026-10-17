@@ -193,6 +193,7 @@ async def workflow_detail(execution_id: str, request: Request):
     )
 
 
+@app.get("/workflows/new", response_class=HTMLResponse, tags=["frontend"])
 @app.get("/request", response_class=HTMLResponse, tags=["frontend"])
 async def nl_request_form(request: Request):
     """Natural language request form page."""

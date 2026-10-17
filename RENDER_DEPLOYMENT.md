@@ -105,7 +105,7 @@ If you prefer to configure services manually via the Render UI:
 | `ORDER_SERVICE_URL` | `http://127.0.0.1:8001` | Local simulated order service |
 | `START_INTERNAL_ORDER_SERVICE` | `true` | Runs order service inside container |
 | `RUN_MIGRATIONS` | `true` | Runs `alembic upgrade head` on boot |
-| `LLM_PROVIDER` | `mock` *(or `openai`)* | Mock for zero cost, or OpenAI |
+| `LLM_PROVIDER` | `openai` *(or `nvidia`)* | Supported LLM provider |
 | `OPENAI_API_KEY` | *(optional)* | Only required if `LLM_PROVIDER=openai` |
 | `LOG_LEVEL` | `INFO` | Standard structured logging |
 | `APP_ENV` | `production` | Production environment flag |

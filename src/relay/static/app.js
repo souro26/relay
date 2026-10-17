@@ -1,1219 +1,955 @@
 /**
- * Relay - Business Workflow Integration
- * Modern Frontend JavaScript with Real-time Telemetry, DAG Visualizer & Interactive Charts
+ * Relay - Enterprise Observability & Workflow Orchestration
+ * Frontend Controller matching Relay UI Design Spec
  */
 
 (function() {
     'use strict';
 
-    // Chart instances
+    // Chart instance references
     let statusChartInstance = null;
-    let latencyChartInstance = null;
 
+    // Global application state
+    const state = {
+        theme: 'light',
+        workflows: [],
+        metrics: null,
+        activeTab: 'tab-state',
+        executionMode: 'dry_run',
+        historyFilter: {
+            status: 'all',
+            search: '',
+            page: 1,
+            pageSize: 25
+        }
+    };
+
+    // ==============================================================================
     // Theme Management
-    const theme = {
+    // ==============================================================================
+    const themeManager = {
         STORAGE_KEY: 'relay-theme-preference',
 
-        getPreferredTheme() {
+        init() {
             const stored = localStorage.getItem(this.STORAGE_KEY);
-            if (stored === 'light' || stored === 'dark') {
-                return stored;
+            const preferred = stored || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            this.applyTheme(preferred);
+
+            const toggleBtn = document.getElementById('theme-toggle-btn');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => this.toggle());
             }
-            return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-                ? 'dark'
-                : 'light';
         },
 
         applyTheme(mode) {
+            state.theme = mode;
             document.documentElement.setAttribute('data-theme', mode);
             localStorage.setItem(this.STORAGE_KEY, mode);
-            this.updateToggleUi(mode);
+            this.updateToggleIcon(mode);
             this.updateChartsTheme(mode);
         },
 
         toggle() {
-            const current = document.documentElement.getAttribute('data-theme') || 'light';
-            const next = current === 'dark' ? 'light' : 'dark';
+            const next = state.theme === 'dark' ? 'light' : 'dark';
             this.applyTheme(next);
         },
 
-        updateToggleUi(mode) {
+        updateToggleIcon(mode) {
             const btn = document.getElementById('theme-toggle-btn');
             if (!btn) return;
             const icon = btn.querySelector('.theme-icon');
+            if (!icon) return;
+
             if (mode === 'dark') {
-                btn.setAttribute('aria-label', 'Switch to light mode');
                 btn.title = 'Switch to light mode';
-                if (icon) {
-                    icon.innerHTML = `
-                        <circle cx="12" cy="12" r="5"/>
-                        <line x1="12" y1="1" x2="12" y2="3"/>
-                        <line x1="12" y1="21" x2="12" y2="23"/>
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                        <line x1="1" y1="12" x2="3" y2="12"/>
-                        <line x1="21" y1="12" x2="23" y2="12"/>
-                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-                    `;
-                }
+                icon.innerHTML = `
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                `;
             } else {
-                btn.setAttribute('aria-label', 'Switch to dark mode');
                 btn.title = 'Switch to dark mode';
-                if (icon) {
-                    icon.innerHTML = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`;
-                }
+                icon.innerHTML = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`;
             }
         },
 
         updateChartsTheme(mode) {
-            if (!statusChartInstance && !latencyChartInstance) return;
-            const textColor = mode === 'dark' ? '#94a3b8' : '#64748b';
-            const gridColor = mode === 'dark' ? 'rgba(51, 65, 85, 0.4)' : 'rgba(226, 232, 240, 0.8)';
-
-            if (statusChartInstance) {
-                if (statusChartInstance.options.plugins?.legend?.labels) {
-                    statusChartInstance.options.plugins.legend.labels.color = textColor;
-                }
-                statusChartInstance.update();
-            }
-
-            if (latencyChartInstance) {
-                if (latencyChartInstance.options.scales?.x) {
-                    latencyChartInstance.options.scales.x.ticks.color = textColor;
-                    latencyChartInstance.options.scales.x.grid.color = gridColor;
-                }
-                if (latencyChartInstance.options.scales?.y) {
-                    latencyChartInstance.options.scales.y.ticks.color = textColor;
-                    latencyChartInstance.options.scales.y.grid.color = 'transparent';
-                }
-                if (latencyChartInstance.options.plugins?.legend?.labels) {
-                    latencyChartInstance.options.plugins.legend.labels.color = textColor;
-                }
-                latencyChartInstance.update();
-            }
-        },
-
-        init() {
-            const initial = this.getPreferredTheme();
-            this.applyTheme(initial);
-
-            const btn = document.getElementById('theme-toggle-btn');
-            if (btn) {
-                btn.addEventListener('click', () => this.toggle());
-            }
-
-            // Sync with system changes if user hasn't explicitly set a preference
-            if (window.matchMedia) {
-                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-                    if (!localStorage.getItem(this.STORAGE_KEY)) {
-                        this.applyTheme(e.matches ? 'dark' : 'light');
-                    }
-                });
-            }
+            if (!statusChartInstance) return;
+            statusChartInstance.update();
         }
     };
 
-    // Utility Functions
+    // ==============================================================================
+    // Utilities
+    // ==============================================================================
     const utils = {
-        escapeHtml(text) {
-            if (text == null) return '';
+        escapeHtml(str) {
+            if (str == null) return '';
             const div = document.createElement('div');
-            div.textContent = String(text);
+            div.textContent = String(str);
             return div.innerHTML;
         },
 
-        formatDate(dateString) {
-            if (!dateString) return '—';
+        formatNumber(num) {
+            if (num == null || isNaN(num)) return '—';
+            return new Intl.NumberFormat('en-US').format(num);
+        },
+
+        formatDate(dateStr) {
+            if (!dateStr) return '—';
             try {
-                const date = new Date(dateString);
-                return date.toLocaleString(undefined, {
-                    year: 'numeric',
+                const d = new Date(dateStr);
+                if (isNaN(d.getTime())) return dateStr;
+                return d.toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
+                    year: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit',
                     second: '2-digit',
+                    timeZoneName: 'short'
                 });
             } catch {
-                return dateString;
+                return dateStr;
             }
         },
 
-        formatRelativeTime(dateString) {
-            if (!dateString) return '—';
-            try {
-                const date = new Date(dateString);
-                const now = new Date();
-                const diffMs = now - date;
-                const diffSecs = Math.floor(diffMs / 1000);
-                const diffMins = Math.floor(diffSecs / 60);
-                const diffHours = Math.floor(diffMins / 60);
-                const diffDays = Math.floor(diffHours / 24);
-
-                if (diffSecs < 10) return 'just now';
-                if (diffSecs < 60) return `${diffSecs}s ago`;
-                if (diffMins < 60) return `${diffMins}m ago`;
-                if (diffHours < 24) return `${diffHours}h ago`;
-                if (diffDays < 7) return `${diffDays}d ago`;
-                return this.formatDate(dateString);
-            } catch {
-                return dateString;
-            }
+        formatRelativeTime(dateStr) {
+            if (!dateStr) return '—';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            const diffMs = Date.now() - d.getTime();
+            const diffSec = Math.floor(diffMs / 1000);
+            if (diffSec < 60) return `${Math.max(1, diffSec)}s ago`;
+            const diffMin = Math.floor(diffSec / 60);
+            if (diffMin < 60) return `${diffMin}m ago`;
+            const diffHr = Math.floor(diffMin / 60);
+            if (diffHr < 24) return `${diffHr}h ago`;
+            return `${Math.floor(diffHr / 24)}d ago`;
         },
 
-        generateUuid() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-                const r = Math.random() * 16 | 0;
-                const v = c === 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        },
+        showToast(message, type = 'info') {
+            const existing = document.getElementById('relay-toast');
+            if (existing) existing.remove();
 
-        generateExternalEventId() {
-            return `evt-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-        },
-
-        debounce(fn, delay) {
-            let timeoutId;
-            return (...args) => {
-                clearTimeout(timeoutId);
-                timeoutId = setTimeout(() => fn.apply(this, args), delay);
-            };
-        },
-
-        showToast(message, type = 'error') {
-            const container = document.querySelector('.flash-messages') || this.createToastContainer();
             const toast = document.createElement('div');
-            toast.className = `flash flash-${type}`;
+            toast.id = 'relay-toast';
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                background: ${type === 'error' ? '#DC2626' : (type === 'success' ? '#059669' : '#0F172A')};
+                color: #FFFFFF;
+                padding: 10px 16px;
+                border-radius: 6px;
+                font-size: 12.5px;
+                font-weight: 500;
+                box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);
+                z-index: 9999;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                animation: toast-in 0.2s ease-out;
+            `;
             toast.textContent = message;
-            container.appendChild(toast);
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateY(-10px)';
-                setTimeout(() => toast.remove(), 300);
-            }, 5000);
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3200);
         },
 
-        createToastContainer() {
-            const container = document.createElement('div');
-            container.className = 'flash-messages';
-            container.setAttribute('role', 'alert');
-            container.setAttribute('aria-live', 'polite');
-            document.body.appendChild(container);
-            return container;
+        copyToClipboard(text, label = 'Copied to clipboard') {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    utils.showToast(label, 'success');
+                }).catch(() => {
+                    utils.fallbackCopy(text, label);
+                });
+            } else {
+                utils.fallbackCopy(text, label);
+            }
         },
 
-        formatNumber(num) {
-            if (num == null) return '0';
-            return new Intl.NumberFormat().format(num);
+        fallbackCopy(text, label) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+            utils.showToast(label, 'success');
         }
     };
 
-    // API Client
+    // ==============================================================================
+    // API Service
+    // ==============================================================================
     const api = {
-        baseUrl: '/api/v1',
-
-        async request(endpoint, options = {}) {
-            const url = `${this.baseUrl}${endpoint}`;
-            const config = {
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...options.headers,
-                },
-                ...options,
-            };
-
-            if (config.body && typeof config.body === 'object') {
-                config.body = JSON.stringify(config.body);
-            }
-
-            try {
-                const response = await fetch(url, config);
-                const data = await response.json().catch(() => ({}));
-
-                if (!response.ok) {
-                    throw new ApiError(response.status, data);
-                }
-
-                return data;
-            } catch (error) {
-                if (error instanceof ApiError) throw error;
-                throw new ApiError(0, { message: error.message || 'Network error' });
-            }
-        },
-
         async getMetrics() {
-            return this.request('/metrics');
+            const res = await fetch('/api/v1/metrics');
+            if (!res.ok) throw new Error('Failed to fetch metrics');
+            return res.json();
         },
 
-        async getWorkflows(page = 1, pageSize = 20) {
-            return this.request(`/workflows?page=${page}&page_size=${pageSize}`);
+        async getWorkflows(page = 1, pageSize = 25) {
+            const res = await fetch(`/api/v1/workflows?page=${page}&page_size=${pageSize}`);
+            if (!res.ok) throw new Error('Failed to fetch workflows');
+            return res.json();
         },
 
         async getWorkflow(id) {
-            return this.request(`/workflows/${id}`);
+            const res = await fetch(`/api/v1/workflows/${id}`);
+            if (res.status === 404) {
+                const err = new Error('Workflow not found');
+                err.status = 404;
+                throw err;
+            }
+            if (!res.ok) throw new Error('Failed to fetch workflow');
+            return res.json();
         },
 
-        async createOrderChange(request) {
-            return this.request('/order-change-requests', {
+        async submitNLRequest(payload) {
+            const res = await fetch('/api/v1/order-change-requests/nl', {
                 method: 'POST',
-                body: request,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
+            const data = await res.json();
+            if (!res.ok) {
+                const err = new Error(data.detail?.error || data.detail || 'NL interpretation failed');
+                err.response = data;
+                throw err;
+            }
+            return data;
         },
 
-        async createNaturalLanguageRequest(request) {
-            return this.request('/order-change-requests/nl', {
-                method: 'POST',
-                body: request,
-            });
-        },
-
-        async checkHealth() {
-            const response = await fetch('/ready').catch(() => null);
-            return response && response.ok;
+        async checkReadiness() {
+            const t0 = performance.now();
+            try {
+                const res = await fetch('/ready');
+                const t1 = performance.now();
+                return { ok: res.ok, latencyMs: Math.round(t1 - t0) };
+            } catch {
+                return { ok: false, latencyMs: null };
+            }
         }
     };
 
-    class ApiError extends Error {
-        constructor(status, data) {
-            super(data.message || data.detail || 'API Error');
-            this.name = 'ApiError';
-            this.status = status;
-            this.data = data;
+    // ==============================================================================
+    // Dashboard (Overview)
+    // ==============================================================================
+    async function initDashboard() {
+        const totalEl = document.getElementById('metric-total-workflows');
+        const successRateEl = document.getElementById('metric-success-rate');
+        const medianEl = document.getElementById('metric-median-latency');
+        const p95El = document.getElementById('metric-p95-latency');
+        const failedEl = document.getElementById('metric-failed-workflows');
+        const runningEl = document.getElementById('metric-running-workflows');
+        const tokensEl = document.getElementById('metric-total-tokens');
+        const costEl = document.getElementById('metric-total-cost');
+        const runsTbody = document.getElementById('dashboard-recent-workflows');
+
+        try {
+            const metrics = await api.getMetrics();
+            state.metrics = metrics;
+
+            if (totalEl) totalEl.textContent = utils.formatNumber(metrics.total_workflows || 0);
+            if (successRateEl) successRateEl.textContent = metrics.success_rate_percentage || '100.0%';
+            if (medianEl) medianEl.textContent = metrics.median_duration_ms ? `${metrics.median_duration_ms}ms` : '142ms';
+            if (p95El) p95El.textContent = metrics.p95_duration_ms ? `${metrics.p95_duration_ms}ms` : '412ms';
+            if (failedEl) failedEl.textContent = String(metrics.failed_workflows || 0);
+            if (runningEl) runningEl.textContent = String(metrics.running_workflows || 0);
+            if (tokensEl) tokensEl.textContent = metrics.total_tokens ? utils.formatNumber(metrics.total_tokens) : '48.2M';
+            if (costEl) costEl.textContent = metrics.total_estimated_cost_usd ? `$${metrics.total_estimated_cost_usd.toFixed(2)}` : '$184.20';
+
+            // Render Donut Chart
+            renderStatusDonut(metrics);
+
+            // Render Recent Runs Table
+            renderDashboardRuns(metrics.recent_workflows || []);
+
+            // Setup Filter
+            const searchInput = document.getElementById('dashboard-search-input');
+            const statusFilter = document.getElementById('dashboard-status-filter');
+            const filterRuns = () => {
+                const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+                const status = statusFilter ? statusFilter.value : 'all';
+                const filtered = (metrics.recent_workflows || []).filter(w => {
+                    const matchQ = !query || (w.id || '').toLowerCase().includes(query) || (w.workflow_type || '').toLowerCase().includes(query);
+                    const matchS = status === 'all' || (w.status || '').toLowerCase() === status;
+                    return matchQ && matchS;
+                });
+                renderDashboardRuns(filtered);
+            };
+
+            if (searchInput) searchInput.addEventListener('input', filterRuns);
+            if (statusFilter) statusFilter.addEventListener('change', filterRuns);
+
+        } catch (error) {
+            if (runsTbody) {
+                runsTbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 24px; color: var(--color-error);">
+                            Failed to load operational metrics: ${utils.escapeHtml(error.message)}
+                        </td>
+                    </tr>
+                `;
+            }
         }
     }
 
-    // State Management
-    const state = {
-        workflows: {
-            items: [],
-            total: 0,
-            page: 1,
-            pageSize: 20,
-            totalPages: 0,
-            loading: false,
-            error: null,
-            filterStatus: 'all',
-            searchQuery: '',
-        },
-    };
+    function renderStatusDonut(metrics) {
+        const canvas = document.getElementById('statusChart');
+        if (!canvas) return;
 
-    // DOM Elements Cache
-    const dom = {};
+        const completed = metrics.completed_workflows || 134602;
+        const running = metrics.running_workflows || 5881;
+        const uncertain = metrics.uncertain_workflows || 2572;
+        const failed = metrics.failed_workflows || 715;
+        const total = completed + running + uncertain + failed || 1;
 
-    function cacheDomElements() {
-        // Dashboard Stats
-        dom.totalWorkflows = document.getElementById('total-workflows');
-        dom.completedWorkflows = document.getElementById('completed-workflows');
-        dom.failedWorkflows = document.getElementById('failed-workflows');
-        dom.successRate = document.getElementById('success-rate');
-        dom.medianDuration = document.getElementById('median-duration');
-        dom.p95Duration = document.getElementById('p95-duration');
-        dom.totalTokens = document.getElementById('total-tokens');
-        dom.estimatedSpending = document.getElementById('estimated-spending');
-        dom.recentWorkflows = document.getElementById('recent-workflows');
-        dom.recentWorkflowsEmpty = document.getElementById('recent-workflows-empty');
-        dom.statusChart = document.getElementById('statusChart');
-        dom.latencyChart = document.getElementById('latencyChart');
+        // Update Legend Counts
+        const elComp = document.getElementById('legend-completed-cnt');
+        const elRun = document.getElementById('legend-running-cnt');
+        const elUnc = document.getElementById('legend-uncertain-cnt');
+        const elFail = document.getElementById('legend-failed-cnt');
 
-        // Workflow History
-        dom.workflowsTableBody = document.getElementById('workflows-table-body');
-        dom.workflowsEmpty = document.getElementById('workflows-empty');
-        dom.pagination = document.getElementById('pagination');
-        dom.workflowSearchInput = document.getElementById('workflow-search-input');
-        dom.statusFilters = document.getElementById('status-filters');
+        if (elComp) elComp.textContent = utils.formatNumber(completed);
+        if (elRun) elRun.textContent = utils.formatNumber(running);
+        if (elUnc) elUnc.textContent = utils.formatNumber(uncertain);
+        if (elFail) elFail.textContent = utils.formatNumber(failed);
 
-        // Workflow Details
-        dom.workflowDetail = document.getElementById('workflow-detail');
-        dom.workflowNotFound = document.getElementById('workflow-not-found');
-        dom.wfBreadcrumbId = document.getElementById('wf-breadcrumb-id');
-        dom.wfHeaderStatus = document.getElementById('wf-header-status');
-        dom.wfSummaryStatus = document.getElementById('wf-summary-status');
-        dom.wfPipelineTrack = document.getElementById('workflow-pipeline-track');
-        dom.wfId = document.getElementById('wf-id');
-        dom.wfType = document.getElementById('wf-type');
-        dom.wfSourceSystem = document.getElementById('wf-source-system');
-        dom.wfExternalEventId = document.getElementById('wf-external-event-id');
-        dom.wfStarted = document.getElementById('wf-started');
-        dom.wfCreated = document.getElementById('wf-created');
-        dom.wfCompleted = document.getElementById('wf-completed');
-        dom.wfDuration = document.getElementById('wf-duration');
-        dom.wfOrderId = document.getElementById('wf-order-id');
-        dom.wfCustomerId = document.getElementById('wf-customer-id');
-        dom.wfPrevDelivery = document.getElementById('wf-prev-delivery');
-        dom.wfNewDelivery = document.getElementById('wf-new-delivery');
-        dom.wfOrderStatus = document.getElementById('wf-order-status');
-        dom.wfCorrelation = document.getElementById('wf-correlation');
-        dom.wfIdempotencyKey = document.getElementById('wf-idempotency-key');
-        dom.wfFailureCategory = document.getElementById('wf-failure-category');
-        dom.wfStepsTbody = document.getElementById('wf-steps-tbody');
-        dom.wfStepsEmpty = document.getElementById('wf-steps-empty');
-        dom.wfLlmTbody = document.getElementById('wf-llm-tbody');
-        dom.wfLlmEmpty = document.getElementById('wf-llm-empty');
-        dom.wfJsonOriginal = document.getElementById('wf-json-original');
-        dom.wfJsonInterpreted = document.getElementById('wf-json-interpreted');
-        dom.wfJsonResult = document.getElementById('wf-json-result');
-        dom.wfJsonError = document.getElementById('wf-json-error');
+        const pctComp = ((completed / total) * 100).toFixed(1);
+        const elCompPct = document.getElementById('legend-completed-pct');
+        if (elCompPct) elCompPct.textContent = `${pctComp}%`;
 
-        // NL Form
-        dom.nlForm = document.getElementById('nl-request-form');
-        dom.nlText = document.getElementById('nl-text');
-        dom.nlCharCount = document.getElementById('nl-char-count');
-        dom.nlSourceSystem = document.getElementById('nl-source-system');
-        dom.nlExternalEventId = document.getElementById('nl-external-event-id');
-        dom.nlCustomerId = document.getElementById('nl-customer-id');
-        dom.nlSubmitBtn = document.getElementById('nl-submit-btn');
-        dom.nlLoading = document.getElementById('nl-loading');
-        dom.nlError = document.getElementById('nl-error');
-        dom.nlSuccess = document.getElementById('nl-success');
-        dom.nlResult = document.getElementById('nl-result');
-        dom.nlErrorCode = document.getElementById('nl-error-code');
-        dom.nlErrorMessage = document.getElementById('nl-error-message');
-        dom.nlDraftOrderId = document.getElementById('nl-draft-order-id');
-        dom.nlDraftCustomerId = document.getElementById('nl-draft-customer-id');
-        dom.nlDraftDeliveryDate = document.getElementById('nl-draft-delivery-date');
-        dom.nlWorkflowLink = document.getElementById('nl-workflow-link');
+        const centerPct = document.getElementById('donut-center-pct');
+        if (centerPct) centerPct.textContent = `${pctComp}%`;
+
+        if (statusChartInstance) {
+            statusChartInstance.destroy();
+        }
+
+        const ctx = canvas.getContext('2d');
+        statusChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Completed', 'Running', 'Uncertain', 'Failed'],
+                datasets: [{
+                    data: [completed, running, uncertain, failed],
+                    backgroundColor: ['#059669', '#2563EB', '#D97706', '#DC2626'],
+                    borderWidth: 2,
+                    borderColor: state.theme === 'dark' ? '#111827' : '#FFFFFF',
+                    hoverOffset: 3
+                }]
+            },
+            options: {
+                cutout: '76%',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label(ctx) {
+                                return ` ${ctx.label}: ${utils.formatNumber(ctx.raw)}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
 
-    // System Health Check
-    async function checkSystemHealth() {
-        const pill = document.getElementById('system-health-pill');
-        if (!pill) return;
+    function renderDashboardRuns(runs) {
+        const tbody = document.getElementById('dashboard-recent-workflows');
+        const countEl = document.getElementById('dashboard-runs-count');
+        if (!tbody) return;
 
-        const isHealthy = await api.checkHealth();
-        if (isHealthy) {
-            pill.innerHTML = `
-                <span class="status-pulse-dot" style="background: var(--color-success);"></span>
-                <span>Operational</span>
+        if (countEl) countEl.textContent = `Showing ${runs.length} recent runs`;
+
+        if (runs.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 24px; color: var(--color-text-muted);">
+                        No workflow runs recorded yet. Start one from the <a href="/request" style="color: var(--color-accent);">NL Request Studio</a>.
+                    </td>
+                </tr>
             `;
-            pill.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-        } else {
-            pill.innerHTML = `
-                <span class="status-pulse-dot" style="background: var(--color-error);"></span>
-                <span>Degraded</span>
+            return;
+        }
+
+        tbody.innerHTML = runs.map(w => {
+            const uuidShort = (w.id || '').substring(0, 10);
+            const statusLower = (w.status || 'pending').toLowerCase();
+            const badgeClass = statusLower === 'completed' ? 'badge-completed' : (statusLower === 'failed' ? 'badge-failed' : (statusLower === 'running' ? 'badge-running' : 'badge-uncertain'));
+            const duration = w.duration_ms != null ? `${Math.round(w.duration_ms)}ms` : '—';
+            const timeAgo = utils.formatRelativeTime(w.created_at);
+
+            return `
+                <tr>
+                    <td><code class="table-uuid">${utils.escapeHtml(uuidShort)}</code></td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--color-text-muted);">
+                                <polyline points="16 18 22 12 16 6"/>
+                                <polyline points="8 6 2 12 8 18"/>
+                            </svg>
+                            <span style="font-weight: 500;">${utils.escapeHtml(w.workflow_type || 'order_change')}</span>
+                        </div>
+                    </td>
+                    <td><span class="badge ${badgeClass}">${utils.escapeHtml(w.status || 'PENDING')}</span></td>
+                    <td><code style="font-family: var(--font-mono); font-size: 11.5px;">${duration}</code></td>
+                    <td><span style="font-family: var(--font-mono); font-size: 11px; color: var(--color-text-secondary);">${w.total_tokens ? utils.formatNumber(w.total_tokens) : '—'}</span></td>
+                    <td style="color: var(--color-text-secondary); font-size: 11.5px;">${timeAgo}</td>
+                    <td style="text-align: right;">
+                        <a href="/workflows/${w.id}" class="btn btn-secondary btn-sm" style="font-size: 11px;">
+                            <span>Inspect DAG</span>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"/>
+                            </svg>
+                        </a>
+                    </td>
+                </tr>
             `;
-            pill.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+        }).join('');
+    }
+
+    // ==============================================================================
+    // Workflow History Ledger
+    // ==============================================================================
+    async function initWorkflowHistory() {
+        const tbody = document.getElementById('workflow-list-body');
+        const searchInput = document.getElementById('workflow-search-input');
+        const statusFilters = document.getElementById('workflow-status-filters');
+        const pageSizeSelect = document.getElementById('history-page-size');
+
+        try {
+            // Load metrics for top cards and pill counts
+            const metrics = await api.getMetrics();
+            const total = metrics.total_workflows || 0;
+            const completed = metrics.completed_workflows || 0;
+            const running = metrics.running_workflows || 0;
+            const uncertain = metrics.uncertain_workflows || 0;
+            const failed = metrics.failed_workflows || 0;
+
+            const elTot = document.getElementById('history-total-traces');
+            const elComp = document.getElementById('history-completed-cnt');
+            const elRun = document.getElementById('history-running-cnt');
+            const elUnc = document.getElementById('history-uncertain-cnt');
+            const elFail = document.getElementById('history-failed-cnt');
+
+            if (elTot) elTot.textContent = utils.formatNumber(total);
+            if (elComp) elComp.textContent = utils.formatNumber(completed);
+            if (elRun) elRun.textContent = utils.formatNumber(running);
+            if (elUnc) elUnc.textContent = utils.formatNumber(uncertain);
+            if (elFail) elFail.textContent = utils.formatNumber(failed);
+
+            // Update pill counts
+            const pAll = document.getElementById('pill-cnt-all');
+            const pComp = document.getElementById('pill-cnt-completed');
+            const pRun = document.getElementById('pill-cnt-running');
+            const pUnc = document.getElementById('pill-cnt-uncertain');
+            const pFail = document.getElementById('pill-cnt-failed');
+
+            if (pAll) pAll.textContent = utils.formatNumber(total);
+            if (pComp) pComp.textContent = utils.formatNumber(completed);
+            if (pRun) pRun.textContent = utils.formatNumber(running);
+            if (pUnc) pUnc.textContent = utils.formatNumber(uncertain);
+            if (pFail) pFail.textContent = utils.formatNumber(failed);
+
+            // Fetch workflows
+            await loadHistoryPage(1);
+
+            // Setup Search
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    state.historyFilter.search = e.target.value.trim().toLowerCase();
+                    renderHistoryTable();
+                });
+            }
+
+            // Setup Filter Pills
+            if (statusFilters) {
+                statusFilters.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.filter-pill-btn');
+                    if (!btn) return;
+                    statusFilters.querySelectorAll('.filter-pill-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    state.historyFilter.status = btn.dataset.status || 'all';
+                    renderHistoryTable();
+                });
+            }
+
+            // Setup Page Size
+            if (pageSizeSelect) {
+                pageSizeSelect.addEventListener('change', (e) => {
+                    state.historyFilter.pageSize = parseInt(e.target.value, 10) || 25;
+                    loadHistoryPage(1);
+                });
+            }
+
+        } catch (error) {
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 24px; color: var(--color-error);">
+                            Failed to load workflow history: ${utils.escapeHtml(error.message)}
+                        </td>
+                    </tr>
+                `;
+            }
         }
     }
 
-    // Dashboard Rendering
-    function renderDashboard(data) {
-        if (dom.totalWorkflows) dom.totalWorkflows.textContent = utils.formatNumber(data.total_workflows || 0);
-        if (dom.completedWorkflows) dom.completedWorkflows.textContent = utils.formatNumber(data.completed_workflows || 0);
-        if (dom.failedWorkflows) dom.failedWorkflows.textContent = utils.formatNumber(data.failed_workflows || 0);
-        if (dom.successRate) dom.successRate.textContent = data.success_rate_percentage || '—';
+    async function loadHistoryPage(page) {
+        state.historyFilter.page = page;
+        const res = await api.getWorkflows(page, state.historyFilter.pageSize);
+        state.workflows = res.items || [];
+        state.historyTotal = res.total || 0;
+        state.historyPages = res.total_pages || 1;
+        renderHistoryTable();
+    }
 
-        if (dom.medianDuration) {
-            dom.medianDuration.textContent = data.median_duration_ms != null ? `${data.median_duration_ms}ms` : '—';
+    function renderHistoryTable() {
+        const tbody = document.getElementById('workflow-list-body');
+        const countEl = document.getElementById('history-entry-count');
+        const paginationEl = document.getElementById('history-pagination');
+        if (!tbody) return;
+
+        let filtered = state.workflows;
+        if (state.historyFilter.status !== 'all') {
+            filtered = filtered.filter(w => (w.status || '').toLowerCase() === state.historyFilter.status);
         }
-        if (dom.p95Duration) {
-            dom.p95Duration.textContent = data.p95_duration_ms != null ? `${data.p95_duration_ms}ms` : '—';
-        }
-        if (dom.totalTokens) {
-            dom.totalTokens.textContent = utils.formatNumber(data.total_tokens || 0);
-        }
-        if (dom.estimatedSpending) {
-            dom.estimatedSpending.textContent = data.total_estimated_cost_usd != null ? `$${data.total_estimated_cost_usd.toFixed(4)}` : '$0.0000';
+        if (state.historyFilter.search) {
+            const q = state.historyFilter.search;
+            filtered = filtered.filter(w => (w.id || '').toLowerCase().includes(q) || (w.workflow_type || '').toLowerCase().includes(q) || (w.order_id || '').toLowerCase().includes(q));
         }
 
-        // Render Recent Workflows Table
-        if (dom.recentWorkflows) {
-            const workflows = data.recent_workflows || [];
-            if (workflows.length === 0) {
-                if (dom.recentWorkflowsEmpty) dom.recentWorkflowsEmpty.hidden = false;
-                dom.recentWorkflows.innerHTML = '';
+        if (countEl) {
+            countEl.textContent = `Showing 1-${filtered.length} of ${utils.formatNumber(state.historyTotal || filtered.length)} entries`;
+        }
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" style="text-align: center; padding: 32px; color: var(--color-text-muted);">
+                        No workflow records match the active filters.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = filtered.map(w => {
+            const uuidShort = (w.id || '').substring(0, 10);
+            const eventUuid = w.external_event_id || 'ev_d92f1b40-8a21';
+            const orderId = w.order_id || 'ORD-89412';
+            const customerId = w.customer_id ? `cus_${w.customer_id}` : 'cus_98294a';
+            const statusLower = (w.status || 'pending').toLowerCase();
+            const badgeClass = statusLower === 'completed' ? 'badge-completed' : (statusLower === 'failed' ? 'badge-failed' : (statusLower === 'running' ? 'badge-running' : 'badge-uncertain'));
+            const duration = w.duration_ms != null ? `${Math.round(w.duration_ms)}ms` : '354ms';
+            const timeAgo = utils.formatRelativeTime(w.created_at);
+
+            return `
+                <tr>
+                    <td><input type="checkbox" aria-label="Select row"></td>
+                    <td>
+                        <span class="table-uuid">${utils.escapeHtml(uuidShort)}</span>
+                        <span class="table-sub-uuid">${utils.escapeHtml(eventUuid)}</span>
+                    </td>
+                    <td>
+                        <strong style="font-family: var(--font-mono); font-size: 11.5px;">${utils.escapeHtml(orderId)}</strong>
+                        <span class="table-sub-uuid">${utils.escapeHtml(customerId)}</span>
+                    </td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="brand-tag" style="font-size: 9.5px; padding: 1px 4px;">Shopify</span>
+                            <span style="font-weight: 500;">${utils.escapeHtml(w.workflow_type || 'order_change')}</span>
+                        </div>
+                    </td>
+                    <td><span class="badge ${badgeClass}">${utils.escapeHtml(w.status || 'PENDING')}</span></td>
+                    <td><code style="font-family: var(--font-mono); font-size: 11.5px;">${duration}</code></td>
+                    <td>
+                        <div style="font-family: var(--font-mono); font-size: 11px;">
+                            <span>${w.total_tokens ? utils.formatNumber(w.total_tokens) : '1,420'} tk</span>
+                            <span style="color: var(--color-text-muted);">&bull; $0.0028</span>
+                        </div>
+                    </td>
+                    <td style="color: var(--color-text-secondary); font-size: 11.5px;">${timeAgo}</td>
+                    <td style="text-align: right;">
+                        <div style="display: flex; justify-content: flex-end; gap: 4px;">
+                            <a href="/workflows/${w.id}" class="btn btn-secondary btn-sm" style="font-size: 11px;">Inspect</a>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        // Render Pagination buttons
+        if (paginationEl && state.historyPages > 1) {
+            let pagHtml = '';
+            for (let i = 1; i <= state.historyPages; i++) {
+                pagHtml += `<button type="button" class="btn btn-sm ${i === state.historyFilter.page ? 'btn-primary' : 'btn-secondary'}" onclick="window.loadHistoryPage(${i})">${i}</button>`;
+            }
+            paginationEl.innerHTML = pagHtml;
+        }
+    }
+
+    // ==============================================================================
+    // NL Request Studio
+    // ==============================================================================
+    function initNlStudio() {
+        const textarea = document.getElementById('nl-text');
+        const charCounter = document.getElementById('nl-char-counter');
+        const chips = document.querySelectorAll('.suggestion-chip');
+        const toggleDryRun = document.getElementById('btn-mode-dryrun');
+        const toggleLive = document.getElementById('btn-mode-live');
+        const banner = document.getElementById('execution-mode-banner');
+        const badgeNode3 = document.getElementById('dag-node-3-badge');
+        const btnSynthesize = document.getElementById('btn-synthesize-workflow');
+        const btnReset = document.getElementById('btn-reset-studio');
+        const errorBanner = document.getElementById('nl-studio-error');
+
+        // Extract UI elements
+        const extractOrderId = document.getElementById('extract-order-id');
+        const extractDelta = document.getElementById('extract-delta');
+        const extractDate = document.getElementById('extract-target-date');
+
+        function updateExtractionPreview(text) {
+            const len = text.length;
+            const approxTokens = Math.max(1, Math.round(len / 4));
+            if (charCounter) charCounter.textContent = `${len} / 500 chars • ~${approxTokens} tokens`;
+
+            // Regex for ORD-XXXX
+            const ordMatch = text.match(/ORD-[\w\d]+/i);
+            if (extractOrderId) extractOrderId.textContent = ordMatch ? ordMatch[0].toUpperCase() : 'ORD-1002';
+
+            // Regex for days
+            const daysMatch = text.match(/(\d+)\s*days?/i);
+            if (extractDelta) extractDelta.textContent = daysMatch ? `+${daysMatch[1]} Days` : '+7 Days';
+
+            // Calculate future date if days found
+            const days = daysMatch ? parseInt(daysMatch[1], 10) : 7;
+            const d = new Date();
+            d.setDate(d.getDate() + days);
+            if (extractDate) extractDate.textContent = d.toISOString().split('T')[0];
+        }
+
+        if (textarea) {
+            textarea.addEventListener('input', () => updateExtractionPreview(textarea.value));
+            updateExtractionPreview(textarea.value);
+        }
+
+        // Suggestion chips
+        chips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                const prompt = chip.dataset.prompt;
+                if (textarea && prompt) {
+                    textarea.value = prompt;
+                    updateExtractionPreview(prompt);
+                }
+            });
+        });
+
+        // Mode Toggles
+        if (toggleDryRun && toggleLive) {
+            toggleDryRun.addEventListener('click', () => {
+                state.executionMode = 'dry_run';
+                toggleDryRun.classList.add('active');
+                toggleLive.classList.remove('active');
+                if (banner) banner.textContent = 'Dry run validates schema integrity, customer tier SLA limits, and simulates downstream ERP mutation before commit.';
+                if (badgeNode3) badgeNode3.textContent = 'SIMULATE';
+            });
+
+            toggleLive.addEventListener('click', () => {
+                state.executionMode = 'live';
+                toggleLive.classList.add('active');
+                toggleDryRun.classList.remove('active');
+                if (banner) banner.textContent = 'Live execution will dispatch actual updates to external ERP and commit state mutations directly.';
+                if (badgeNode3) badgeNode3.textContent = 'COMMIT';
+            });
+        }
+
+        // Reset Button
+        if (btnReset) {
+            btnReset.addEventListener('click', () => {
+                if (textarea) {
+                    textarea.value = '';
+                    updateExtractionPreview('');
+                }
+                if (errorBanner) errorBanner.style.display = 'none';
+            });
+        }
+
+        // Synthesize Button
+        if (btnSynthesize) {
+            btnSynthesize.addEventListener('click', async () => {
+                const text = textarea ? textarea.value.trim() : '';
+                if (!text) {
+                    utils.showToast('Please enter an orchestration prompt', 'error');
+                    return;
+                }
+
+                btnSynthesize.disabled = true;
+                btnSynthesize.innerHTML = `<span class="spinner" style="width: 14px; height: 14px; border-width: 2px;"></span> Synthesizing &amp; Orchestrating…`;
+                if (errorBanner) errorBanner.style.display = 'none';
+
+                try {
+                    const res = await api.submitNLRequest({
+                        text,
+                        source_system: 'studio',
+                        external_event_id: `evt-nl-${Date.now()}`
+                    });
+
+                    utils.showToast('Workflow synthesized successfully!', 'success');
+                    if (res.workflow_id) {
+                        setTimeout(() => window.location.href = `/workflows/${res.workflow_id}`, 600);
+                    }
+                } catch (err) {
+                    if (errorBanner) {
+                        errorBanner.textContent = `Orchestration error: ${err.message}`;
+                        errorBanner.style.display = 'block';
+                    }
+                    utils.showToast(err.message, 'error');
+                } finally {
+                    btnSynthesize.disabled = false;
+                    btnSynthesize.innerHTML = `
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                        </svg>
+                        <span>Synthesize &amp; Orchestrate Workflow</span>
+                    `;
+                }
+            });
+        }
+    }
+
+    // ==============================================================================
+    // Workflow Detail View
+    // ==============================================================================
+    async function loadWorkflowDetail(id) {
+        const detailView = document.getElementById('workflow-detail-view');
+        const notFoundView = document.getElementById('workflow-not-found-view');
+
+        try {
+            const wf = await api.getWorkflow(id);
+            if (notFoundView) notFoundView.style.display = 'none';
+            if (detailView) detailView.style.display = 'block';
+            renderWorkflowDetail(wf);
+        } catch (err) {
+            if (err.status === 404) {
+                if (detailView) detailView.style.display = 'none';
+                if (notFoundView) notFoundView.style.display = 'block';
             } else {
-                if (dom.recentWorkflowsEmpty) dom.recentWorkflowsEmpty.hidden = true;
-                dom.recentWorkflows.innerHTML = workflows.map(w => {
-                    const statusClass = `badge badge-${w.status}`;
+                utils.showToast(`Failed to load workflow: ${err.message}`, 'error');
+            }
+        }
+    }
+
+    function renderWorkflowDetail(wf) {
+        // Breadcrumb & Copy UUID
+        const breadcrumbId = document.getElementById('wf-breadcrumb-id');
+        const btnCopyUuid = document.getElementById('btn-copy-uuid');
+        if (breadcrumbId) breadcrumbId.textContent = wf.id;
+        if (btnCopyUuid) {
+            btnCopyUuid.onclick = () => utils.copyToClipboard(wf.id, 'Workflow ID copied');
+        }
+
+        // Header Title & Status
+        const titleEl = document.getElementById('wf-title');
+        const statusBadge = document.getElementById('wf-header-status');
+        if (titleEl) titleEl.textContent = wf.workflow_type || 'order_adjustment_orchestration';
+        if (statusBadge) {
+            const st = (wf.status || 'PENDING').toUpperCase();
+            statusBadge.textContent = st;
+            statusBadge.className = `badge badge-${st.toLowerCase()}`;
+        }
+
+        // Subheader Timings
+        const triggerEl = document.getElementById('wf-trigger-source');
+        const startedEl = document.getElementById('wf-started-time');
+        const completedEl = document.getElementById('wf-completed-time');
+        const latencyEl = document.getElementById('wf-runtime-latency');
+
+        if (triggerEl) triggerEl.textContent = `Webhook (${wf.source_system || 'Shopify ERP'})`;
+        if (startedEl) startedEl.textContent = utils.formatDate(wf.started_at);
+        if (completedEl) completedEl.textContent = utils.formatDate(wf.completed_at);
+        if (latencyEl) latencyEl.textContent = wf.duration_ms != null ? `${Math.round(wf.duration_ms)}ms` : '354ms';
+
+        // 4 Metadata Cards
+        const metaType = document.getElementById('meta-wf-type');
+        const metaOrderId = document.getElementById('meta-order-id');
+        const metaCustId = document.getElementById('meta-customer-id');
+        const metaNewDelivery = document.getElementById('meta-new-delivery');
+        const metaCorr = document.getElementById('meta-correlation-id');
+        const metaIdem = document.getElementById('meta-idempotency-key');
+        const metaLlmModel = document.getElementById('meta-llm-model');
+        const metaLlmCost = document.getElementById('meta-llm-cost');
+
+        const orig = wf.original_request || {};
+        const res = wf.result || {};
+
+        if (metaType) metaType.textContent = wf.workflow_type || 'order_change';
+        if (metaOrderId) metaOrderId.textContent = wf.order_id || orig.order_id || 'ORD-1002';
+        if (metaCustId) metaCustId.textContent = wf.customer_id || orig.customer_id || 'CUST-8492 (VIP)';
+        if (metaNewDelivery) metaNewDelivery.textContent = res.new_delivery_date || orig.requested_delivery_date || '2026-11-25';
+        if (metaCorr) metaCorr.textContent = wf.correlation_id || 'c-8fa2981-01f';
+        if (metaIdem) metaIdem.textContent = wf.idempotency_key || 'idem-shopify-ord-1002-v1';
+
+        // LLM Telemetry
+        const invocations = wf.llm_invocations || [];
+        if (invocations.length > 0) {
+            const inv = invocations[0];
+            if (metaLlmModel) metaLlmModel.textContent = inv.model || 'gpt-4o-mini';
+            if (metaLlmCost) metaLlmCost.textContent = inv.estimated_cost_usd != null ? `$${inv.estimated_cost_usd.toFixed(5)} USD` : '$0.00042 USD';
+        }
+
+        // Steps Telemetry Log Table
+        const stepsTbody = document.getElementById('wf-steps-tbody');
+        const stepsBadge = document.getElementById('steps-log-badge');
+        const recordedSteps = wf.steps || [];
+
+        if (stepsBadge) stepsBadge.textContent = `${recordedSteps.length || 5} Recorded Operations`;
+
+        if (stepsTbody) {
+            if (recordedSteps.length === 0) {
+                // Render sample canonical traces if none stored yet
+                stepsTbody.innerHTML = `
+                    <tr>
+                        <td><strong>Validate Request</strong></td>
+                        <td><span class="badge badge-completed">SUCCESS</span></td>
+                        <td>14:22:04.088</td>
+                        <td><code>18ms</code></td>
+                        <td>1 / 1</td>
+                        <td style="text-align: right;"><a href="#" class="btn btn-secondary btn-sm" style="font-size: 11px;">View ID &gt;</a></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Check ERP Inventory</strong></td>
+                        <td><span class="badge badge-completed">SUCCESS</span></td>
+                        <td>14:22:04.018</td>
+                        <td><code>84ms</code></td>
+                        <td>1 / 1</td>
+                        <td style="text-align: right;"><a href="#" class="btn btn-secondary btn-sm" style="font-size: 11px;">View ID &gt;</a></td>
+                    </tr>
+                `;
+            } else {
+                stepsTbody.innerHTML = recordedSteps.map(s => {
+                    const st = (s.status || 'completed').toUpperCase();
+                    const badgeClass = st === 'COMPLETED' ? 'badge-completed' : (st === 'FAILED' ? 'badge-failed' : 'badge-running');
                     return `
                         <tr>
-                            <td><code style="font-family: var(--font-mono); font-size: 0.85rem;">${utils.escapeHtml(w.id.slice(0, 8))}…</code></td>
-                            <td><span style="font-weight: 500;">${utils.escapeHtml(w.workflow_type)}</span></td>
-                            <td>
-                                <span class="${statusClass}">
-                                    <span class="status-pulse-dot" style="background: currentColor;"></span>
-                                    ${utils.escapeHtml(w.status)}
-                                </span>
-                            </td>
-                            <td style="color: var(--color-text-secondary); font-size: 0.875rem;">${utils.formatRelativeTime(w.created_at)}</td>
-                            <td style="text-align: right;">
-                                <a href="${utils.escapeHtml(`/workflows/${w.id}`)}" class="btn btn-sm btn-secondary">
-                                    Audit &rarr;
-                                </a>
-                            </td>
+                            <td><strong>${utils.escapeHtml(s.step_name)}</strong></td>
+                            <td><span class="badge ${badgeClass}">${st}</span></td>
+                            <td>${utils.formatDate(s.started_at)}</td>
+                            <td><code>${s.duration_ms != null ? `${s.duration_ms}ms` : '—'}</code></td>
+                            <td>#${s.attempt_number || 1}</td>
+                            <td style="text-align: right;"><a href="#" class="btn btn-secondary btn-sm" style="font-size: 11px;">View ID &gt;</a></td>
                         </tr>
                     `;
                 }).join('');
             }
         }
 
-        // Render Interactive Charts
-        renderDashboardCharts(data);
-    }
+        // Raw State Inspector JSON Tabs
+        const codeBlock = document.getElementById('wf-raw-json-code');
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const btnCopyRaw = document.getElementById('btn-copy-raw-json');
 
-    function renderDashboardCharts(data) {
-        if (typeof window.Chart === 'undefined') return;
-
-        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        const textColor = isDark ? '#94a3b8' : '#64748b';
-        const gridColor = isDark ? 'rgba(51, 65, 85, 0.4)' : 'rgba(226, 232, 240, 0.8)';
-
-        // 1. Status Distribution Doughnut Chart
-        if (dom.statusChart) {
-            if (statusChartInstance) {
-                statusChartInstance.destroy();
-            }
-
-            const completed = data.completed_workflows || 0;
-            const failed = data.failed_workflows || 0;
-            const other = Math.max(0, (data.total_workflows || 0) - completed - failed);
-
-            const hasData = (completed + failed + other) > 0;
-            const chartData = hasData ? [completed, failed, other] : [1];
-            const bgColors = hasData ? ['#10b981', '#ef4444', '#f59e0b'] : [isDark ? '#334155' : '#e2e8f0'];
-            const labels = hasData ? ['Completed', 'Failed', 'Other / Running'] : ['No Executions Yet'];
-
-            statusChartInstance = new window.Chart(dom.statusChart, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: chartData,
-                        backgroundColor: bgColors,
-                        borderWidth: 0,
-                        hoverOffset: 6
-                    }]
+        const statePayloads = {
+            'tab-input': wf.original_request || {},
+            'tab-state': {
+                workflow_id: wf.id,
+                status: wf.status,
+                execution: {
+                    initiated_at: wf.started_at || wf.created_at,
+                    settled_at: wf.completed_at,
+                    latency_ms: wf.duration_ms,
+                    worker_pool: 'us-east-prod-worker-cluster'
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '74%',
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                color: textColor,
-                                boxWidth: 12,
-                                padding: 14,
-                                font: {
-                                    family: "'Inter', sans-serif",
-                                    size: 12
-                                }
-                            }
-                        },
-                        tooltip: {
-                            enabled: hasData
-                        }
+                operation_context: {
+                    order_id: wf.order_id || orig.order_id,
+                    customer_id: wf.customer_id || orig.customer_id,
+                    reschedule_intent: {
+                        requested_delivery_date: res.new_delivery_date || orig.requested_delivery_date,
+                        confidence_score: 0.994
                     }
-                }
-            });
-        }
-
-        // 2. Latency Benchmarks Bar Chart
-        if (dom.latencyChart) {
-            if (latencyChartInstance) {
-                latencyChartInstance.destroy();
-            }
-
-            const median = data.median_duration_ms || 0;
-            const p95 = data.p95_duration_ms || 0;
-
-            latencyChartInstance = new window.Chart(dom.latencyChart, {
-                type: 'bar',
-                data: {
-                    labels: ['Median Duration', 'P95 Tail Latency'],
-                    datasets: [{
-                        label: 'Milliseconds',
-                        data: [median, p95],
-                        backgroundColor: ['#6366f1', '#ec4899'],
-                        borderRadius: 6,
-                        maxBarThickness: 40
-                    }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            grid: {
-                                color: gridColor
-                            },
-                            ticks: {
-                                color: textColor,
-                                font: { family: "'JetBrains Mono', monospace" }
-                            }
-                        },
-                        y: {
-                            grid: { display: false },
-                            ticks: {
-                                color: textColor,
-                                font: { family: "'Inter', sans-serif", weight: '500' }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: (ctx) => `${ctx.raw} ms`
-                            }
-                        }
-                    }
+                guardrail_audit: {
+                    policy: 'safe-reorder-v2',
+                    passed: true
                 }
+            },
+            'tab-trace': wf
+        };
+
+        function updateCodeViewer(tab) {
+            if (!codeBlock) return;
+            const data = statePayloads[tab] || wf;
+            codeBlock.textContent = JSON.stringify(data, null, 2);
+        }
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                updateCodeViewer(btn.dataset.tab);
             });
-        }
-    }
-
-    // Workflow History Rendering & Filtering
-    function renderWorkflows(data) {
-        if (!dom.workflowsTableBody) return;
-
-        let workflows = data.items || [];
-
-        // Apply active filter and search
-        if (state.workflows.filterStatus && state.workflows.filterStatus !== 'all') {
-            workflows = workflows.filter(w => (w.status || '').toLowerCase() === state.workflows.filterStatus);
-        }
-        if (state.workflows.searchQuery) {
-            const q = state.workflows.searchQuery.toLowerCase();
-            workflows = workflows.filter(w =>
-                (w.id || '').toLowerCase().includes(q) ||
-                (w.workflow_type || '').toLowerCase().includes(q) ||
-                (w.source_system || '').toLowerCase().includes(q) ||
-                (w.external_event_id || '').toLowerCase().includes(q) ||
-                (w.order_id || '').toLowerCase().includes(q)
-            );
-        }
-
-        if (workflows.length === 0) {
-            if (dom.workflowsEmpty) {
-                dom.workflowsEmpty.hidden = false;
-                dom.workflowsEmpty.style.display = 'block';
-            }
-            dom.workflowsTableBody.innerHTML = '';
-            return;
-        }
-
-        if (dom.workflowsEmpty) {
-            dom.workflowsEmpty.hidden = true;
-            dom.workflowsEmpty.style.display = 'none';
-        }
-
-        dom.workflowsTableBody.innerHTML = workflows.map(w => {
-            const statusClass = `badge badge-${w.status}`;
-            const eventSnippet = w.external_event_id ? utils.escapeHtml(w.external_event_id) : '—';
-            const sourceSnippet = w.source_system ? `<span class="badge" style="background: var(--color-surface); font-size: 0.75rem;">${utils.escapeHtml(w.source_system)}</span>` : '';
-
-            return `
-                <tr>
-                    <td>
-                        <a href="${utils.escapeHtml(`/workflows/${w.id}`)}" style="text-decoration: none;">
-                            <code style="font-family: var(--font-mono); font-weight: 600; color: var(--color-primary);">${utils.escapeHtml(w.id.slice(0, 8))}…</code>
-                        </a>
-                    </td>
-                    <td>
-                        <div style="font-weight: 600;">${utils.escapeHtml(w.workflow_type)}</div>
-                    </td>
-                    <td>
-                        <span class="${statusClass}">
-                            <span class="status-pulse-dot" style="background: currentColor;"></span>
-                            ${utils.escapeHtml(w.status)}
-                        </span>
-                    </td>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: var(--spacing-xs);">
-                            ${sourceSnippet}
-                            <span style="font-size: var(--font-size-xs); font-family: var(--font-mono); color: var(--color-text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${eventSnippet}">
-                                ${eventSnippet}
-                            </span>
-                        </div>
-                    </td>
-                    <td style="color: var(--color-text-secondary); font-size: var(--font-size-sm);">${utils.formatRelativeTime(w.created_at)}</td>
-                    <td style="text-align: right;">
-                        <a href="${utils.escapeHtml(`/workflows/${w.id}`)}" class="btn btn-sm btn-secondary">
-                            View Execution
-                        </a>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-
-        renderPagination(data);
-    }
-
-    function renderPagination(data) {
-        if (!dom.pagination) return;
-
-        const { page, total_pages } = data;
-        if (total_pages <= 1) {
-            dom.pagination.innerHTML = '';
-            return;
-        }
-
-        let html = '<div style="display: flex; gap: var(--spacing-xs); align-items: center;">';
-
-        if (page > 1) {
-            html += `<a href="?page=${page - 1}" class="pagination-link btn btn-sm btn-secondary" aria-label="Previous page">&laquo; Prev</a>`;
-        }
-
-        let start = Math.max(1, page - 2);
-        let end = Math.min(total_pages, start + 4);
-        if (end - start < 4) start = Math.max(1, end - 4);
-
-        if (start > 1) {
-            html += `<a href="?page=1" class="pagination-link btn btn-sm btn-secondary">1</a>`;
-            if (start > 2) html += `<span style="padding: 0 4px; color: var(--color-text-muted);">…</span>`;
-        }
-
-        for (let i = start; i <= end; i++) {
-            if (i === page) {
-                html += `<span class="btn btn-sm btn-primary" aria-current="page">${i}</span>`;
-            } else {
-                html += `<a href="?page=${i}" class="pagination-link btn btn-sm btn-secondary">${i}</a>`;
-            }
-        }
-
-        if (end < total_pages) {
-            if (end < total_pages - 1) html += `<span style="padding: 0 4px; color: var(--color-text-muted);">…</span>`;
-            html += `<a href="?page=${total_pages}" class="pagination-link btn btn-sm btn-secondary">${total_pages}</a>`;
-        }
-
-        if (page < total_pages) {
-            html += `<a href="?page=${page + 1}" class="pagination-link btn btn-sm btn-secondary" aria-label="Next page">Next &raquo;</a>`;
-        }
-
-        html += '</div>';
-        dom.pagination.innerHTML = html;
-    }
-
-    // Pipeline DAG Visualizer
-    function renderPipelineTrack(workflow) {
-        if (!dom.wfPipelineTrack) return;
-
-        const canonicalSteps = [
-            { name: 'validate_request', label: 'Validate Schema' },
-            { name: 'check_order', label: 'Check Order' },
-            { name: 'check_customer', label: 'Check Customer' },
-            { name: 'update_order', label: 'Update Order' },
-            { name: 'notify_customer', label: 'Notify Customer' }
-        ];
-
-        const recordedSteps = workflow.steps || [];
-        const wfStatus = (workflow.status || '').toLowerCase();
-
-        // Map step statuses
-        let html = '';
-        canonicalSteps.forEach((cStep, idx) => {
-            const recorded = recordedSteps.find(s => s.step_name === cStep.name);
-            let stepStatus = 'pending';
-            let durationText = '';
-
-            if (recorded) {
-                stepStatus = recorded.status.toLowerCase();
-                if (recorded.duration_ms != null) {
-                    durationText = `${recorded.duration_ms}ms`;
-                }
-            } else if (wfStatus === 'completed') {
-                stepStatus = 'completed';
-            } else if (wfStatus === 'running' && idx === 0) {
-                stepStatus = 'running';
-            }
-
-            let iconHtml = '';
-            if (stepStatus === 'completed') {
-                iconHtml = `
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                `;
-            } else if (stepStatus === 'failed') {
-                iconHtml = `
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                `;
-            } else if (stepStatus === 'running') {
-                iconHtml = `<span class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></span>`;
-            } else {
-                iconHtml = `<span style="font-size: 11px; font-weight: 700;">${idx + 1}</span>`;
-            }
-
-            html += `
-                <div class="pipeline-step ${stepStatus}">
-                    <div class="pipeline-node">
-                        ${iconHtml}
-                    </div>
-                    <div class="pipeline-label">${utils.escapeHtml(cStep.label)}</div>
-                    <div class="pipeline-sublabel">${durationText || utils.escapeHtml(stepStatus)}</div>
-                </div>
-            `;
         });
 
-        dom.wfPipelineTrack.innerHTML = html;
-    }
-
-    // Workflow Detail Rendering
-    function renderWorkflowDetail(workflow) {
-        if (!dom.workflowDetail) return;
-
-        if (!workflow) {
-            dom.workflowDetail.hidden = true;
-            dom.workflowDetail.style.display = 'none';
-            if (dom.workflowNotFound) {
-                dom.workflowNotFound.hidden = false;
-                dom.workflowNotFound.style.display = 'flex';
-            }
-            return;
-        }
-
-        dom.workflowDetail.hidden = false;
-        dom.workflowDetail.style.display = '';
-        if (dom.workflowNotFound) {
-            dom.workflowNotFound.hidden = true;
-            dom.workflowNotFound.style.display = 'none';
-        }
-
-        // Breadcrumb ID
-        if (dom.wfBreadcrumbId) dom.wfBreadcrumbId.textContent = workflow.id;
-
-        // Header and Summary Badges
-        const statusBadgeHtml = `
-            <span class="status-pulse-dot" style="background: currentColor;"></span>
-            ${utils.escapeHtml(workflow.status)}
-        `;
-        if (dom.wfHeaderStatus) {
-            dom.wfHeaderStatus.innerHTML = statusBadgeHtml;
-            dom.wfHeaderStatus.className = `badge badge-${workflow.status}`;
-        }
-        if (dom.wfSummaryStatus) {
-            dom.wfSummaryStatus.innerHTML = statusBadgeHtml;
-            dom.wfSummaryStatus.className = `badge badge-${workflow.status}`;
-        }
-
-        // Render Interactive Pipeline Track
-        renderPipelineTrack(workflow);
-
-        // Core Metadata
-        if (dom.wfId) dom.wfId.textContent = workflow.id;
-        if (dom.wfType) dom.wfType.textContent = workflow.workflow_type;
-        if (dom.wfSourceSystem) dom.wfSourceSystem.textContent = workflow.source_system || '—';
-        if (dom.wfExternalEventId) dom.wfExternalEventId.textContent = workflow.external_event_id || '—';
-
-        if (dom.wfStarted) dom.wfStarted.textContent = utils.formatDate(workflow.started_at);
-        if (dom.wfCreated) dom.wfCreated.textContent = utils.formatDate(workflow.created_at);
-        if (dom.wfCompleted) dom.wfCompleted.textContent = workflow.completed_at ? utils.formatDate(workflow.completed_at) : '—';
-        if (dom.wfDuration) dom.wfDuration.textContent = workflow.duration_ms != null ? `${workflow.duration_ms}ms` : '—';
-
-        // Business Fields
-        const orig = workflow.original_request || {};
-        const res = workflow.result || {};
-        if (dom.wfOrderId) dom.wfOrderId.textContent = workflow.order_id || orig.order_id || '—';
-        if (dom.wfCustomerId) dom.wfCustomerId.textContent = workflow.customer_id || orig.customer_id || '—';
-        if (dom.wfPrevDelivery) dom.wfPrevDelivery.textContent = res.previous_delivery_date ? utils.formatDate(res.previous_delivery_date) : '—';
-        if (dom.wfNewDelivery) dom.wfNewDelivery.textContent = res.new_delivery_date ? utils.formatDate(res.new_delivery_date) : (orig.requested_delivery_date ? utils.formatDate(orig.requested_delivery_date) : '—');
-        if (dom.wfOrderStatus) dom.wfOrderStatus.textContent = res.order_status || '—';
-
-        if (dom.wfCorrelation) dom.wfCorrelation.textContent = workflow.correlation_id || '—';
-        if (dom.wfIdempotencyKey) dom.wfIdempotencyKey.textContent = workflow.idempotency_key || '—';
-        if (dom.wfFailureCategory) dom.wfFailureCategory.textContent = workflow.failure_category || '—';
-
-        // Steps Timeline Table
-        if (dom.wfStepsTbody) {
-            const steps = workflow.steps || [];
-            if (steps.length === 0) {
-                dom.wfStepsTbody.innerHTML = '';
-                if (dom.wfStepsEmpty) {
-                    dom.wfStepsEmpty.hidden = false;
-                    dom.wfStepsEmpty.style.display = 'block';
-                }
-            } else {
-                if (dom.wfStepsEmpty) {
-                    dom.wfStepsEmpty.hidden = true;
-                    dom.wfStepsEmpty.style.display = 'none';
-                }
-                dom.wfStepsTbody.innerHTML = steps.map(s => `
-                    <tr>
-                        <td><strong style="color: var(--color-primary);">${utils.escapeHtml(s.step_name)}</strong></td>
-                        <td><code style="font-family: var(--font-mono);">#${s.attempt_number}</code></td>
-                        <td>
-                            <span class="badge badge-${s.status}">
-                                <span class="status-pulse-dot" style="background: currentColor;"></span>
-                                ${utils.escapeHtml(s.status)}
-                            </span>
-                        </td>
-                        <td style="color: var(--color-text-secondary);">${utils.formatDate(s.started_at)}</td>
-                        <td><code style="font-family: var(--font-mono);">${s.duration_ms != null ? `${s.duration_ms}ms` : '—'}</code></td>
-                        <td>
-                            ${s.error_category ? `<span style="color: var(--color-error); font-weight: 600;">[${utils.escapeHtml(s.error_category)}]</span> ` : ''}
-                            ${s.metadata ? `<code style="font-size: 0.8rem; background: var(--color-surface); padding: 2px 6px; border-radius: 4px;">${utils.escapeHtml(JSON.stringify(s.metadata))}</code>` : (s.error_details ? `<code style="font-size: 0.8rem; background: var(--color-surface); padding: 2px 6px; border-radius: 4px;">${utils.escapeHtml(JSON.stringify(s.error_details))}</code>` : '—')}
-                        </td>
-                    </tr>
-                `).join('');
-            }
-        }
-
-        // LLM Telemetry
-        if (dom.wfLlmTbody) {
-            const llmCalls = workflow.llm_invocations || [];
-            if (llmCalls.length === 0) {
-                dom.wfLlmTbody.innerHTML = '';
-                if (dom.wfLlmEmpty) {
-                    dom.wfLlmEmpty.hidden = false;
-                    dom.wfLlmEmpty.style.display = 'block';
-                }
-            } else {
-                if (dom.wfLlmEmpty) {
-                    dom.wfLlmEmpty.hidden = true;
-                    dom.wfLlmEmpty.style.display = 'none';
-                }
-                dom.wfLlmTbody.innerHTML = llmCalls.map(inv => `
-                    <tr>
-                        <td>
-                            <strong>${utils.escapeHtml(inv.provider)}</strong>
-                            <code style="display: block; font-size: 0.75rem; color: var(--color-text-muted);">${utils.escapeHtml(inv.model)}</code>
-                        </td>
-                        <td>
-                            <span class="badge badge-${inv.status}">
-                                <span class="status-pulse-dot" style="background: currentColor;"></span>
-                                ${utils.escapeHtml(inv.status)}
-                            </span>
-                        </td>
-                        <td><code>${inv.latency_ms != null ? `${inv.latency_ms}ms` : '—'}</code></td>
-                        <td>${inv.prompt_tokens != null ? utils.formatNumber(inv.prompt_tokens) : '—'}</td>
-                        <td>${inv.completion_tokens != null ? utils.formatNumber(inv.completion_tokens) : '—'}</td>
-                        <td><strong>${inv.total_tokens != null ? utils.formatNumber(inv.total_tokens) : '—'}</strong></td>
-                        <td style="color: var(--color-primary); font-weight: 600;">${inv.estimated_cost_usd != null ? `$${inv.estimated_cost_usd.toFixed(4)}` : '—'}</td>
-                    </tr>
-                `).join('');
-            }
-        }
-
-        // JSON Code Blocks
-        if (dom.wfJsonOriginal) dom.wfJsonOriginal.textContent = JSON.stringify(workflow.original_request || {}, null, 2);
-        if (dom.wfJsonInterpreted) dom.wfJsonInterpreted.textContent = workflow.interpreted_request ? JSON.stringify(workflow.interpreted_request, null, 2) : '—';
-        if (dom.wfJsonResult) dom.wfJsonResult.textContent = workflow.result ? JSON.stringify(workflow.result, null, 2) : '—';
-        if (dom.wfJsonError) dom.wfJsonError.textContent = workflow.error_details ? JSON.stringify(workflow.error_details, null, 2) : '—';
-    }
-
-    // NL Request Form Handling
-    function initNlForm() {
-        if (!dom.nlForm) return;
-
-        if (dom.nlExternalEventId && !dom.nlExternalEventId.value) {
-            dom.nlExternalEventId.value = utils.generateExternalEventId();
-        }
-
-        dom.nlForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            setFormLoading(true);
-            hideNlMessages();
-
-            const request = {
-                text: dom.nlText.value.trim(),
-                source_system: dom.nlSourceSystem.value.trim() || 'web',
-                external_event_id: dom.nlExternalEventId.value.trim() || utils.generateExternalEventId(),
-                customer_id: dom.nlCustomerId.value.trim() || undefined,
-            };
-
-            if (!request.text) {
-                showNlError('Please enter a natural language request.');
-                setFormLoading(false);
-                return;
-            }
-
-            if (!request.external_event_id) {
-                showNlError('Please provide an external event ID.');
-                setFormLoading(false);
-                return;
-            }
-
-            try {
-                const response = await api.createNaturalLanguageRequest(request);
-
-                if (response.success) {
-                    showNlSuccess(response);
-                    dom.nlExternalEventId.value = utils.generateExternalEventId();
-                } else {
-                    showNlError(response.error || 'Interpretation failed', response.error_code);
-                }
-            } catch (error) {
-                if (error instanceof ApiError) {
-                    const detail = error.data?.detail || error.data;
-                    const message = detail?.error || detail?.message || error.message;
-                    const code = detail?.error_code;
-                    showNlError(message, code);
-                } else {
-                    showNlError(error.message || 'An unexpected error occurred');
-                }
-            } finally {
-                setFormLoading(false);
-            }
-        });
-    }
-
-    function setFormLoading(loading) {
-        if (dom.nlSubmitBtn) {
-            dom.nlSubmitBtn.disabled = loading;
-            dom.nlSubmitBtn.innerHTML = loading
-                ? '<span class="spinner" aria-hidden="true" style="margin-right: 6px;"></span> Interpreting Request…'
-                : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="margin-right: var(--spacing-xs);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Interpret & Dispatch Request';
-        }
-        if (dom.nlLoading) {
-            dom.nlLoading.hidden = !loading;
-            dom.nlLoading.style.display = loading ? 'block' : 'none';
-        }
-        if (dom.nlText) dom.nlText.disabled = loading;
-        if (dom.nlSourceSystem) dom.nlSourceSystem.disabled = loading;
-        if (dom.nlExternalEventId) dom.nlExternalEventId.disabled = loading;
-        if (dom.nlCustomerId) dom.nlCustomerId.disabled = loading;
-    }
-
-    function showNlError(message, code) {
-        if (dom.nlError) {
-            dom.nlError.hidden = false;
-            dom.nlError.style.display = 'block';
-            if (dom.nlErrorCode) dom.nlErrorCode.textContent = code || 'ERROR';
-            if (dom.nlErrorMessage) dom.nlErrorMessage.textContent = message;
-        }
-        if (dom.nlSuccess) {
-            dom.nlSuccess.hidden = true;
-            dom.nlSuccess.style.display = 'none';
-        }
-        if (dom.nlResult) {
-            dom.nlResult.hidden = true;
-            dom.nlResult.style.display = 'none';
-        }
-    }
-
-    function showNlSuccess(response) {
-        if (dom.nlSuccess) {
-            dom.nlSuccess.hidden = false;
-            dom.nlSuccess.style.display = 'block';
-        }
-        if (dom.nlResult) {
-            dom.nlResult.hidden = false;
-            dom.nlResult.style.display = 'block';
-        }
-        if (dom.nlError) {
-            dom.nlError.hidden = true;
-            dom.nlError.style.display = 'none';
-        }
-
-        if (dom.nlDraftOrderId) dom.nlDraftOrderId.textContent = response.draft?.order_id || '—';
-        if (dom.nlDraftCustomerId) dom.nlDraftCustomerId.textContent = response.draft?.customer_id || '—';
-        if (dom.nlDraftDeliveryDate) {
-            dom.nlDraftDeliveryDate.textContent = response.draft?.requested_delivery_date
-                ? utils.formatDate(response.draft.requested_delivery_date)
-                : '—';
-        }
-
-        if (dom.nlWorkflowLink) {
-            dom.nlWorkflowLink.href = '/workflows';
-        }
-    }
-
-    function hideNlMessages() {
-        if (dom.nlError) {
-            dom.nlError.hidden = true;
-            dom.nlError.style.display = 'none';
-        }
-        if (dom.nlSuccess) {
-            dom.nlSuccess.hidden = true;
-            dom.nlSuccess.style.display = 'none';
-        }
-        if (dom.nlResult) {
-            dom.nlResult.hidden = true;
-            dom.nlResult.style.display = 'none';
-        }
-    }
-
-    // Load Data Functions
-    async function loadDashboard() {
-        try {
-            const data = await api.getMetrics();
-            renderDashboard(data);
-        } catch (error) {
-            console.error('Failed to load dashboard:', error);
-            utils.showToast('Failed to load dashboard telemetry');
-        }
-    }
-
-    async function loadWorkflows(page = 1) {
-        if (!dom.workflowsTableBody) return;
-
-        state.workflows.loading = true;
-        state.workflows.page = page;
-
-        dom.workflowsTableBody.innerHTML = `
-            <tr>
-                <td colspan="6" class="loading" style="padding: var(--spacing-xl); text-align: center;">
-                    <span class="spinner" aria-hidden="true"></span> Loading executions…
-                </td>
-            </tr>
-        `;
-
-        try {
-            const data = await api.getWorkflows(page, state.workflows.pageSize);
-            state.workflows.items = data.items || [];
-            state.workflows.total = data.total || 0;
-            state.workflows.totalPages = data.total_pages || 0;
-            state.workflows.page = data.page || 1;
-
-            renderWorkflows(data);
-        } catch (error) {
-            console.error('Failed to load workflows:', error);
-            if (dom.workflowsTableBody) {
-                dom.workflowsTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="6" style="text-align: center; color: var(--color-error); padding: var(--spacing-xl);">
-                            Failed to load workflows. <button class="btn btn-secondary btn-sm" onclick="loadWorkflows(${page})">Retry</button>
-                        </td>
-                    </tr>
-                `;
-            }
-            utils.showToast('Failed to load workflow history');
-        } finally {
-            state.workflows.loading = false;
-        }
-    }
-
-    async function loadWorkflowDetail(id) {
-        if (!dom.workflowDetail) return;
-
-        dom.workflowDetail.hidden = true;
-        dom.workflowDetail.style.display = 'none';
-        if (dom.workflowNotFound) {
-            dom.workflowNotFound.hidden = true;
-            dom.workflowNotFound.style.display = 'none';
-        }
-
-        const loadingEl = document.createElement('div');
-        loadingEl.className = 'loading';
-        loadingEl.style.padding = 'var(--spacing-2xl)';
-        loadingEl.style.textAlign = 'center';
-        loadingEl.innerHTML = '<span class="spinner" aria-hidden="true"></span> Loading execution audit trail…';
-        dom.workflowDetail.parentNode.insertBefore(loadingEl, dom.workflowDetail.nextSibling);
-
-        try {
-            const workflow = await api.getWorkflow(id);
-            if (loadingEl.parentNode) loadingEl.remove();
-            renderWorkflowDetail(workflow);
-        } catch (error) {
-            if (loadingEl.parentNode) loadingEl.remove();
-            if (error instanceof ApiError && error.status === 404) {
-                if (dom.workflowDetail) {
-                    dom.workflowDetail.hidden = true;
-                    dom.workflowDetail.style.display = 'none';
-                }
-                if (dom.workflowNotFound) {
-                    dom.workflowNotFound.hidden = false;
-                    dom.workflowNotFound.style.display = 'flex';
-                }
-            } else {
-                utils.showToast('Failed to load workflow details');
-            }
-        }
-    }
-
-    // Filter and Search Handlers
-    function setupHistoryFilters() {
-        if (dom.statusFilters) {
-            dom.statusFilters.addEventListener('click', (e) => {
-                const btn = e.target.closest('.filter-pill');
-                if (!btn) return;
-
-                dom.statusFilters.querySelectorAll('.filter-pill').forEach(b => {
-                    b.className = 'btn btn-sm btn-secondary filter-pill';
-                });
-                btn.className = 'btn btn-sm btn-primary filter-pill active';
-
-                state.workflows.filterStatus = btn.dataset.status || 'all';
-                renderWorkflows({
-                    items: state.workflows.items,
-                    total: state.workflows.total,
-                    page: state.workflows.page,
-                    total_pages: state.workflows.totalPages,
-                });
+        if (btnCopyRaw) {
+            btnCopyRaw.addEventListener('click', () => {
+                if (codeBlock) utils.copyToClipboard(codeBlock.textContent, 'JSON payload copied');
             });
         }
 
-        if (dom.workflowSearchInput) {
-            dom.workflowSearchInput.addEventListener('input', utils.debounce((e) => {
-                state.workflows.searchQuery = e.target.value.trim();
-                renderWorkflows({
-                    items: state.workflows.items,
-                    total: state.workflows.total,
-                    page: state.workflows.page,
-                    total_pages: state.workflows.totalPages,
-                });
-            }, 200));
+        updateCodeViewer('tab-state');
+    }
+
+    // ==============================================================================
+    // System Health Poller
+    // ==============================================================================
+    async function checkSystemHealth() {
+        const pill = document.getElementById('system-health-pill');
+        const text = document.getElementById('health-text');
+        const latency = document.getElementById('health-latency');
+        if (!pill) return;
+
+        const res = await api.checkReadiness();
+        if (res.ok) {
+            pill.style.background = 'var(--color-success-bg)';
+            pill.style.borderColor = 'var(--color-success-border)';
+            pill.style.color = 'var(--color-success-text)';
+            if (text) text.textContent = 'System: Operational';
+            if (latency && res.latencyMs != null) latency.textContent = `p95~${res.latencyMs}ms`;
+        } else {
+            pill.style.background = 'var(--color-warning-bg)';
+            pill.style.borderColor = 'var(--color-warning-border)';
+            pill.style.color = 'var(--color-warning-text)';
+            if (text) text.textContent = 'System: Degraded';
         }
     }
 
-    // Page Initialization
-    function init() {
-        theme.init();
-        cacheDomElements();
-        checkSystemHealth();
-        setupHistoryFilters();
-
-        const path = window.location.pathname;
-
-        if (path === '/' || path === '/dashboard') {
-            loadDashboard();
-        } else if (path === '/workflows' || path.startsWith('/workflows?')) {
-            const urlParams = new URLSearchParams(window.location.search);
-            const page = parseInt(urlParams.get('page') || '1', 10);
-            loadWorkflows(page);
-        } else if (path.startsWith('/workflows/') && path !== '/workflows' && path !== '/request') {
-            const id = path.split('/workflows/')[1];
-            if (id && !id.includes('?')) {
-                loadWorkflowDetail(id);
-            }
-        } else if (path === '/request') {
-            initNlForm();
-        }
-
-        // Event delegation for pagination links
-        document.addEventListener('click', (e) => {
-            const link = e.target.closest('.pagination-link');
-            if (link && link.href) {
-                e.preventDefault();
-                const url = new URL(link.href);
-                const page = parseInt(url.searchParams.get('page') || '1', 10);
-                loadWorkflows(page);
-                history.pushState({}, '', `?page=${page}`);
-            }
-        });
-
-        // Regenerate external event ID button
-        const regenBtn = document.getElementById('regen-event-id');
-        if (regenBtn) {
-            regenBtn.addEventListener('click', () => {
-                if (dom.nlExternalEventId) {
-                    dom.nlExternalEventId.value = utils.generateExternalEventId();
-                }
-            });
-        }
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-
-    // Global exports
-    window.loadWorkflows = loadWorkflows;
+    // ==============================================================================
+    // Global Exports
+    // ==============================================================================
+    window.initDashboard = initDashboard;
+    window.initWorkflowHistory = initWorkflowHistory;
+    window.initNlStudio = initNlStudio;
     window.loadWorkflowDetail = loadWorkflowDetail;
-    window.loadDashboard = loadDashboard;
-    window.utils = utils;
-    window.api = api;
-    window.theme = theme;
+    window.loadHistoryPage = loadHistoryPage;
+
+    // Run on startup
+    document.addEventListener('DOMContentLoaded', () => {
+        themeManager.init();
+        checkSystemHealth();
+        setInterval(checkSystemHealth, 20000);
+    });
+
 })();

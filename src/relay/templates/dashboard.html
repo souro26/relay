@@ -1,216 +1,370 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Relay Observability Engine{% endblock %}
+{% block title %}Observability & Orchestration Dashboard - Relay{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<div class="hero-section">
-    <div class="hero-title-group">
-        <h1>Orchestration Dashboard</h1>
-        <p class="hero-subtitle">Real-time telemetry, persistent execution metrics, and operational health</p>
-    </div>
-    <div class="hero-actions">
-        <a href="{{ url_for('nl_request_form') }}" class="btn btn-primary">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            <span>New Request</span>
-        </a>
-        <a href="{{ url_for('workflow_history') }}" class="btn btn-secondary">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="8" y1="6" x2="21" y2="6"></line>
-                <line x1="8" y1="12" x2="21" y2="12"></line>
-                <line x1="8" y1="18" x2="21" y2="18"></line>
-            </svg>
-            <span>All Workflows</span>
-        </a>
-    </div>
-</div>
-
-<!-- Primary Workflow KPIs -->
-<div class="stats-grid" role="region" aria-label="Workflow KPIs">
-    <div class="stat-card">
-        <div class="stat-card-accent"></div>
-        <div class="stat-card-header">
-            <span class="stat-label">Total Volume</span>
-            <div class="stat-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+<div id="dashboard-view">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-title-group">
+            <h1>Observability & Orchestration Dashboard</h1>
+            <p>Real-time telemetry, model latency, and automated business event routing across enterprise microservices.</p>
+        </div>
+        <div class="header-actions">
+            <button type="button" class="btn btn-secondary" id="btn-replay-failed">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
                 </svg>
+                <span>Replay Failed</span>
+            </button>
+            <a href="{{ url_for('nl_request_form') }}" class="btn btn-primary">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>New NL Workflow</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- 8 KPI Metrics Cards Grid (Row 1 & Row 2) -->
+    <div class="metrics-grid-4">
+        <!-- Card 1: Total Executions -->
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-label">Total Executions</span>
+                <span class="metric-pill success" id="metric-exec-pill">+12.4%</span>
+            </div>
+            <div class="metric-value-row">
+                <span class="metric-value" id="metric-total-workflows">—</span>
+                <span class="metric-subtext">24h rolling</span>
+            </div>
+            <div class="metric-bar-track">
+                <div class="metric-bar-fill dark" style="width: 85%;"></div>
             </div>
         </div>
-        <div class="stat-value" id="total-workflows">—</div>
-        <div class="stat-subtext">Lifetime persistent executions</div>
-    </div>
 
-    <div class="stat-card">
-        <div class="stat-card-accent" style="background: linear-gradient(90deg, var(--color-success), #34d399);"></div>
-        <div class="stat-card-header">
-            <span class="stat-label">Completed</span>
-            <div class="stat-icon" style="color: var(--color-success); background: var(--color-success-subtle);">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                </svg>
+        <!-- Card 2: Success Rate -->
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-label">Success Rate</span>
+                <span class="metric-pill success" id="metric-success-pill">&bull; Optimal</span>
+            </div>
+            <div class="metric-value-row">
+                <span class="metric-value" id="metric-success-rate">—</span>
+                <span class="metric-subtext" id="metric-sla-delta">+0.04%</span>
+            </div>
+            <div class="metric-bar-track">
+                <div class="metric-bar-fill success" style="width: 98%;"></div>
             </div>
         </div>
-        <div class="stat-value" id="completed-workflows">—</div>
-        <div class="stat-subtext">Successfully settled operations</div>
-    </div>
 
-    <div class="stat-card">
-        <div class="stat-card-accent" style="background: linear-gradient(90deg, var(--color-error), #f87171);"></div>
-        <div class="stat-card-header">
-            <span class="stat-label">Failed</span>
-            <div class="stat-icon" style="color: var(--color-error); background: var(--color-error-subtle);">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="15" y1="9" x2="9" y2="15"></line>
-                    <line x1="9" y1="9" x2="15" y2="15"></line>
-                </svg>
+        <!-- Card 3: P50 Latency -->
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-label">P50 Latency</span>
+                <span class="metric-pill info">Target: &lt;180ms</span>
+            </div>
+            <div class="metric-value-row">
+                <span class="metric-value" id="metric-median-latency">—</span>
+                <span class="metric-subtext">Median trace</span>
+            </div>
+            <div class="metric-bar-track">
+                <div class="metric-bar-fill accent" style="width: 65%;"></div>
             </div>
         </div>
-        <div class="stat-value" id="failed-workflows">—</div>
-        <div class="stat-subtext">Deterministic terminal errors</div>
-    </div>
 
-    <div class="stat-card">
-        <div class="stat-card-accent" style="background: linear-gradient(90deg, #8b5cf6, var(--color-primary));"></div>
-        <div class="stat-card-header">
-            <span class="stat-label">Success Rate</span>
-            <div class="stat-icon" style="color: #8b5cf6; background: rgba(139, 92, 246, 0.1);">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
+        <!-- Card 4: P95 Latency -->
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-label">P95 Latency</span>
+                <span class="metric-pill info">Stable</span>
+            </div>
+            <div class="metric-value-row">
+                <span class="metric-value" id="metric-p95-latency">—</span>
+                <span class="metric-subtext">Tail latency</span>
+            </div>
+            <div class="metric-bar-track">
+                <div class="metric-bar-fill accent" style="width: 78%;"></div>
             </div>
         </div>
-        <div class="stat-value" id="success-rate">—</div>
-        <div class="stat-subtext">Resolved requests</div>
     </div>
-</div>
 
-<!-- Operational Telemetry KPIs -->
-<div class="stats-grid" role="region" aria-label="Operational Telemetry">
-    <div class="stat-card">
-        <div class="stat-card-header">
-            <span class="stat-label">Median Latency</span>
-            <div class="stat-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
+    <div class="metrics-grid-4">
+        <!-- Card 5: Failed / Edge Runs -->
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-label">Failed / Edge Runs</span>
+                <span class="metric-pill error" id="metric-failed-pill">0.01% error</span>
+            </div>
+            <div class="metric-value-row">
+                <span class="metric-value" id="metric-failed-workflows" style="color: var(--color-error);">0</span>
+                <span class="metric-subtext">Total Halt</span>
+            </div>
+            <div class="metric-bar-track">
+                <div class="metric-bar-fill error" style="width: 15%;"></div>
             </div>
         </div>
-        <div class="stat-value" id="median-duration">—</div>
-        <div class="stat-subtext">P50 execution duration</div>
-    </div>
 
-    <div class="stat-card">
-        <div class="stat-card-header">
-            <span class="stat-label">P95 Latency</span>
-            <div class="stat-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                </svg>
+        <!-- Card 6: In-Flight Workflows -->
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-label">In-Flight Workflows</span>
+                <span class="metric-pill info">&bull; Live Stream</span>
+            </div>
+            <div class="metric-value-row">
+                <span class="metric-value" id="metric-running-workflows">0</span>
+                <span class="metric-subtext">Active slots</span>
+            </div>
+            <div class="metric-bar-track">
+                <div class="metric-bar-fill accent" style="width: 30%;"></div>
             </div>
         </div>
-        <div class="stat-value" id="p95-duration">—</div>
-        <div class="stat-subtext">Tail latency threshold</div>
-    </div>
 
-    <div class="stat-card">
-        <div class="stat-card-header">
-            <span class="stat-label">LLM Tokens</span>
-            <div class="stat-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                    <line x1="8" y1="21" x2="16" y2="21"></line>
-                    <line x1="12" y1="17" x2="12" y2="21"></line>
-                </svg>
+        <!-- Card 7: Total LLM Tokens -->
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-label">Total LLM Tokens</span>
+                <span class="metric-subtext" style="font-size: 10px;">GPT-4o / Claude</span>
+            </div>
+            <div class="metric-value-row">
+                <span class="metric-value" id="metric-total-tokens">—</span>
+                <span class="metric-subtext">Tokens/24h</span>
+            </div>
+            <div class="metric-bar-track">
+                <div class="metric-bar-fill dark" style="width: 55%;"></div>
             </div>
         </div>
-        <div class="stat-value" id="total-tokens">—</div>
-        <div class="stat-subtext">Cumulative prompt & completion</div>
-    </div>
 
-    <div class="stat-card">
-        <div class="stat-card-header">
-            <span class="stat-label">Est. LLM Spend</span>
-            <div class="stat-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="1" x2="12" y2="23"></line>
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                </svg>
+        <!-- Card 8: Estimated LLM Cost -->
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-label">Estimated LLM Cost</span>
+                <span class="metric-subtext" style="font-size: 10px;">Budget $250</span>
+            </div>
+            <div class="metric-value-row">
+                <span class="metric-value" id="metric-total-cost" style="color: var(--color-success);">$0.00</span>
+                <span class="metric-subtext">73.6% used</span>
+            </div>
+            <div class="metric-bar-track">
+                <div class="metric-bar-fill success" style="width: 73%;"></div>
             </div>
         </div>
-        <div class="stat-value" id="estimated-spending">—</div>
-        <div class="stat-subtext">Computed USD token usage</div>
-    </div>
-</div>
-
-<!-- Visual Charts Section -->
-<div class="analytics-grid">
-    <div class="chart-card">
-        <div class="chart-header">
-            <h3 class="chart-title">Workflow Status Distribution</h3>
-            <span class="status-pill">Active Live State</span>
-        </div>
-        <div class="chart-container">
-            <canvas id="workflowStatusChart"></canvas>
-        </div>
     </div>
 
-    <div class="chart-card">
-        <div class="chart-header">
-            <h3 class="chart-title">Execution Latency Benchmarks</h3>
-            <span class="status-pill">Monotonic Timers</span>
+    <!-- Analytics Section (Donut & Waterfall Stages) -->
+    <div class="analytics-grid-2">
+        <!-- Status Distribution Donut Card -->
+        <div class="analytics-card">
+            <div class="analytics-card-header">
+                <div>
+                    <div class="analytics-card-title">Status Distribution</div>
+                    <div class="analytics-card-subtitle">Execution outcomes across dispatched operations</div>
+                </div>
+                <button type="button" class="icon-btn" title="Filter distribution">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="4" y1="21" x2="4" y2="14"/>
+                        <line x1="4" y1="10" x2="4" y2="3"/>
+                        <line x1="12" y1="21" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12" y2="3"/>
+                        <line x1="20" y1="21" x2="20" y2="16"/>
+                        <line x1="20" y1="12" x2="20" y2="3"/>
+                        <line x1="1" y1="14" x2="7" y2="14"/>
+                        <line x1="9" y1="8" x2="15" y2="8"/>
+                        <line x1="17" y1="16" x2="23" y2="16"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="donut-container">
+                <div class="donut-chart-wrapper">
+                    <canvas id="statusChart"></canvas>
+                    <div class="donut-center-text">
+                        <div class="donut-center-val" id="donut-center-pct">99.4%</div>
+                        <div class="donut-center-lbl">HEALTHY</div>
+                    </div>
+                </div>
+
+                <div class="donut-legend">
+                    <div class="legend-item">
+                        <div class="legend-label-group">
+                            <span class="legend-dot" style="background: var(--color-success);"></span>
+                            <span>Completed</span>
+                        </div>
+                        <div class="legend-val-group">
+                            <span class="legend-count" id="legend-completed-cnt">0</span>
+                            <span class="legend-pct" id="legend-completed-pct">94.2%</span>
+                        </div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-label-group">
+                            <span class="legend-dot" style="background: var(--color-info);"></span>
+                            <span>Running</span>
+                        </div>
+                        <div class="legend-val-group">
+                            <span class="legend-count" id="legend-running-cnt">0</span>
+                            <span class="legend-pct" id="legend-running-pct">3.5%</span>
+                        </div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-label-group">
+                            <span class="legend-dot" style="background: var(--color-warning);"></span>
+                            <span>Uncertain / Review</span>
+                        </div>
+                        <div class="legend-val-group">
+                            <span class="legend-count" id="legend-uncertain-cnt">0</span>
+                            <span class="legend-pct" id="legend-uncertain-pct">1.8%</span>
+                        </div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-label-group">
+                            <span class="legend-dot" style="background: var(--color-error);"></span>
+                            <span>Failed</span>
+                        </div>
+                        <div class="legend-val-group">
+                            <span class="legend-count" id="legend-failed-cnt">0</span>
+                            <span class="legend-pct" id="legend-failed-pct" style="color: var(--color-error);">0.5%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="analytics-card-footer">
+                <span>Target reliability SLA: 99.0%</span>
+                <span style="color: var(--color-success); font-weight: 600;">+0.42% above SLA</span>
+            </div>
         </div>
-        <div class="chart-container">
-            <canvas id="workflowLatencyChart"></canvas>
+
+        <!-- Stage Latency Waterfall Card -->
+        <div class="analytics-card">
+            <div class="analytics-card-header">
+                <div>
+                    <div class="analytics-card-title">Stage Latency Waterfall</div>
+                    <div class="analytics-card-subtitle">Mean execution duration aggregated across pipeline stages</div>
+                </div>
+                <span class="metric-pill info" style="font-family: var(--font-mono);">P50 Cumulative: 354ms</span>
+            </div>
+
+            <div class="waterfall-stages">
+                <!-- Stage 1 -->
+                <div class="waterfall-row">
+                    <div class="waterfall-meta">
+                        <span class="waterfall-label">1. Request Validation &amp; Token Sanitization</span>
+                        <span class="waterfall-duration">18ms</span>
+                    </div>
+                    <div class="waterfall-track">
+                        <div class="waterfall-bar" style="width: 12%; background: #93C5FD;"></div>
+                    </div>
+                </div>
+
+                <!-- Stage 2 -->
+                <div class="waterfall-row">
+                    <div class="waterfall-meta">
+                        <span class="waterfall-label">2. Enterprise Context &amp; Schema Fetch</span>
+                        <span class="waterfall-duration">84ms</span>
+                    </div>
+                    <div class="waterfall-track">
+                        <div class="waterfall-bar" style="width: 28%; background: #60A5FA;"></div>
+                    </div>
+                </div>
+
+                <!-- Stage 3 -->
+                <div class="waterfall-row">
+                    <div class="waterfall-meta">
+                        <span class="waterfall-label">3. LLM Intent &amp; Routing Decision</span>
+                        <span class="waterfall-duration">216ms</span>
+                    </div>
+                    <div class="waterfall-track">
+                        <div class="waterfall-bar" style="width: 68%; background: #0F172A;"></div>
+                    </div>
+                </div>
+
+                <!-- Stage 4 -->
+                <div class="waterfall-row">
+                    <div class="waterfall-meta">
+                        <span class="waterfall-label">4. Backend State Mutation &amp; Webhook Dispatch</span>
+                        <span class="waterfall-duration">42ms</span>
+                    </div>
+                    <div class="waterfall-track">
+                        <div class="waterfall-bar" style="width: 22%; background: var(--color-success);"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="analytics-card-footer">
+                <span>Bottleneck: LLM Model Inference (59.3% total duration)</span>
+                <a href="{{ url_for('nl_request_form') }}" style="color: var(--color-accent); font-weight: 600;">Tune Cache &rarr;</a>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Recent Workflow Activity Table -->
-<section aria-labelledby="recent-workflows-heading">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
-        <div>
-            <h2 id="recent-workflows-heading" style="font-size: var(--font-size-lg); margin: 0;">Recent Executions</h2>
-            <p style="color: var(--color-text-secondary); font-size: var(--font-size-xs); margin: 0;">Most recently triggered business workflows</p>
+    <!-- Bottom Recent Runs Table / Ledger -->
+    <div class="ledger-card">
+        <div class="ledger-controls-bar">
+            <div class="search-input-wrapper">
+                <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" id="dashboard-search-input" class="search-input" placeholder="Filter by execution UUID, trace, or pipeline&hellip;">
+            </div>
+
+            <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                <select id="dashboard-status-filter" class="dropdown-select">
+                    <option value="all">All Statuses</option>
+                    <option value="completed">Completed</option>
+                    <option value="running">Running</option>
+                    <option value="uncertain">Uncertain / Review</option>
+                    <option value="failed">Failed</option>
+                </select>
+                <span class="metric-subtext" id="dashboard-runs-count">Showing recent runs</span>
+            </div>
         </div>
-        <a href="{{ url_for('workflow_history') }}" class="btn btn-secondary btn-sm">View Full History</a>
-    </div>
 
-    <div class="card">
-        <div class="table-container">
-            <table class="table" aria-describedby="recent-workflows-heading">
+        <div class="data-table-container">
+            <table class="data-table">
                 <thead>
                     <tr>
-                        <th scope="col">Workflow ID</th>
-                        <th scope="col">Type</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Created</th>
-                        <th scope="col">Duration</th>
-                        <th scope="col" style="text-align: right;">Action</th>
+                        <th>Execution UUID</th>
+                        <th>Workflow Name / Pipeline</th>
+                        <th>Status</th>
+                        <th>Latency</th>
+                        <th>Tokens</th>
+                        <th>Time</th>
+                        <th style="text-align: right;">Actions</th>
                     </tr>
                 </thead>
-                <tbody id="recent-workflows">
+                <tbody id="dashboard-recent-workflows">
                     <tr>
-                        <td colspan="6" class="loading">
-                            <span class="spinner" aria-hidden="true"></span> Fetching live execution stream…
+                        <td colspan="7" style="text-align: center; padding: var(--spacing-xl); color: var(--color-text-muted);">
+                            <span class="spinner"></span> Loading real-time execution telemetry&hellip;
                         </td>
                     </tr>
                 </tbody>
             </table>
         </div>
-        <div id="recent-workflows-empty" class="empty-state" hidden>
-            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-            </svg>
-            <p class="empty-state-title">No workflows yet</p>
-            <p class="empty-state-text">Workflow executions will appear here once requests are submitted.</p>
+
+        <div class="ledger-footer">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="pulse-dot"></span>
+                <span>Ledger streaming via gRPC edge socket: <code style="font-size: 11px;">relay-node-us-east-4a</code></span>
+            </div>
+            <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+                <span>Ingest throughput: <strong>1.4k msg/sec</strong></span>
+                <a href="{{ url_for('workflow_history') }}" style="color: var(--color-accent); font-weight: 500;">View Full Ledger &rarr;</a>
+            </div>
         </div>
     </div>
-</section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof window.initDashboard === 'function') {
+            window.initDashboard();
+        }
+    });
+</script>
 {% endblock %}

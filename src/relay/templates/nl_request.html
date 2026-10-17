@@ -1,261 +1,235 @@
 {% extends "base.html" %}
 
-{% block title %}New Request - Relay{% endblock %}
+{% block title %}Natural Language Workflow Orchestrator - Relay{% endblock %}
 
 {% block content %}
-<div class="page-container" style="max-width: 900px; margin: 0 auto;">
-    <header class="page-header" style="margin-bottom: var(--spacing-xl);">
-        <div class="breadcrumb" style="margin-bottom: var(--spacing-xs);">
-            <a href="/workflows">Workflows</a>
-            <span>/</span>
-            <span>Natural Language</span>
+<div id="nl-studio-view">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-title-group">
+            <h1>Natural Language Workflow Orchestrator</h1>
+            <p>Translate plain-text business intents into deterministic, policy-guarded executable DAG pipelines.</p>
         </div>
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--spacing-md); flex-wrap: wrap;">
-            <div>
-                <h1 style="font-size: var(--font-size-2xl); font-weight: 700; margin: 0; letter-spacing: -0.02em;">Intelligent Request Ingestion</h1>
-                <p style="color: var(--color-text-secondary); margin-top: var(--spacing-xs); font-size: var(--font-size-base);">
-                    Submit conversational or unstructured order modification instructions. Relay extracts deterministic parameters and orchestrates backend state transitions.
-                </p>
-            </div>
-            <div class="badge badge-completed" style="font-size: var(--font-size-xs); padding: 0.35rem 0.75rem;">
-                <span class="status-pulse-dot" style="background: var(--color-success);"></span>
-                LLM Schema Validated
-            </div>
-        </div>
-    </header>
-
-    <!-- Quick Prompt Presets -->
-    <section class="card" style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md) var(--spacing-lg);">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--spacing-sm);">
-            <span style="font-size: var(--font-size-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted);">
-                Quick Prompt Presets
+        <div class="header-actions">
+            <span class="system-status-pill" style="background: var(--color-bg-card); border-color: var(--color-border); color: var(--color-text-secondary);">
+                <span class="pulse-dot"></span>
+                <span>Engine: <strong>GPT-4o Synthesis Active</strong></span>
             </span>
-            <span style="font-size: var(--font-size-xs); color: var(--color-text-muted);">Click to load example</span>
         </div>
-        <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-sm);">
-            <button type="button" class="btn btn-secondary btn-sm prompt-preset-btn"
-                onclick="fillExample('Change order ORD-136D6350 delivery date to November 25, 2026 for customer-101')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;">
-                    <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                </svg>
-                Postpone to Nov 25
-            </button>
-            <button type="button" class="btn btn-secondary btn-sm prompt-preset-btn"
-                onclick="fillExample('Move order ORD-ABCDEF12 delivery date to next Friday for customer-101')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12 6 12 12 16 14"/>
-                </svg>
-                Relative Date: "Next Friday"
-            </button>
-            <button type="button" class="btn btn-secondary btn-sm prompt-preset-btn"
-                onclick="fillExample('Set order ORD-00000456 delivery to December 25, 2026')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                </svg>
-                Christmas Delivery
-            </button>
-            <button type="button" class="btn btn-secondary btn-sm prompt-preset-btn"
-                onclick="fillExample('Please expedite order ORD-99887766 to tomorrow morning urgent for customer-505')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                </svg>
-                Expedited Tomorrow
-            </button>
-        </div>
-    </section>
+    </div>
 
-    <!-- Main Submission Card -->
-    <div class="card">
-        <form id="nl-request-form" class="card-body" novalidate style="display: flex; flex-direction: column; gap: var(--spacing-lg);">
-            
-            <div class="form-group">
-                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: var(--spacing-xs);">
-                    <label for="nl-text" class="form-label" style="margin-bottom: 0;">
-                        Natural Language Instructions <span style="color: var(--color-error);">*</span>
-                    </label>
-                    <span id="nl-char-count" style="font-size: var(--font-size-xs); color: var(--color-text-muted); font-family: var(--font-mono);">0 / 500 chars</span>
-                </div>
-                <textarea id="nl-text" name="text" class="form-textarea" required rows="4" maxlength="500"
-                    placeholder="e.g., Please change delivery date for order ORD-136D6350 to November 25, 2026 for customer-101"
-                    aria-describedby="nl-text-hint"
-                    aria-required="true"
-                    style="font-size: var(--font-size-base); line-height: 1.5;"></textarea>
-                <span id="nl-text-hint" class="form-hint">
-                    Include the Target Order ID (e.g. <code>ORD-XXXXXXX</code>), requested delivery target, and optional customer verification ID.
-                </span>
-            </div>
-
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--spacing-md);">
-                <div class="form-group">
-                    <label for="nl-source-system" class="form-label">Source Ingestion System <span style="color: var(--color-error);">*</span></label>
-                    <input type="text" id="nl-source-system" name="source_system" class="form-input" value="web" required
-                        aria-describedby="source-system-hint" aria-required="true">
-                    <span id="source-system-hint" class="form-hint">Auditable origin identifier (e.g. web, zendesk, slack)</span>
-                </div>
-
-                <div class="form-group">
-                    <label for="nl-customer-id" class="form-label">Customer ID (Optional Verification)</label>
-                    <input type="text" id="nl-customer-id" name="customer_id" class="form-input"
-                        placeholder="e.g., customer-101"
-                        aria-describedby="customer-id-hint">
-                    <span id="customer-id-hint" class="form-hint">Cross-referenced against order record ownership</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="nl-external-event-id" class="form-label">
-                    External Event ID (Idempotency Key) <span style="color: var(--color-error);">*</span>
-                </label>
-                <div style="display: flex; gap: var(--spacing-sm);">
-                    <input type="text" id="nl-external-event-id" name="external_event_id" class="form-input" required
-                        aria-describedby="event-id-hint" aria-required="true" style="flex: 1; font-family: var(--font-mono);">
-                    <button type="button" id="regen-event-id" class="btn btn-secondary" title="Generate fresh unique ID">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path d="M23 4v6h-6"/>
-                            <path d="M1 20v-6h6"/>
-                            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+    <!-- 2-Column Studio Grid -->
+    <div class="studio-grid">
+        <!-- Left Column: Input & Policy Guardrails -->
+        <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+            <!-- Card 1: Prompt Input Console -->
+            <div class="analytics-card">
+                <div class="analytics-card-header">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="4" width="20" height="16" rx="2"/>
+                            <path d="m10 15 5-3-5-3v6z"/>
                         </svg>
-                        Refresh ID
+                        <span class="analytics-card-title" style="text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Prompt Input Console</span>
+                    </div>
+                    <span class="metric-subtext" id="nl-char-counter">64 / 500 chars &bull; ~16 tokens</span>
+                </div>
+
+                <form id="nl-request-form">
+                    <textarea id="nl-text" class="prompt-textarea" placeholder="Describe the business workflow mutation in natural language (e.g. 'Delay order ORD-1002 by 7 days due to supplier warehouse backlog')">Delay order ORD-1002 by 7 days due to supplier warehouse backlog</textarea>
+
+                    <input type="hidden" id="nl-source-system" value="shopify">
+                    <input type="hidden" id="nl-external-event-id" value="">
+
+                    <!-- Pre-filled Prompt Suggestions -->
+                    <div style="margin-top: var(--spacing-md);">
+                        <span class="metric-label" style="display: block; margin-bottom: 6px;">Pre-Filled Prompt Suggestions</span>
+                        <div class="suggestion-chips-list">
+                            <div class="suggestion-chip" data-prompt="Delay order ORD-1002 by 7 days due to supplier warehouse backlog">
+                                <span>Delay order ORD-1002 by 7 days due to supplier warehouse backlog</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+                            </div>
+                            <div class="suggestion-chip" data-prompt="Expedite shipping for VIP customer CUST-8492 on order ORD-993">
+                                <span>Expedite shipping for VIP customer CUST-8492 on order ORD-993</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+                            </div>
+                            <div class="suggestion-chip" data-prompt="Cancel order ORD-3041 and notify customer of full refund">
+                                <span>Cancel order ORD-3041 and notify customer of full refund</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Card 2: Execution Guardrails & Policy -->
+            <div class="analytics-card">
+                <div class="analytics-card-header">
+                    <span class="analytics-card-title" style="text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Execution Guardrails &amp; Policy</span>
+                    <span class="brand-tag">Deterministic Policy Engine v2.4</span>
+                </div>
+
+                <!-- Segmented Mode Toggle: Dry Run vs Live Execution -->
+                <div class="segmented-toggle" id="execution-mode-toggle">
+                    <button type="button" class="segmented-btn active" id="btn-mode-dryrun" data-mode="dry_run">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        <span>Dry Run / Simulation</span>
+                    </button>
+                    <button type="button" class="segmented-btn" id="btn-mode-live" data-mode="live">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                        <span>Execute Live Workflow</span>
                     </button>
                 </div>
-                <span id="event-id-hint" class="form-hint">Protects against duplicate execution across network retries.</span>
+
+                <!-- Informational Banner -->
+                <div style="background: var(--color-info-bg); border: 1px solid var(--color-info-border); border-radius: var(--radius-md); padding: 10px 12px; margin-top: var(--spacing-sm); display: flex; gap: 8px; align-items: flex-start;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--color-info); flex-shrink: 0; margin-top: 2px;">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    <span style="font-size: 12px; color: var(--color-info-text);" id="execution-mode-banner">
+                        Dry run validates schema integrity, customer tier SLA limits, and simulates downstream ERP mutation before commit.
+                    </span>
+                </div>
+
+                <!-- Auto-escalate switch -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--spacing-md); padding-top: var(--spacing-sm); border-top: 1px solid var(--color-border);">
+                    <div>
+                        <div style="font-size: 12px; font-weight: 600; color: var(--color-text-primary);">Auto-escalate if confidence &lt; 85%</div>
+                        <div class="metric-subtext">Routes ambiguous entity trees to human-in-the-loop review</div>
+                    </div>
+                    <label style="position: relative; display: inline-block; width: 36px; height: 20px;">
+                        <input type="checkbox" id="chk-auto-escalate" checked style="opacity: 0; width: 0; height: 0;">
+                        <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--color-primary); transition: .2s; border-radius: 20px;">
+                            <span style="position: absolute; content: ''; height: 14px; width: 14px; left: 19px; bottom: 3px; background-color: white; transition: .2s; border-radius: 50%;"></span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Action Buttons Row -->
+            <div style="display: flex; gap: var(--spacing-sm);">
+                <button type="button" class="btn btn-primary" id="btn-synthesize-workflow" style="flex: 1; padding: 10px 16px; font-size: 13.5px; font-weight: 600;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                    </svg>
+                    <span>Synthesize &amp; Orchestrate Workflow</span>
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-reset-studio">
+                    <span>Reset Console</span>
+                </button>
             </div>
 
             <!-- Error Banner -->
-            <div id="nl-error" class="flash flash-error" hidden role="alert" aria-live="assertive" style="display: none;">
-                <div style="display: flex; gap: var(--spacing-sm); align-items: flex-start;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="12" y1="8" x2="12" y2="12"/>
-                        <line x1="12" y1="16" x2="12.01" y2="16"/>
-                    </svg>
+            <div id="nl-studio-error" class="alert alert-error" style="display: none; padding: 10px; border-radius: var(--radius-md); background: var(--color-error-bg); border: 1px solid var(--color-error-border); color: var(--color-error-text); font-size: 12px;"></div>
+        </div>
+
+        <!-- Right Column: Real-Time Extraction & DAG Plan Preview -->
+        <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+            <!-- Card 1: Real-Time Extraction -->
+            <div class="analytics-card">
+                <div class="analytics-card-header">
                     <div>
-                        <strong style="display: block; margin-bottom: 2px;">Interpretation Error</strong>
-                        <span id="nl-error-message">An error occurred</span>
-                        <div style="margin-top: var(--spacing-xs);">
-                            <span class="badge badge-failed" id="nl-error-code">ERROR</span>
-                        </div>
+                        <div class="metric-label" style="font-size: 10px;">Real-Time Extraction</div>
+                        <div class="analytics-card-title">Extracted Intent &amp; Entities</div>
+                    </div>
+                    <span class="metric-pill success" id="extract-confidence-pill">99.4% Confidence</span>
+                </div>
+
+                <div style="margin-bottom: var(--spacing-xs);">
+                    <span class="metric-subtext" style="font-size: 11px;">Target Schema Path:</span>
+                    <code style="font-size: 11.5px; background: var(--color-bg-page); padding: 2px 6px; border-radius: 4px; color: var(--color-text-primary); margin-left: 6px;" id="extract-schema-path">order.delivery_date.delay</code>
+                </div>
+
+                <!-- 2x2 Entities Grid -->
+                <div class="entities-2x2">
+                    <div class="entity-card gold">
+                        <div class="entity-card-title">Target Order ID</div>
+                        <div class="entity-card-val" id="extract-order-id">ORD-1002</div>
+                    </div>
+                    <div class="entity-card blue">
+                        <div class="entity-card-title">Schedule Delta</div>
+                        <div class="entity-card-val" id="extract-delta">+7 Days</div>
+                    </div>
+                    <div class="entity-card green">
+                        <div class="entity-card-title">Calculated Target Date</div>
+                        <div class="entity-card-val" id="extract-target-date">2026-11-25</div>
+                    </div>
+                    <div class="entity-card slate">
+                        <div class="entity-card-title">Downstream Sinks</div>
+                        <div class="entity-card-val" id="extract-sinks">ERP &amp; SendGrid</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Success Banner -->
-            <div id="nl-success" class="flash flash-success" hidden role="status" aria-live="polite" style="display: none;">
-                <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                        <polyline points="22 4 12 14.01 9 11.01"/>
-                    </svg>
+            <!-- Card 2: Generated DAG Execution Plan -->
+            <div class="analytics-card" style="flex: 1;">
+                <div class="analytics-card-header">
                     <div>
-                        <strong>Request Interpreted Successfully!</strong>
-                        <div style="font-size: var(--font-size-xs); opacity: 0.9;">Workflow parameters extracted and verified.</div>
+                        <div class="analytics-card-title">Generated DAG Execution Plan</div>
+                    </div>
+                    <span class="metric-subtext">4 Nodes &bull; Sequential Flow</span>
+                </div>
+
+                <!-- Vertical DAG Step List -->
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--color-bg-page); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="pulse-dot" style="background: var(--color-success);"></span>
+                            <span style="font-size: 12.5px; font-weight: 500;">01 Validate Schema &amp; Policy</span>
+                        </div>
+                        <span class="badge badge-success" style="font-size: 10px;">PASS</span>
+                    </div>
+
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--color-bg-page); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="pulse-dot" style="background: var(--color-info);"></span>
+                            <span style="font-size: 12.5px; font-weight: 500;">02 Verify VIP Account Status</span>
+                        </div>
+                        <span class="badge badge-running" style="font-size: 10px;">TIER-1</span>
+                    </div>
+
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--color-bg-page); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="pulse-dot" style="background: var(--color-text-muted);"></span>
+                            <span style="font-size: 12.5px; font-weight: 500;">03 Patch SAP/ERP Order Record</span>
+                        </div>
+                        <span class="badge badge-pending" style="font-size: 10px;" id="dag-node-3-badge">SIMULATE</span>
+                    </div>
+
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--color-bg-page); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="pulse-dot" style="background: var(--color-text-muted);"></span>
+                            <span style="font-size: 12.5px; font-weight: 500;">04 Send Notification (SendGrid)</span>
+                        </div>
+                        <span class="badge badge-pending" style="font-size: 10px;">QUEUED</span>
+                    </div>
+                </div>
+
+                <!-- Plan Telemetry Summary Footer -->
+                <div class="analytics-card-footer" style="margin-top: auto; padding-top: 12px;">
+                    <div style="display: flex; gap: var(--spacing-md); font-family: var(--font-mono); font-size: 11px;">
+                        <span>Latency: <strong>~340ms</strong></span>
+                        <span>Tokens: <strong>~450</strong></span>
+                        <span>Cost: <strong>&lt;$0.0005</strong></span>
                     </div>
                 </div>
             </div>
-
-            <!-- Parsed Result Preview Card -->
-            <div id="nl-result" class="card" hidden style="display: none; background: var(--color-surface); border: 1px solid var(--color-primary-light);">
-                <div class="card-header" style="background: transparent; border-bottom: 1px solid var(--color-border); padding: var(--spacing-md) var(--spacing-lg);">
-                    <h3 style="font-size: var(--font-size-sm); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; color: var(--color-primary);">
-                        Extracted Workflow Parameters
-                    </h3>
-                </div>
-                <div class="card-body" style="padding: var(--spacing-lg);">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--spacing-md);">
-                        <div class="detail-row">
-                            <span class="detail-label">Target Order ID</span>
-                            <span class="detail-value" id="nl-draft-order-id" style="font-family: var(--font-mono); font-weight: 600;">—</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Customer ID</span>
-                            <span class="detail-value" id="nl-draft-customer-id">—</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Parsed Delivery Date</span>
-                            <span class="detail-value" id="nl-draft-delivery-date" style="font-weight: 600; color: var(--color-primary);">—</span>
-                        </div>
-                    </div>
-                    <div style="margin-top: var(--spacing-lg); display: flex; gap: var(--spacing-md); justify-content: flex-end; flex-wrap: wrap;">
-                        <button type="button" class="btn btn-secondary" onclick="resetFormAndId()">
-                            Submit Another
-                        </button>
-                        <a id="nl-workflow-link" href="/workflows" class="btn btn-primary">
-                            View All Workflows &rarr;
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Loading Indicator -->
-            <div id="nl-loading" class="loading" hidden style="display: none; padding: var(--spacing-lg); text-align: center;">
-                <span class="spinner" aria-hidden="true"></span>
-                <span style="font-weight: 500; color: var(--color-text-secondary); margin-left: var(--spacing-xs);">
-                    Analyzing syntax & extracting entity models…
-                </span>
-            </div>
-
-            <!-- Form Action Buttons -->
-            <div style="display: flex; gap: var(--spacing-md); margin-top: var(--spacing-md); flex-wrap: wrap;">
-                <button type="submit" id="nl-submit-btn" class="btn btn-primary btn-lg" style="flex: 2; min-width: 200px;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="margin-right: var(--spacing-xs);">
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                    </svg>
-                    Interpret & Dispatch Request
-                </button>
-                <button type="button" class="btn btn-secondary btn-lg" style="flex: 1; min-width: 120px;" onclick="resetFormAndId()">
-                    Reset
-                </button>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    function fillExample(text) {
-        const textarea = document.getElementById('nl-text');
-        if (textarea) {
-            textarea.value = text;
-            textarea.dispatchEvent(new Event('input', { bubbles: true }));
-            textarea.focus();
-        }
-    }
-
-    function resetFormAndId() {
-        const form = document.getElementById('nl-request-form');
-        if (form) form.reset();
-        const charCount = document.getElementById('nl-char-count');
-        if (charCount) charCount.textContent = '0 / 500 chars';
-        const result = document.getElementById('nl-result');
-        if (result) {
-            result.hidden = true;
-            result.style.display = 'none';
-        }
-        const success = document.getElementById('nl-success');
-        if (success) {
-            success.hidden = true;
-            success.style.display = 'none';
-        }
-        const error = document.getElementById('nl-error');
-        if (error) {
-            error.hidden = true;
-            error.style.display = 'none';
-        }
-        const eventId = document.getElementById('nl-external-event-id');
-        if (eventId && window.utils) {
-            eventId.value = window.utils.generateExternalEventId();
-        }
-    }
-
     document.addEventListener('DOMContentLoaded', () => {
-        const textarea = document.getElementById('nl-text');
-        const charCount = document.getElementById('nl-char-count');
-        if (textarea && charCount) {
-            textarea.addEventListener('input', () => {
-                charCount.textContent = `${textarea.value.length} / 500 chars`;
-            });
+        if (typeof window.initNlStudio === 'function') {
+            window.initNlStudio();
         }
     });
 </script>

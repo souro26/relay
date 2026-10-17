@@ -12,6 +12,15 @@ fi
 if [ "${START_INTERNAL_ORDER_SERVICE:-false}" = "true" ]; then
     echo "Starting internal order service on 127.0.0.1:8001..."
     uvicorn order_service.main:app --host 127.0.0.1 --port 8001 &
+
+    echo "Waiting for internal order service to become ready..."
+    for i in $(seq 1 30); do
+        if curl -s http://127.0.0.1:8001/orders > /dev/null 2>&1; then
+            echo "Internal order service is ready on 127.0.0.1:8001."
+            break
+        fi
+        sleep 0.1
+    done
 fi
 
 # Handle dynamic $PORT if set (common in cloud environments like Render)
