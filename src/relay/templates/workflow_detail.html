@@ -5,68 +5,76 @@
 {% block content %}
 <!-- 1. HERO BAR & BREADCRUMB -->
 <div class="space-y-4">
-    <!-- Breadcrumb Navigation -->
-    <div class="flex items-center justify-between">
-        <nav aria-label="Breadcrumbs" class="flex items-center gap-2 font-mono-sm text-mono-sm text-on-surface-variant">
-            <a class="hover:text-primary transition-colors flex items-center gap-1.5" href="{{ url_for('workflow_history') }}">
-                <span class="material-symbols-outlined text-[16px]" data-icon="alt_route">alt_route</span>
+    <!-- Breadcrumb Navigation & Quick Actions -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <nav aria-label="Breadcrumbs" class="flex items-center gap-2 font-mono text-xs text-chocolate-muted">
+            <a class="hover:text-caramel transition-colors flex items-center gap-1.5 font-medium" href="{{ url_for('workflow_history') }}">
+                <span class="material-symbols-outlined text-[16px] text-caramel">alt_route</span>
                 <span>Workflows</span>
             </a>
-            <span class="text-outline-variant">/</span>
-            <div class="flex items-center gap-2 bg-surface-container-low px-2 py-0.5 rounded-lg border border-outline-variant/60">
-                <span class="text-primary font-mono-sm font-medium tracking-tight" id="breadcrumb-execution-id">{{ execution_id }}</span>
-                <button class="text-outline hover:text-primary p-0.5 rounded transition-colors active:scale-90 flex items-center" id="copy-uuid-btn" onclick="copyTraceId('{{ execution_id }}')" title="Copy UUID">
+            <span class="text-cream-borderDark">/</span>
+            <div class="flex items-center gap-2 bg-cream-well px-2.5 py-1 rounded-lg border border-cream-border">
+                <span class="text-chocolate-dark font-mono font-medium tracking-tight text-[11px]" id="breadcrumb-execution-id">{{ execution_id }}</span>
+                <button class="text-chocolate-muted hover:text-caramel transition-colors active:scale-90 cursor-pointer flex items-center" id="copy-uuid-btn" onclick="copyTraceId('{{ execution_id }}')" title="Copy UUID">
                     <span class="material-symbols-outlined text-[14px]">content_copy</span>
                 </button>
             </div>
         </nav>
 
-        <!-- Quick Actions -->
+        <!-- Quick Actions with Real Endpoints -->
         <div class="flex items-center gap-2">
-            <button onclick="exportWorkflowJson()" class="px-3 py-1.5 bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-on-surface rounded-lg font-label-caps text-label-caps transition-all flex items-center gap-1.5 shadow-sm active:scale-[0.99] cursor-pointer">
-                <span class="material-symbols-outlined text-[15px]">download</span>
-                <span>Export JSON Trace</span>
+            <button onclick="exportWorkflowJson()" class="px-3 py-1.5 bg-cream-surface border border-cream-border hover:bg-cream-well text-chocolate-dark rounded-lg font-mono text-xs transition-all flex items-center gap-1.5 shadow-subtle active:scale-95 cursor-pointer">
+                <span class="material-symbols-outlined text-[15px] text-caramel">download</span>
+                <span>Export Trace</span>
+            </button>
+            <button onclick="triggerWorkflowRetry()" id="btn-action-retry" class="px-3 py-1.5 bg-caramel-pastel border border-caramel-border hover:bg-caramel/20 text-caramel-ink rounded-lg font-mono text-xs transition-all flex items-center gap-1.5 shadow-subtle active:scale-95 cursor-pointer">
+                <span class="material-symbols-outlined text-[15px] text-caramel-deep">replay</span>
+                <span>Re-run Workflow</span>
+            </button>
+            <button onclick="triggerWorkflowCancel()" id="btn-action-cancel" class="px-3 py-1.5 bg-pastel-rose-bg border border-pastel-rose-border hover:bg-rose-100 text-pastel-rose-text rounded-lg font-mono text-xs transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer">
+                <span class="material-symbols-outlined text-[15px]">cancel</span>
+                <span>Cancel</span>
             </button>
         </div>
     </div>
 
     <!-- Execution Headline & High-Density Status Pill Ribbon -->
-    <div class="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-5 shadow-sm space-y-4">
+    <div class="bg-cream-surface border border-cream-border rounded-xl p-5 shadow-subtle space-y-4">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div class="flex items-center gap-3">
-                <h1 class="text-headline-lg font-headline-lg text-primary tracking-tight" id="workflow-headline-title">order_adjustment_orchestration</h1>
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-mono-sm text-mono-sm font-semibold border border-secondary-fixed-dim" id="workflow-status-badge">
-                    <span class="w-2 h-2 rounded-full bg-secondary pulse-dot"></span>
+                <h1 class="text-xl font-bold text-chocolate-dark tracking-tight" id="workflow-headline-title">order_change</h1>
+                <span class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-pastel-mint-bg text-pastel-mint-text font-mono text-xs font-semibold border border-pastel-mint-border" id="workflow-status-badge">
+                    <span class="w-2 h-2 rounded-full bg-pastel-mint-dot pulse-dot"></span>
                     <span id="workflow-status-text">COMPLETED</span>
                 </span>
             </div>
-            <div class="flex items-center gap-2 text-on-surface-variant font-mono-sm text-mono-sm">
-                <span class="text-outline">Execution Engine:</span>
-                <span class="px-1.5 py-0.5 rounded bg-surface-container-high text-primary font-mono-sm">v2.14.0-stable</span>
+            <div class="flex items-center gap-2 text-chocolate-muted font-mono text-xs">
+                <span>Orchestrator:</span>
+                <span class="px-2 py-0.5 rounded bg-cream-well text-chocolate-dark font-medium border border-cream-border">Relay v2.0-engine</span>
             </div>
         </div>
 
         <!-- Telemetry Metadata Strip -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 border-t border-outline-variant/40">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 border-t border-cream-border">
             <div>
-                <span class="block text-label-caps font-label-caps text-outline mb-0.5">TRIGGER SOURCE</span>
-                <span class="flex items-center gap-1.5 font-body-sm text-body-sm font-medium text-primary">
-                    <span class="material-symbols-outlined text-[15px] text-secondary">webhook</span>
+                <span class="block font-mono text-[10px] uppercase tracking-wider text-chocolate-muted mb-0.5 font-semibold">TRIGGER SOURCE</span>
+                <span class="flex items-center gap-1.5 text-xs font-medium text-chocolate-dark">
+                    <span class="material-symbols-outlined text-[15px] text-caramel">webhook</span>
                     <span id="telemetry-trigger-source">Webhook (Shopify ERP)</span>
                 </span>
             </div>
             <div>
-                <span class="block text-label-caps font-label-caps text-outline mb-0.5">STARTED AT</span>
-                <span class="font-mono-sm text-mono-sm text-on-surface" id="telemetry-started-at">—</span>
+                <span class="block font-mono text-[10px] uppercase tracking-wider text-chocolate-muted mb-0.5 font-semibold">STARTED AT</span>
+                <span class="font-mono text-xs text-chocolate-dark" id="telemetry-started-at">—</span>
             </div>
             <div>
-                <span class="block text-label-caps font-label-caps text-outline mb-0.5">COMPLETED AT</span>
-                <span class="font-mono-sm text-mono-sm text-on-surface" id="telemetry-completed-at">—</span>
+                <span class="block font-mono text-[10px] uppercase tracking-wider text-chocolate-muted mb-0.5 font-semibold">COMPLETED AT</span>
+                <span class="font-mono text-xs text-chocolate-dark" id="telemetry-completed-at">—</span>
             </div>
             <div>
-                <span class="block text-label-caps font-label-caps text-outline mb-0.5">TOTAL RUNTIME LATENCY</span>
-                <span class="inline-flex items-center gap-1 font-mono-sm text-mono-sm font-semibold text-primary">
-                    <span class="material-symbols-outlined text-[15px] text-secondary">timer</span>
+                <span class="block font-mono text-[10px] uppercase tracking-wider text-chocolate-muted mb-0.5 font-semibold">TOTAL RUNTIME LATENCY</span>
+                <span class="inline-flex items-center gap-1 font-mono text-xs font-bold text-caramel-deep">
+                    <span class="material-symbols-outlined text-[15px]">timer</span>
                     <span id="telemetry-runtime-latency">354ms</span>
                 </span>
             </div>
@@ -77,110 +85,110 @@
 <!-- 2. VISUAL DAG PIPELINE / STEPPER TRACK -->
 <section class="space-y-3">
     <div class="flex items-center justify-between">
-        <h2 class="text-headline-sm font-headline-sm text-primary flex items-center gap-2">
+        <h2 class="text-base font-bold text-chocolate-dark flex items-center gap-2">
             <span>Execution DAG Trace</span>
-            <span class="text-label-caps font-label-caps px-2 py-0.5 rounded bg-surface-container text-on-surface-variant" id="dag-nodes-succeeded-pill">5/5 Nodes Succeeded</span>
+            <span class="font-mono text-xs px-2.5 py-0.5 rounded-full bg-cream-well text-chocolate-muted border border-cream-border" id="dag-nodes-succeeded-pill">5/5 Nodes Succeeded</span>
         </h2>
-        <div class="flex items-center gap-3 text-mono-sm font-mono-sm text-outline">
-            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-secondary"></span> Synchronous Step</span>
-            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-secondary-container"></span> LLM Inference</span>
+        <div class="flex items-center gap-3 font-mono text-xs text-chocolate-muted">
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-pastel-mint-dot"></span> Synchronous Step</span>
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-caramel"></span> LLM Inference</span>
         </div>
     </div>
 
-    <!-- Interactive Stepper Canvas -->
-    <div class="bg-surface-container-low border border-outline-variant/60 rounded-xl p-6 overflow-x-auto shadow-inner">
+    <!-- Stepper Canvas in Warm Sunken Well -->
+    <div class="bg-cream-well/70 border border-cream-border rounded-xl p-6 overflow-x-auto shadow-inner">
         <div class="min-w-[1020px] flex items-center justify-between relative py-4" id="dag-stepper-canvas">
-            <!-- Track line underlay -->
-            <div class="absolute left-10 right-10 top-1/2 -translate-y-1/2 h-[2px] bg-outline-variant z-0"></div>
+            <!-- Underlay line -->
+            <div class="absolute left-10 right-10 top-1/2 -translate-y-1/2 h-[2px] bg-cream-borderDark z-0"></div>
 
             <!-- Step 1 -->
             <div class="relative z-10 flex flex-col items-center group cursor-pointer w-44">
-                <div class="w-9 h-9 rounded-full bg-surface-container-lowest border-2 border-secondary flex items-center justify-center text-secondary shadow-sm transition-transform duration-150 group-hover:scale-110">
+                <div class="w-9 h-9 rounded-full bg-cream-surface border-2 border-pastel-mint-dot flex items-center justify-center text-pastel-mint-text shadow-subtle transition-transform group-hover:scale-110">
                     <span class="material-symbols-outlined text-[18px]">check</span>
                 </div>
-                <div class="mt-3 bg-surface-container-lowest border border-outline-variant/70 rounded-lg p-2.5 w-full shadow-sm text-center transition-all group-hover:border-secondary">
-                    <div class="flex items-center justify-between text-mono-sm font-mono-sm text-outline mb-1">
+                <div class="mt-3 bg-cream-surface border border-cream-border rounded-lg p-2.5 w-full shadow-subtle text-center transition-all group-hover:border-caramel">
+                    <div class="flex items-center justify-between font-mono text-[10px] text-chocolate-muted mb-1">
                         <span>01</span>
-                        <span class="px-1 rounded bg-secondary-fixed/50 text-on-secondary-fixed text-[10px]" id="step-1-duration">18ms</span>
+                        <span class="px-1.5 py-0.2 rounded bg-pastel-mint-bg text-pastel-mint-text font-semibold" id="step-1-duration">18ms</span>
                     </div>
-                    <h3 class="font-headline-sm text-body-sm font-semibold text-primary truncate">validate_inbound_request</h3>
-                    <p class="font-mono-sm text-[10px] text-on-surface-variant mt-0.5">Attempt 1/1</p>
+                    <h3 class="font-semibold text-xs text-chocolate-dark truncate">validate_inbound_request</h3>
+                    <p class="font-mono text-[10px] text-chocolate-muted mt-0.5">Attempt 1/1</p>
                 </div>
             </div>
 
-            <div class="z-10 -mx-3 flex items-center text-outline-variant">
-                <span class="material-symbols-outlined text-[16px] text-secondary">arrow_forward</span>
+            <div class="z-10 -mx-3 flex items-center text-caramel">
+                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
             </div>
 
             <!-- Step 2 -->
             <div class="relative z-10 flex flex-col items-center group cursor-pointer w-44">
-                <div class="w-9 h-9 rounded-full bg-surface-container-lowest border-2 border-secondary flex items-center justify-center text-secondary shadow-sm transition-transform duration-150 group-hover:scale-110">
+                <div class="w-9 h-9 rounded-full bg-cream-surface border-2 border-pastel-mint-dot flex items-center justify-center text-pastel-mint-text shadow-subtle transition-transform group-hover:scale-110">
                     <span class="material-symbols-outlined text-[18px]">inventory_2</span>
                 </div>
-                <div class="mt-3 bg-surface-container-lowest border border-outline-variant/70 rounded-lg p-2.5 w-full shadow-sm text-center transition-all group-hover:border-secondary">
-                    <div class="flex items-center justify-between text-mono-sm font-mono-sm text-outline mb-1">
+                <div class="mt-3 bg-cream-surface border border-cream-border rounded-lg p-2.5 w-full shadow-subtle text-center transition-all group-hover:border-caramel">
+                    <div class="flex items-center justify-between font-mono text-[10px] text-chocolate-muted mb-1">
                         <span>02</span>
-                        <span class="px-1 rounded bg-secondary-fixed/50 text-on-secondary-fixed text-[10px]" id="step-2-duration">84ms</span>
+                        <span class="px-1.5 py-0.2 rounded bg-pastel-mint-bg text-pastel-mint-text font-semibold" id="step-2-duration">84ms</span>
                     </div>
-                    <h3 class="font-headline-sm text-body-sm font-semibold text-primary truncate">fetch_order_details</h3>
-                    <p class="font-mono-sm text-[10px] text-on-surface-variant mt-0.5">Order Service API</p>
+                    <h3 class="font-semibold text-xs text-chocolate-dark truncate">fetch_order_details</h3>
+                    <p class="font-mono text-[10px] text-chocolate-muted mt-0.5">Order Service API</p>
                 </div>
             </div>
 
-            <div class="z-10 -mx-3 flex items-center text-outline-variant">
-                <span class="material-symbols-outlined text-[16px] text-secondary">arrow_forward</span>
+            <div class="z-10 -mx-3 flex items-center text-caramel">
+                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
             </div>
 
             <!-- Step 3 -->
             <div class="relative z-10 flex flex-col items-center group cursor-pointer w-44">
-                <div class="w-9 h-9 rounded-full bg-surface-container-lowest border-2 border-secondary flex items-center justify-center text-secondary shadow-sm transition-transform duration-150 group-hover:scale-110">
+                <div class="w-9 h-9 rounded-full bg-cream-surface border-2 border-pastel-mint-dot flex items-center justify-center text-pastel-mint-text shadow-subtle transition-transform group-hover:scale-110">
                     <span class="material-symbols-outlined text-[18px]">verified_user</span>
                 </div>
-                <div class="mt-3 bg-surface-container-lowest border border-outline-variant/70 rounded-lg p-2.5 w-full shadow-sm text-center transition-all group-hover:border-secondary">
-                    <div class="flex items-center justify-between text-mono-sm font-mono-sm text-outline mb-1">
+                <div class="mt-3 bg-cream-surface border border-cream-border rounded-lg p-2.5 w-full shadow-subtle text-center transition-all group-hover:border-caramel">
+                    <div class="flex items-center justify-between font-mono text-[10px] text-chocolate-muted mb-1">
                         <span>03</span>
-                        <span class="px-1 rounded bg-secondary-fixed/50 text-on-secondary-fixed text-[10px]" id="step-3-duration">14ms</span>
+                        <span class="px-1.5 py-0.2 rounded bg-pastel-mint-bg text-pastel-mint-text font-semibold" id="step-3-duration">14ms</span>
                     </div>
-                    <h3 class="font-headline-sm text-body-sm font-semibold text-primary truncate">verify_customer</h3>
-                    <p class="font-mono-sm text-[10px] text-on-surface-variant mt-0.5">Customer Verification</p>
+                    <h3 class="font-semibold text-xs text-chocolate-dark truncate">verify_customer</h3>
+                    <p class="font-mono text-[10px] text-chocolate-muted mt-0.5">Customer Verification</p>
                 </div>
             </div>
 
-            <div class="z-10 -mx-3 flex items-center text-outline-variant">
-                <span class="material-symbols-outlined text-[16px] text-secondary">arrow_forward</span>
+            <div class="z-10 -mx-3 flex items-center text-caramel">
+                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
             </div>
 
             <!-- Step 4 (AI Node) -->
             <div class="relative z-10 flex flex-col items-center group cursor-pointer w-48">
-                <div class="w-9 h-9 rounded-full bg-surface-container-lowest border-2 border-secondary-container flex items-center justify-center text-secondary shadow-sm transition-transform duration-150 group-hover:scale-110 ring-4 ring-secondary-fixed/40">
+                <div class="w-9 h-9 rounded-full bg-cream-surface border-2 border-caramel flex items-center justify-center text-caramel-deep shadow-subtle transition-transform group-hover:scale-110 ring-4 ring-caramel-pastel">
                     <span class="material-symbols-outlined text-[18px]">psychology</span>
                 </div>
-                <div class="mt-3 bg-surface-container-lowest border-2 border-secondary-container/80 rounded-lg p-2.5 w-full shadow-sm text-center transition-all group-hover:border-secondary">
-                    <div class="flex items-center justify-between text-mono-sm font-mono-sm text-outline mb-1">
-                        <span class="text-secondary font-semibold">04 (AI)</span>
-                        <span class="px-1.5 py-0.2 rounded bg-secondary-fixed text-on-secondary-fixed font-semibold text-[10px]" id="step-4-duration">192ms</span>
+                <div class="mt-3 bg-cream-surface border-2 border-caramel/70 rounded-lg p-2.5 w-full shadow-subtle text-center transition-all group-hover:border-chocolate-warm">
+                    <div class="flex items-center justify-between font-mono text-[10px] text-chocolate-muted mb-1">
+                        <span class="text-caramel-deep font-bold">04 (AI)</span>
+                        <span class="px-1.5 py-0.2 rounded bg-caramel-pastel text-caramel-ink font-semibold" id="step-4-duration">192ms</span>
                     </div>
-                    <h3 class="font-headline-sm text-body-sm font-semibold text-primary truncate">interpret_intent</h3>
-                    <p class="font-mono-sm text-[10px] text-secondary mt-0.5 font-medium" id="dag-ai-node-sub">LLM Reasoning</p>
+                    <h3 class="font-semibold text-xs text-chocolate-dark truncate">interpret_intent</h3>
+                    <p class="font-mono text-[10px] text-caramel-deep mt-0.5 font-medium" id="dag-ai-node-sub">LLM Reasoning</p>
                 </div>
             </div>
 
-            <div class="z-10 -mx-3 flex items-center text-outline-variant">
-                <span class="material-symbols-outlined text-[16px] text-secondary">arrow_forward</span>
+            <div class="z-10 -mx-3 flex items-center text-caramel">
+                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
             </div>
 
             <!-- Step 5 -->
             <div class="relative z-10 flex flex-col items-center group cursor-pointer w-44">
-                <div class="w-9 h-9 rounded-full bg-surface-container-lowest border-2 border-secondary flex items-center justify-center text-secondary shadow-sm transition-transform duration-150 group-hover:scale-110">
+                <div class="w-9 h-9 rounded-full bg-cream-surface border-2 border-pastel-mint-dot flex items-center justify-center text-pastel-mint-text shadow-subtle transition-transform group-hover:scale-110">
                     <span class="material-symbols-outlined text-[18px]">forward_to_inbox</span>
                 </div>
-                <div class="mt-3 bg-surface-container-lowest border border-outline-variant/70 rounded-lg p-2.5 w-full shadow-sm text-center transition-all group-hover:border-secondary">
-                    <div class="flex items-center justify-between text-mono-sm font-mono-sm text-outline mb-1">
+                <div class="mt-3 bg-cream-surface border border-cream-border rounded-lg p-2.5 w-full shadow-subtle text-center transition-all group-hover:border-caramel">
+                    <div class="flex items-center justify-between font-mono text-[10px] text-chocolate-muted mb-1">
                         <span>05</span>
-                        <span class="px-1 rounded bg-secondary-fixed/50 text-on-secondary-fixed text-[10px]" id="step-5-duration">46ms</span>
+                        <span class="px-1.5 py-0.2 rounded bg-pastel-mint-bg text-pastel-mint-text font-semibold" id="step-5-duration">46ms</span>
                     </div>
-                    <h3 class="font-headline-sm text-body-sm font-semibold text-primary truncate">update_order_delivery</h3>
-                    <p class="font-mono-sm text-[10px] text-on-surface-variant mt-0.5">Order Service Dispatch</p>
+                    <h3 class="font-semibold text-xs text-chocolate-dark truncate">update_order_delivery</h3>
+                    <p class="font-mono text-[10px] text-chocolate-muted mt-0.5">Order Dispatch</p>
                 </div>
             </div>
         </div>
@@ -190,124 +198,124 @@
 <!-- 3. STRUCTURED METADATA GRID (4 EXPANSIVE CARDS) -->
 <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
     <!-- Card 1: Execution Metadata -->
-    <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+    <div class="bg-cream-surface border border-cream-border rounded-xl p-5 shadow-subtle flex flex-col justify-between hover:border-caramel/40 transition-colors">
         <div>
-            <div class="flex items-center justify-between pb-3 border-b border-outline-variant/30 mb-3">
-                <span class="text-label-caps font-label-caps text-outline uppercase">EXECUTION METADATA</span>
-                <span class="material-symbols-outlined text-outline text-[18px]">settings_suggest</span>
+            <div class="flex items-center justify-between pb-3 border-b border-cream-border mb-3">
+                <span class="font-mono text-[11px] font-bold text-chocolate-muted uppercase">EXECUTION METADATA</span>
+                <span class="material-symbols-outlined text-caramel text-[18px]">settings_suggest</span>
             </div>
             <div class="space-y-2.5">
                 <div>
-                    <span class="text-mono-sm font-mono-sm text-outline block">Workflow Type</span>
-                    <span class="font-mono-md text-mono-md text-primary font-medium" id="meta-workflow-type">order_change</span>
+                    <span class="font-mono text-[10px] text-chocolate-muted block">Workflow Type</span>
+                    <span class="font-mono text-xs text-chocolate-dark font-semibold" id="meta-workflow-type">order_change</span>
                 </div>
                 <div>
-                    <span class="text-mono-sm font-mono-sm text-outline block">Source System</span>
-                    <span class="inline-flex items-center gap-1 font-mono-sm text-mono-sm text-on-surface" id="meta-source-system">
-                        <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Shopify ERP
+                    <span class="font-mono text-[10px] text-chocolate-muted block">Source System</span>
+                    <span class="inline-flex items-center gap-1 font-mono text-xs text-chocolate-dark" id="meta-source-system">
+                        <span class="w-1.5 h-1.5 rounded-full bg-caramel"></span> Shopify ERP
                     </span>
                 </div>
                 <div>
-                    <span class="text-mono-sm font-mono-sm text-outline block">External Ref ID</span>
-                    <span class="font-mono-sm text-mono-sm text-on-surface truncate block" id="meta-external-ref-id" title="ext_ref_shpfy_992144">ext_ref_shpfy_992144</span>
+                    <span class="font-mono text-[10px] text-chocolate-muted block">External Ref ID</span>
+                    <span class="font-mono text-xs text-chocolate-dark truncate block" id="meta-external-ref-id" title="ext_ref_shpfy_992144">ext_ref_shpfy_992144</span>
                 </div>
             </div>
         </div>
-        <div class="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between text-mono-sm font-mono-sm text-outline">
+        <div class="mt-4 pt-3 border-t border-cream-border flex items-center justify-between font-mono text-[11px] text-chocolate-muted">
             <span id="meta-worker">Worker: node-01</span>
-            <span id="meta-pid">Status: Active</span>
+            <span class="text-pastel-mint-text font-medium" id="meta-pid">Status: Active</span>
         </div>
     </div>
 
     <!-- Card 2: Business Operation Payload -->
-    <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+    <div class="bg-cream-surface border border-cream-border rounded-xl p-5 shadow-subtle flex flex-col justify-between hover:border-caramel/40 transition-colors">
         <div>
-            <div class="flex items-center justify-between pb-3 border-b border-outline-variant/30 mb-3">
-                <span class="text-label-caps font-label-caps text-outline uppercase">BUSINESS OPERATION PAYLOAD</span>
-                <span class="material-symbols-outlined text-outline text-[18px]">receipt_long</span>
+            <div class="flex items-center justify-between pb-3 border-b border-cream-border mb-3">
+                <span class="font-mono text-[11px] font-bold text-chocolate-muted uppercase">BUSINESS PAYLOAD</span>
+                <span class="material-symbols-outlined text-caramel text-[18px]">receipt_long</span>
             </div>
             <div class="space-y-2.5">
                 <div class="flex justify-between items-center">
-                    <span class="text-mono-sm font-mono-sm text-outline">Order ID</span>
-                    <span class="font-mono-sm text-mono-sm font-semibold text-primary" id="meta-order-id">ORD-1002</span>
+                    <span class="font-mono text-[10px] text-chocolate-muted">Order ID</span>
+                    <span class="font-mono text-xs font-bold text-chocolate-dark" id="meta-order-id">ORD-1002</span>
                 </div>
                 <div class="flex justify-between items-center">
-                    <span class="text-mono-sm font-mono-sm text-outline">Customer ID</span>
-                    <span class="font-mono-sm text-mono-sm text-primary" id="meta-customer-id">CUST-8492</span>
+                    <span class="font-mono text-[10px] text-chocolate-muted">Customer ID</span>
+                    <span class="font-mono text-xs text-chocolate-dark font-medium" id="meta-customer-id">CUST-8492</span>
                 </div>
                 <div class="flex justify-between items-center">
-                    <span class="text-mono-sm font-mono-sm text-outline">Previous Delivery</span>
-                    <span class="font-mono-sm text-mono-sm text-outline line-through" id="meta-original-delivery">2026-11-10</span>
+                    <span class="font-mono text-[10px] text-chocolate-muted">Previous Delivery</span>
+                    <span class="font-mono text-xs text-chocolate-muted line-through" id="meta-original-delivery">2026-11-10</span>
                 </div>
-                <div class="flex justify-between items-center bg-secondary-fixed/30 px-2 py-1 rounded">
-                    <span class="text-mono-sm font-mono-sm text-on-secondary-fixed font-medium">New Delivery</span>
-                    <span class="font-mono-sm text-mono-sm font-bold text-secondary" id="meta-adjusted-delivery">2026-11-25</span>
+                <div class="flex justify-between items-center bg-pastel-mint-bg px-2 py-1 rounded border border-pastel-mint-border">
+                    <span class="font-mono text-[10px] text-pastel-mint-text font-semibold">New Delivery</span>
+                    <span class="font-mono text-xs font-bold text-pastel-mint-text" id="meta-adjusted-delivery">2026-11-25</span>
                 </div>
             </div>
         </div>
-        <div class="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between text-mono-sm font-mono-sm text-outline">
-            <span id="meta-delta-days">Order Status: Active</span>
-            <span class="text-secondary font-medium" id="meta-sla-status">Valid</span>
+        <div class="mt-4 pt-3 border-t border-cream-border flex items-center justify-between font-mono text-[11px] text-chocolate-muted">
+            <span id="meta-delta-days">Order State: Valid</span>
+            <span class="text-pastel-mint-text font-medium" id="meta-sla-status">Active</span>
         </div>
     </div>
 
     <!-- Card 3: Distributed Tracing & Guardrails -->
-    <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+    <div class="bg-cream-surface border border-cream-border rounded-xl p-5 shadow-subtle flex flex-col justify-between hover:border-caramel/40 transition-colors">
         <div>
-            <div class="flex items-center justify-between pb-3 border-b border-outline-variant/30 mb-3">
-                <span class="text-label-caps font-label-caps text-outline uppercase">TRACING &amp; DIAGNOSTICS</span>
-                <span class="material-symbols-outlined text-outline text-[18px]">shield</span>
+            <div class="flex items-center justify-between pb-3 border-b border-cream-border mb-3">
+                <span class="font-mono text-[11px] font-bold text-chocolate-muted uppercase">TRACING &amp; DIAGNOSTICS</span>
+                <span class="material-symbols-outlined text-navy-slate text-[18px]">shield</span>
             </div>
             <div class="space-y-2.5">
                 <div>
-                    <span class="text-mono-sm font-mono-sm text-outline block">Correlation ID</span>
-                    <span class="font-mono-sm text-mono-sm text-primary truncate block" id="meta-correlation-id" title="c-8fa2981-01f">c-8fa2981-01f</span>
+                    <span class="font-mono text-[10px] text-chocolate-muted block">Correlation ID</span>
+                    <span class="font-mono text-xs text-chocolate-dark truncate block" id="meta-correlation-id" title="c-8fa2981-01f">c-8fa2981-01f</span>
                 </div>
                 <div>
-                    <span class="text-mono-sm font-mono-sm text-outline block">Idempotency Key</span>
-                    <span class="font-mono-sm text-mono-sm text-primary truncate block" id="meta-idempotency-key" title="idem-shopify-ord-1002-v1">idem-shopify-ord-1002-v1</span>
+                    <span class="font-mono text-[10px] text-chocolate-muted block">Idempotency Key</span>
+                    <span class="font-mono text-xs text-chocolate-dark truncate block" id="meta-idempotency-key" title="idem-shopify-ord-1002-v1">idem-shopify-ord-1002-v1</span>
                 </div>
                 <div>
-                    <span class="text-mono-sm font-mono-sm text-outline block">Failure Category</span>
-                    <span class="font-mono-sm text-mono-sm text-primary truncate block" id="meta-failure-cat">None</span>
+                    <span class="font-mono text-[10px] text-chocolate-muted block">Failure Category</span>
+                    <span class="font-mono text-xs text-chocolate-dark font-medium" id="meta-failure-cat">None</span>
                 </div>
             </div>
         </div>
-        <div class="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between text-mono-sm font-mono-sm text-outline">
-            <span>Deduplication: Active</span>
-            <span class="text-secondary font-medium">Verified</span>
+        <div class="mt-4 pt-3 border-t border-cream-border flex items-center justify-between font-mono text-[11px] text-chocolate-muted">
+            <span>Deduplication: Verified</span>
+            <span class="text-pastel-mint-text font-medium">Safe</span>
         </div>
     </div>
 
     <!-- Card 4: LLM Telemetry -->
-    <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+    <div class="bg-cream-surface border border-cream-border rounded-xl p-5 shadow-subtle flex flex-col justify-between hover:border-caramel/40 transition-colors">
         <div>
-            <div class="flex items-center justify-between pb-3 border-b border-outline-variant/30 mb-3">
-                <span class="text-label-caps font-label-caps text-outline uppercase">LLM TELEMETRY</span>
-                <span class="material-symbols-outlined text-secondary text-[18px]">smart_toy</span>
+            <div class="flex items-center justify-between pb-3 border-b border-cream-border mb-3">
+                <span class="font-mono text-[11px] font-bold text-chocolate-muted uppercase">LLM TELEMETRY</span>
+                <span class="material-symbols-outlined text-caramel text-[18px]">smart_toy</span>
             </div>
             <div class="space-y-2.5">
                 <div class="flex justify-between items-center">
-                    <span class="text-mono-sm font-mono-sm text-outline">Model</span>
-                    <span class="font-mono-sm text-mono-sm font-semibold text-primary" id="meta-llm-model">gpt-4o-mini</span>
+                    <span class="font-mono text-[10px] text-chocolate-muted">Model</span>
+                    <span class="font-mono text-xs font-bold text-chocolate-dark" id="meta-llm-model">gpt-4o-mini</span>
                 </div>
                 <div class="flex justify-between items-center">
-                    <span class="text-mono-sm font-mono-sm text-outline">LLM Latency</span>
-                    <span class="font-mono-sm text-mono-sm text-primary" id="meta-llm-latency">284ms</span>
+                    <span class="font-mono text-[10px] text-chocolate-muted">Latency</span>
+                    <span class="font-mono text-xs text-chocolate-dark" id="meta-llm-latency">284ms</span>
                 </div>
                 <div class="flex justify-between items-center">
-                    <span class="text-mono-sm font-mono-sm text-outline">Tokens</span>
-                    <span class="font-mono-sm text-mono-sm text-primary" id="meta-llm-tokens">500 total</span>
+                    <span class="font-mono text-[10px] text-chocolate-muted">Tokens</span>
+                    <span class="font-mono text-xs text-chocolate-dark" id="meta-llm-tokens">500 total</span>
                 </div>
                 <div class="flex justify-between items-center">
-                    <span class="text-mono-sm font-mono-sm text-outline">Estimated Cost</span>
-                    <span class="font-mono-sm text-mono-sm font-semibold text-secondary" id="meta-llm-cost">$0.0004 USD</span>
+                    <span class="font-mono text-[10px] text-chocolate-muted">Estimated Cost</span>
+                    <span class="font-mono text-xs font-bold text-pastel-mint-text" id="meta-llm-cost">$0.0004 USD</span>
                 </div>
             </div>
         </div>
-        <div class="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between text-mono-sm font-mono-sm text-outline">
+        <div class="mt-4 pt-3 border-t border-cream-border flex items-center justify-between font-mono text-[11px] text-chocolate-muted">
             <span>Inference: Online</span>
-            <span>Deterministic</span>
+            <span class="text-caramel-deep font-medium">Recorded</span>
         </div>
     </div>
 </section>
@@ -315,16 +323,16 @@
 <!-- 4. DETAILED EXECUTION LOG / STEP ATTEMPTS TABLE -->
 <section class="space-y-3">
     <div class="flex items-center justify-between">
-        <h2 class="text-headline-sm font-headline-sm text-primary flex items-center gap-2">
+        <h2 class="text-base font-bold text-chocolate-dark flex items-center gap-2">
             <span>Execution Step Telemetry Log</span>
-            <span class="font-mono-sm text-mono-sm text-outline" id="execution-step-count-header">(5 Recorded Operations)</span>
+            <span class="font-mono text-xs text-chocolate-muted" id="execution-step-count-header">(5 Recorded Operations)</span>
         </h2>
     </div>
 
-    <div class="border border-outline-variant/60 rounded-xl overflow-hidden bg-surface-container-lowest shadow-sm">
+    <div class="border border-cream-border rounded-xl overflow-hidden bg-cream-surface shadow-subtle">
         <table class="w-full text-left border-collapse">
             <thead>
-                <tr class="border-b border-outline-variant/60 bg-surface-container-low/70 font-label-caps text-label-caps text-outline uppercase tracking-wider">
+                <tr class="border-b border-cream-border bg-cream-well/70 font-mono text-[11px] text-chocolate-muted uppercase tracking-wider">
                     <th class="py-2.5 px-4 font-semibold">STEP IDENTIFIER</th>
                     <th class="py-2.5 px-4 font-semibold">STATUS</th>
                     <th class="py-2.5 px-4 text-right font-semibold">START TIME (UTC)</th>
@@ -333,7 +341,7 @@
                     <th class="py-2.5 px-4 text-right font-semibold">DIAGNOSTIC CONTEXT</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-outline-variant/30 text-body-sm font-body-sm" id="execution-steps-table-body">
+            <tbody class="divide-y divide-cream-border/60 text-xs font-sans" id="execution-steps-table-body">
                 <!-- Dynamically populated -->
             </tbody>
         </table>
@@ -343,37 +351,37 @@
 <!-- 5. RAW STATE INSPECTOR (TABBED JSON CODE VIEWER) -->
 <section class="space-y-3 pb-8">
     <div class="flex items-center justify-between">
-        <h2 class="text-headline-sm font-headline-sm text-primary flex items-center gap-2">
+        <h2 class="text-base font-bold text-chocolate-dark flex items-center gap-2">
             <span>Raw State Inspector</span>
-            <span class="text-mono-sm font-mono-sm text-outline">JSON Payload</span>
+            <span class="font-mono text-xs text-chocolate-muted">JSON Telemetry</span>
         </h2>
-        <button class="px-3 py-1.5 bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-on-surface rounded-lg font-mono-sm text-mono-sm transition-all flex items-center gap-1.5 shadow-sm active:scale-[0.99] cursor-pointer" id="copy-json-btn" onclick="copyJsonPayload()">
-            <span class="material-symbols-outlined text-[14px]">copy_all</span>
+        <button class="px-3.5 py-1.5 bg-cream-surface border border-cream-border hover:bg-cream-well text-chocolate-dark rounded-lg font-mono text-xs transition-all flex items-center gap-1.5 shadow-subtle active:scale-95 cursor-pointer" id="copy-json-btn" onclick="copyJsonPayload()">
+            <span class="material-symbols-outlined text-[14px] text-caramel">copy_all</span>
             <span id="copy-json-text">Copy JSON</span>
         </button>
     </div>
 
-    <div class="border border-outline-variant/60 rounded-xl overflow-hidden bg-surface-container-lowest shadow-sm">
-        <!-- Header Tabs -->
-        <div class="bg-surface-container-low border-b border-outline-variant/60 px-4 flex items-center justify-between">
-            <div class="flex items-center gap-6" role="tablist">
-                <button class="py-3 text-mono-sm font-mono-sm text-outline hover:text-primary transition-colors flex items-center gap-1.5 border-b-2 border-transparent cursor-pointer" id="tab-input" onclick="switchTab('input')">
+    <div class="border border-cream-border rounded-xl overflow-hidden bg-cream-surface shadow-subtle">
+        <!-- Header Tabs in Warm Cream -->
+        <div class="bg-cream-well border-b border-cream-border px-4 flex items-center justify-between">
+            <div class="flex items-center gap-4" role="tablist">
+                <button class="py-2.5 font-mono text-xs text-chocolate-muted hover:text-chocolate-dark transition-colors flex items-center gap-1.5 border-b-2 border-transparent cursor-pointer" id="tab-input" onclick="switchTab('input')">
                     <span class="material-symbols-outlined text-[16px]">input</span>
                     <span>Input Event</span>
                 </button>
-                <button class="py-3 text-mono-sm font-mono-sm font-semibold text-primary border-b-2 border-primary flex items-center gap-1.5 cursor-pointer" id="tab-resolved" onclick="switchTab('resolved')">
-                    <span class="material-symbols-outlined text-[16px]">check_circle</span>
-                    <span>Resolved Workflow State</span>
+                <button class="py-2.5 font-mono text-xs font-bold text-chocolate-dark border-b-2 border-caramel flex items-center gap-1.5 cursor-pointer" id="tab-resolved" onclick="switchTab('resolved')">
+                    <span class="material-symbols-outlined text-[16px] text-caramel">check_circle</span>
+                    <span>Resolved State</span>
                 </button>
-                <button class="py-3 text-mono-sm font-mono-sm text-outline hover:text-primary transition-colors flex items-center gap-1.5 border-b-2 border-transparent cursor-pointer" id="tab-telemetry" onclick="switchTab('telemetry')">
+                <button class="py-2.5 font-mono text-xs text-chocolate-muted hover:text-chocolate-dark transition-colors flex items-center gap-1.5 border-b-2 border-transparent cursor-pointer" id="tab-telemetry" onclick="switchTab('telemetry')">
                     <span class="material-symbols-outlined text-[16px]">analytics</span>
-                    <span>Full Telemetry Trace</span>
+                    <span>Full Trace</span>
                 </button>
             </div>
-            <span class="font-mono-sm text-[11px] text-outline">UTF-8 • Application/JSON</span>
+            <span class="font-mono text-[11px] text-chocolate-muted">UTF-8 • Application/JSON</span>
         </div>
 
-        <div class="p-4 bg-[#F5F3ED] overflow-x-auto text-mono-sm font-mono-sm text-on-surface leading-relaxed">
+        <div class="p-4 bg-cream-well/40 overflow-x-auto font-mono text-xs text-chocolate-dark leading-relaxed">
             <pre class="whitespace-pre" id="json-viewer">Loading workflow state…</pre>
         </div>
     </div>
@@ -395,9 +403,9 @@
             const btn = document.getElementById('tab-' + t);
             if (!btn) return;
             if (t === tabKey) {
-                btn.className = "py-3 text-mono-sm font-mono-sm font-semibold text-primary border-b-2 border-primary flex items-center gap-1.5 cursor-pointer";
+                btn.className = "py-2.5 font-mono text-xs font-bold text-chocolate-dark border-b-2 border-caramel flex items-center gap-1.5 cursor-pointer";
             } else {
-                btn.className = "py-3 text-mono-sm font-mono-sm text-outline hover:text-primary transition-colors flex items-center gap-1.5 border-b-2 border-transparent cursor-pointer";
+                btn.className = "py-2.5 font-mono text-xs text-chocolate-muted hover:text-chocolate-dark transition-colors flex items-center gap-1.5 border-b-2 border-transparent cursor-pointer";
             }
         });
         document.getElementById('json-viewer').textContent = jsonTabs[tabKey];
@@ -407,8 +415,8 @@
         navigator.clipboard.writeText(id).then(() => {
             const btn = document.getElementById('copy-uuid-btn');
             if (btn) {
-                btn.classList.add('text-secondary');
-                setTimeout(() => btn.classList.remove('text-secondary'), 1000);
+                btn.classList.add('text-caramel');
+                setTimeout(() => btn.classList.remove('text-caramel'), 1000);
             }
         });
     }
@@ -437,6 +445,50 @@
         URL.revokeObjectURL(url);
     }
 
+    async function triggerWorkflowRetry() {
+        const btn = document.getElementById('btn-action-retry');
+        if (!confirm('Re-execute this workflow with its original parameters?')) return;
+        btn.disabled = true;
+        btn.innerHTML = `<span class="material-symbols-outlined text-[15px] animate-spin">refresh</span> Retrying…`;
+
+        try {
+            const res = await fetch(`/api/v1/workflows/{{ execution_id }}/retry`, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                alert(`Workflow successfully re-executed!\nNew Workflow ID: ${data.new_execution_id}`);
+                window.location.href = `/workflows/${data.new_execution_id}`;
+            } else {
+                alert(`Retry failed: ${data.detail || 'Server error'}`);
+            }
+        } catch (e) {
+            alert(`Retry request failed: ${e.message}`);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<span class="material-symbols-outlined text-[15px] text-caramel-deep">replay</span> Re-run Workflow`;
+        }
+    }
+
+    async function triggerWorkflowCancel() {
+        const btn = document.getElementById('btn-action-cancel');
+        if (!confirm('Cancel this active workflow?')) return;
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`/api/v1/workflows/{{ execution_id }}/cancel`, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                alert('Workflow cancelled.');
+                window.location.reload();
+            } else {
+                alert(`Cancel failed: ${data.detail || 'Server error'}`);
+            }
+        } catch (e) {
+            alert(`Cancel failed: ${e.message}`);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
         const executionId = "{{ execution_id }}";
         if (!executionId) return;
@@ -453,9 +505,11 @@
                     document.getElementById('workflow-status-text').textContent = st;
                     const badge = document.getElementById('workflow-status-badge');
                     if (st === 'COMPLETED') {
-                        badge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-mono-sm text-mono-sm font-semibold border border-secondary-fixed-dim";
+                        badge.className = "inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-pastel-mint-bg text-pastel-mint-text font-mono text-xs font-semibold border border-pastel-mint-border";
                     } else if (st === 'FAILED') {
-                        badge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FFE4E6] text-[#BE123C] font-mono-sm text-mono-sm font-semibold border border-[#FECDD3]";
+                        badge.className = "inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-pastel-rose-bg text-pastel-rose-text font-mono text-xs font-semibold border border-pastel-rose-border";
+                    } else if (st === 'RUNNING') {
+                        badge.className = "inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-pastel-sky-bg text-pastel-sky-text font-mono text-xs font-semibold border border-pastel-sky-border";
                     }
                 }
 
@@ -466,7 +520,7 @@
 
                 // Metadata cards
                 if (wf.workflow_type) document.getElementById('meta-workflow-type').textContent = wf.workflow_type;
-                if (wf.source_system) document.getElementById('meta-source-system').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> ${wf.source_system}`;
+                if (wf.source_system) document.getElementById('meta-source-system').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-caramel"></span> ${wf.source_system}`;
                 if (wf.external_event_id) document.getElementById('meta-external-ref-id').textContent = wf.external_event_id;
                 if (wf.correlation_id) document.getElementById('meta-correlation-id').textContent = wf.correlation_id;
                 if (wf.idempotency_key) document.getElementById('meta-idempotency-key').textContent = wf.idempotency_key;
@@ -504,34 +558,34 @@
                     tbody.innerHTML = steps.map((s, idx) => {
                         const st = (s.status || 'completed').toLowerCase();
                         const isSuccess = st === 'completed';
-                        const badgeBg = isSuccess ? 'bg-secondary-fixed text-on-secondary-fixed' : 'bg-[#FFE4E6] text-[#BE123C]';
-                        const dotBg = isSuccess ? 'bg-secondary' : 'bg-[#E11D48]';
+                        const badgeBg = isSuccess ? 'bg-pastel-mint-bg text-pastel-mint-text border-pastel-mint-border' : 'bg-pastel-rose-bg text-pastel-rose-text border-pastel-rose-border';
+                        const dotBg = isSuccess ? 'bg-pastel-mint-dot' : 'bg-pastel-rose-dot';
                         const dur = s.duration_ms != null ? `${s.duration_ms}ms` : '—';
                         const started = s.started_at ? new Date(s.started_at).toLocaleTimeString() : '—';
                         const diag = s.error_category ? `[${s.error_category}]` : (s.step_metadata ? JSON.stringify(s.step_metadata) : 'None');
 
                         return `
-                            <tr class="hover:bg-surface-container-low/40 transition-colors">
+                            <tr class="hover:bg-cream-well/40 transition-colors">
                                 <td class="py-3 px-4 flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-secondary text-[16px]">rule</span>
-                                    <span class="font-medium text-primary">${s.step_name}</span>
+                                    <span class="material-symbols-outlined text-caramel text-[16px]">rule</span>
+                                    <span class="font-medium text-chocolate-dark">${s.step_name}</span>
                                 </td>
                                 <td class="py-3 px-4">
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-mono-sm font-mono-sm ${badgeBg}">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-mono text-[11px] ${badgeBg} font-medium border">
                                         <span class="w-1.5 h-1.5 rounded-full ${dotBg}"></span> ${st.toUpperCase()}
                                     </span>
                                 </td>
-                                <td class="py-3 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">${started}</td>
-                                <td class="py-3 px-4 text-right font-mono-sm text-mono-sm font-medium text-primary">${dur}</td>
-                                <td class="py-3 px-4 text-center font-mono-sm text-mono-sm text-outline">${s.attempt_number || 1} / 1</td>
-                                <td class="py-3 px-4 text-right font-mono-sm text-mono-sm text-outline truncate max-w-xs">${diag}</td>
+                                <td class="py-3 px-4 text-right font-mono text-xs text-chocolate-muted">${started}</td>
+                                <td class="py-3 px-4 text-right font-mono text-xs font-semibold text-chocolate-dark">${dur}</td>
+                                <td class="py-3 px-4 text-center font-mono text-xs text-chocolate-muted">${s.attempt_number || 1} / 1</td>
+                                <td class="py-3 px-4 text-right font-mono text-xs text-chocolate-muted truncate max-w-xs">${diag}</td>
                             </tr>
                         `;
                     }).join('');
                 } else {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="6" class="py-6 text-center text-outline">
+                            <td colspan="6" class="py-8 text-center text-chocolate-muted font-mono">
                                 No discrete step attempts recorded for this execution.
                             </td>
                         </tr>

@@ -478,45 +478,127 @@ async def list_workflows(
     db: DbSession,
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Number of items per page"),
+    status: str | None = Query(None, description="Filter by status"),
+    search: str | None = Query(None, description="Search query"),
 ):
     offset = (page - 1) * page_size
 
+    filters = []
+    if status and status.lower() != "all":
+        try:
+            enum_status = WorkflowStatus(status.lower())
+            filters.append(WorkflowExecution.status == enum_status)
+        except ValueError:
+            pass
+
     total_stmt = select(func.count(WorkflowExecution.id))
+    if filters:
+        total_stmt = total_stmt.where(*filters)
     total = db.execute(total_stmt).scalar_one()
 
+    stmt = select(WorkflowExecution)
+    if filters:
+        stmt = stmt.where(*filters)
     stmt = (
-        select(WorkflowExecution)
-        .order_by(WorkflowExecution.created_at.desc())
+        stmt.order_by(WorkflowExecution.created_at.desc())
         .offset(offset)
         .limit(page_size)
     )
     workflows = db.execute(stmt).scalars().all()
 
+    items = []
+    for w in workflows:
+        orig = w.original_request or {}
+        items.append({
+            "id": str(w.id),
+            "workflow_type": w.workflow_type,
+            "status": w.status.value,
+            "original_request": w.original_request,
+            "interpreted_request": w.interpreted_request,
+            "result": w.result,
+            "error_details": w.error_details,
+            "failure_category": w.failure_category,
+            "correlation_id": w.correlation_id,
+            "duration_ms": w.duration_ms,
+            "order_id": orig.get("order_id"),
+            "customer_id": orig.get("customer_id"),
+            "started_at": w.started_at.isoformat() if w.started_at else None,
+            "created_at": w.created_at.isoformat() if w.created_at else None,
+            "updated_at": w.updated_at.isoformat() if w.updated_at else None,
+            "completed_at": w.completed_at.isoformat() if w.completed_at else None,
+        })
+
     return {
-        "items": [
-            {
-                "id": str(w.id),
-                "workflow_type": w.workflow_type,
-                "status": w.status.value,
-                "original_request": w.original_request,
-                "interpreted_request": w.interpreted_request,
-                "result": w.result,
-                "error_details": w.error_details,
-                "failure_category": w.failure_category,
-                "correlation_id": w.correlation_id,
-                "duration_ms": w.duration_ms,
-                "started_at": w.started_at.isoformat() if w.started_at else None,
-                "created_at": w.created_at.isoformat() if w.created_at else None,
-                "updated_at": w.updated_at.isoformat() if w.updated_at else None,
-                "completed_at": w.completed_at.isoformat() if w.completed_at else None,
-            }
-            for w in workflows
-        ],
+        "items": items,
         "total": total,
         "page": page,
         "page_size": page_size,
-        "total_pages": (total + page_size - 1) // page_size,
+        "total_pages": (total + page_size - 1) // page_size if page_size > 0 else 1,
     }
+
+
+@app.post("/api/v1/workflows/{execution_id}/retry", tags=["workflows"])
+async def retry_workflow(execution_id: str, db: DbSession):
+    """Re-execute a workflow using its original request parameters."""
+    try:
+        workflow_id = uuid.UUID(execution_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Invalid execution ID format") from e
+
+    stmt = select(WorkflowExecution).where(WorkflowExecution.id == workflow_id)
+    wf = db.execute(stmt).scalar_one_or_none()
+    if not wf:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    orig = wf.original_request or {}
+    if not orig.get("order_id"):
+        raise HTTPException(status_code=400, detail="Cannot retry workflow without order_id")
+
+    order_req = OrderChangeRequest(
+        order_id=orig.get("order_id"),
+        requested_delivery_date=orig.get("requested_delivery_date"),
+        customer_id=orig.get("customer_id"),
+        source_system=orig.get("source_system", "manual_retry"),
+        external_event_id=f"retry-{wf.id}-{uuid.uuid4().hex[:8]}",
+    )
+    orchestrator = WorkflowOrchestrator(db=db)
+    new_wf = orchestrator.execute_order_change(
+        order_req,
+        correlation_id=str(uuid.uuid4()),
+        idempotency_key=f"idem-retry-{uuid.uuid4()}",
+    )
+    return {
+        "status": "retried",
+        "original_execution_id": str(wf.id),
+        "new_execution_id": str(new_wf.id),
+        "new_status": new_wf.status.value,
+    }
+
+
+@app.post("/api/v1/workflows/{execution_id}/cancel", tags=["workflows"])
+async def cancel_workflow(execution_id: str, db: DbSession):
+    """Cancel an in-flight or uncertain workflow."""
+    from datetime import UTC, datetime
+
+    try:
+        workflow_id = uuid.UUID(execution_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Invalid execution ID format") from e
+
+    stmt = select(WorkflowExecution).where(WorkflowExecution.id == workflow_id)
+    wf = db.execute(stmt).scalar_one_or_none()
+    if not wf:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    if wf.status in (WorkflowStatus.COMPLETED, WorkflowStatus.FAILED):
+        return {"status": "already_terminated", "workflow_status": wf.status.value}
+
+    wf.status = WorkflowStatus.FAILED
+    wf.failure_category = "MANUALLY_CANCELLED"
+    wf.error_details = {"cancelled_by": "operator", "timestamp": datetime.now(UTC).isoformat()}
+    wf.updated_at = datetime.now(UTC)
+    db.commit()
+    return {"status": "cancelled", "workflow_status": wf.status.value}
 
 
 @app.get(

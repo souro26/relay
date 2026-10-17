@@ -4,19 +4,19 @@
 
 {% block content %}
 <div class="py-16 text-center max-w-md mx-auto space-y-4">
-    <div class="w-16 h-16 rounded-full bg-[#FFE4E6] text-[#BE123C] flex items-center justify-center mx-auto shadow-sm">
+    <div class="w-16 h-16 rounded-full bg-pastel-rose-bg text-pastel-rose-text flex items-center justify-center mx-auto shadow-subtle border border-pastel-rose-border">
         <span class="material-symbols-outlined text-[32px]">error</span>
     </div>
     <div class="space-y-1">
-        <div class="font-mono-lg text-mono-lg font-semibold text-[#BE123C]">404 ERROR</div>
-        <h1 class="text-headline-lg font-headline-lg text-[#0F172A] tracking-tight">Resource Not Found</h1>
-        <p class="text-body-md font-body-md text-on-surface-variant">The requested page or workflow execution trace does not exist in persistent storage.</p>
+        <div class="font-mono text-xs font-bold text-pastel-rose-text uppercase tracking-wider">404 ERROR</div>
+        <h1 class="text-2xl font-bold text-chocolate-dark tracking-tight">Resource Not Found</h1>
+        <p class="text-xs text-chocolate-muted">The requested page or workflow execution trace does not exist in persistent storage.</p>
     </div>
     <div class="pt-4 flex items-center justify-center gap-3">
-        <a href="{{ url_for('dashboard') }}" class="px-4 py-2 rounded-lg bg-[#0F172A] text-white hover:bg-slate-800 font-headline-sm text-headline-sm transition-all shadow-sm">
+        <a href="{{ url_for('dashboard') }}" class="px-4 py-2 rounded-lg bg-navy text-white hover:bg-navy-slate font-semibold text-xs transition-all shadow-card">
             Overview Dashboard
         </a>
-        <a href="{{ url_for('workflow_history') }}" class="px-4 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant text-on-surface hover:bg-surface-container-high font-headline-sm text-headline-sm transition-all">
+        <a href="{{ url_for('workflow_history') }}" class="px-4 py-2 rounded-lg bg-cream-surface border border-cream-border text-chocolate-milk hover:bg-cream-well font-semibold text-xs transition-all shadow-subtle">
             Workflow History
         </a>
     </div>

@@ -110,6 +110,8 @@ class WorkflowExecutionResponse(BaseModel):
     failure_category: str | None = None
     correlation_id: str | None = None
     duration_ms: float | None = None
+    order_id: str | None = None
+    customer_id: str | None = None
     started_at: str | None = None
     created_at: str
     updated_at: str

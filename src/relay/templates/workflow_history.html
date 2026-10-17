@@ -4,22 +4,28 @@
 
 {% block content %}
 <!-- Page Header -->
-<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-outline-variant/30">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-cream-border">
     <div class="space-y-1">
-        <h1 class="text-headline-lg font-headline-lg text-[#0F172A] tracking-tight">
+        <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-mono font-medium bg-caramel-pastel text-caramel-ink border border-caramel-border">
+                Audit Trail
+            </span>
+            <span class="text-xs font-mono text-chocolate-muted">Immutable ledger</span>
+        </div>
+        <h1 class="text-2xl font-bold text-chocolate-dark tracking-tight">
             Workflow Execution History
         </h1>
-        <p class="text-body-md font-body-md text-on-surface-variant max-w-3xl">
-            Comprehensive audit trail of automated business event orchestrations and state mutations.
+        <p class="text-sm text-chocolate-muted max-w-3xl">
+            Complete audit records of automated business event orchestrations, LLM inferences, and state modifications.
         </p>
     </div>
     <div class="flex items-center gap-2 shrink-0">
-        <button id="btn-export-csv" class="px-3 py-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface hover:bg-surface-container-high transition-all text-label-caps font-label-caps flex items-center gap-1 shadow-xs" type="button">
-            <span class="material-symbols-outlined text-[16px]">download</span>
+        <button id="btn-export-csv" class="px-3.5 py-2 rounded-lg border border-cream-border bg-cream-surface text-chocolate-milk hover:bg-cream-well transition-all text-xs font-semibold flex items-center gap-1.5 shadow-subtle cursor-pointer" type="button">
+            <span class="material-symbols-outlined text-[16px] text-caramel">download</span>
             <span>Export CSV</span>
         </button>
-        <button id="btn-export-json" class="px-3 py-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface hover:bg-surface-container-high transition-all text-label-caps font-label-caps flex items-center gap-1 shadow-xs" type="button">
-            <span class="material-symbols-outlined text-[16px]">code</span>
+        <button id="btn-export-json" class="px-3.5 py-2 rounded-lg border border-cream-border bg-cream-surface text-chocolate-milk hover:bg-cream-well transition-all text-xs font-semibold flex items-center gap-1.5 shadow-subtle cursor-pointer" type="button">
+            <span class="material-symbols-outlined text-[16px] text-caramel">data_object</span>
             <span>Export JSON</span>
         </button>
     </div>
@@ -28,91 +34,91 @@
 <!-- 5 Top Metric Cards -->
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
     <!-- 1. Total Traces -->
-    <div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
-        <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Total Traces</span>
-        <div class="text-[24px] font-semibold tracking-tight text-[#0B0E14] font-headline-lg mt-2" id="history-total-traces">0</div>
-        <div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
-            <div class="bg-[#0F172A] h-1 rounded-full" style="width: 100%"></div>
+    <div class="p-4 rounded-xl bg-cream-surface border border-cream-border shadow-subtle flex flex-col justify-between hover:border-caramel/40 transition-colors">
+        <span class="text-[11px] font-mono uppercase tracking-wider text-chocolate-muted font-semibold">Total Traces</span>
+        <div class="text-2xl font-bold tracking-tight text-chocolate-dark font-sans mt-2" id="history-total-traces">0</div>
+        <div class="w-full bg-cream-well h-1 rounded-full mt-3 overflow-hidden">
+            <div class="bg-chocolate-warm h-1 rounded-full" style="width: 100%"></div>
         </div>
     </div>
 
     <!-- 2. Completed -->
-    <div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
+    <div class="p-4 rounded-xl bg-cream-surface border border-cream-border shadow-subtle flex flex-col justify-between hover:border-caramel/40 transition-colors">
         <div class="flex items-center justify-between">
-            <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Completed</span>
-            <span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+            <span class="text-[11px] font-mono uppercase tracking-wider text-chocolate-muted font-semibold">Completed</span>
+            <span class="w-2 h-2 rounded-full bg-pastel-mint-dot"></span>
         </div>
-        <div class="text-[24px] font-semibold tracking-tight text-[#059669] font-headline-lg mt-2" id="history-completed-cnt">0</div>
-        <div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
-            <div class="bg-[#10B981] h-1 rounded-full" style="width: 100%"></div>
+        <div class="text-2xl font-bold tracking-tight text-pastel-mint-text font-sans mt-2" id="history-completed-cnt">0</div>
+        <div class="w-full bg-cream-well h-1 rounded-full mt-3 overflow-hidden">
+            <div class="bg-pastel-mint-dot h-1 rounded-full" style="width: 100%"></div>
         </div>
     </div>
 
     <!-- 3. Running -->
-    <div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
+    <div class="p-4 rounded-xl bg-cream-surface border border-cream-border shadow-subtle flex flex-col justify-between hover:border-caramel/40 transition-colors">
         <div class="flex items-center justify-between">
-            <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Running</span>
-            <span class="w-2 h-2 rounded-full bg-[#0284C7] animate-pulse"></span>
+            <span class="text-[11px] font-mono uppercase tracking-wider text-chocolate-muted font-semibold">Running</span>
+            <span class="w-2 h-2 rounded-full bg-pastel-sky-dot animate-pulse"></span>
         </div>
-        <div class="text-[24px] font-semibold tracking-tight text-[#0369A1] font-headline-lg mt-2" id="history-running-cnt">0</div>
-        <div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
-            <div class="bg-[#0284C7] h-1 rounded-full" style="width: 100%"></div>
+        <div class="text-2xl font-bold tracking-tight text-pastel-sky-text font-sans mt-2" id="history-running-cnt">0</div>
+        <div class="w-full bg-cream-well h-1 rounded-full mt-3 overflow-hidden">
+            <div class="bg-pastel-sky-dot h-1 rounded-full" style="width: 100%"></div>
         </div>
     </div>
 
     <!-- 4. Uncertain -->
-    <div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
+    <div class="p-4 rounded-xl bg-cream-surface border border-cream-border shadow-subtle flex flex-col justify-between hover:border-caramel/40 transition-colors">
         <div class="flex items-center justify-between">
-            <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Uncertain</span>
-            <span class="w-2 h-2 rounded-full bg-[#D97706]"></span>
+            <span class="text-[11px] font-mono uppercase tracking-wider text-chocolate-muted font-semibold">Uncertain</span>
+            <span class="w-2 h-2 rounded-full bg-pastel-amber-dot"></span>
         </div>
-        <div class="text-[24px] font-semibold tracking-tight text-[#D97706] font-headline-lg mt-2" id="history-uncertain-cnt">0</div>
-        <div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
-            <div class="bg-[#D97706] h-1 rounded-full" style="width: 100%"></div>
+        <div class="text-2xl font-bold tracking-tight text-pastel-amber-text font-sans mt-2" id="history-uncertain-cnt">0</div>
+        <div class="w-full bg-cream-well h-1 rounded-full mt-3 overflow-hidden">
+            <div class="bg-pastel-amber-dot h-1 rounded-full" style="width: 100%"></div>
         </div>
     </div>
 
     <!-- 5. Failed -->
-    <div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between col-span-2 sm:col-span-1">
+    <div class="p-4 rounded-xl bg-cream-surface border border-cream-border shadow-subtle flex flex-col justify-between col-span-2 sm:col-span-1 hover:border-caramel/40 transition-colors">
         <div class="flex items-center justify-between">
-            <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Failed</span>
-            <span class="w-2 h-2 rounded-full bg-[#E11D48]"></span>
+            <span class="text-[11px] font-mono uppercase tracking-wider text-chocolate-muted font-semibold">Failed</span>
+            <span class="w-2 h-2 rounded-full bg-pastel-rose-dot"></span>
         </div>
-        <div class="text-[24px] font-semibold tracking-tight text-[#BE123C] font-headline-lg mt-2" id="history-failed-cnt">0</div>
-        <div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
-            <div class="bg-[#BE123C] h-1 rounded-full" style="width: 100%"></div>
+        <div class="text-2xl font-bold tracking-tight text-pastel-rose-text font-sans mt-2" id="history-failed-cnt">0</div>
+        <div class="w-full bg-cream-well h-1 rounded-full mt-3 overflow-hidden">
+            <div class="bg-pastel-rose-dot h-1 rounded-full" style="width: 100%"></div>
         </div>
     </div>
 </div>
 
 <!-- Ledger Card Container -->
-<div class="rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] overflow-hidden">
+<div class="rounded-xl bg-cream-surface border border-cream-border shadow-subtle overflow-hidden">
     <!-- Controls Bar -->
-    <div class="p-4 border-b border-outline-variant/30 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-container-lowest">
-        <div class="relative w-full md:w-80">
-            <span class="material-symbols-outlined absolute left-2.5 top-2 text-outline text-[18px]">search</span>
-            <input id="history-search-input" class="w-full pl-8 pr-3 py-1.5 text-body-sm font-body-sm rounded bg-surface-container-low border border-outline-variant/40 focus:outline-none focus:ring-1 focus:ring-[#0F172A] text-on-surface placeholder:text-outline" placeholder="Search by Workflow ID, Order ID, or Event ID..." type="text">
+    <div class="p-4 border-b border-cream-border flex flex-col md:flex-row md:items-center justify-between gap-4 bg-cream-surface">
+        <div class="relative w-full md:w-96">
+            <span class="material-symbols-outlined absolute left-2.5 top-2.5 text-chocolate-muted text-[18px]">search</span>
+            <input id="history-search-input" class="w-full pl-9 pr-3 py-2 text-xs font-sans rounded-lg bg-cream-well border border-cream-border focus:outline-none focus:ring-1 focus:ring-navy text-chocolate placeholder:text-chocolate-muted" placeholder="Search by Workflow ID, Order ID, or Event ID..." type="text">
         </div>
 
         <!-- Status Filter Pills -->
         <div class="flex items-center gap-1.5 overflow-x-auto" id="history-status-pills">
-            <button data-status="all" class="history-pill px-3 py-1 rounded-full text-mono-sm font-mono-sm bg-[#0F172A] text-white flex items-center gap-1.5 cursor-pointer">
+            <button data-status="all" class="history-pill px-3 py-1 rounded-full font-mono text-xs bg-navy text-white flex items-center gap-1.5 cursor-pointer font-medium shadow-xs">
                 <span>All</span> <span class="opacity-80 text-[10px]" id="pill-all-count">0</span>
             </button>
-            <button data-status="completed" class="history-pill px-3 py-1 rounded-full text-mono-sm font-mono-sm bg-surface-container-low text-on-surface hover:bg-surface-container-high flex items-center gap-1.5 cursor-pointer">
-                <span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+            <button data-status="completed" class="history-pill px-3 py-1 rounded-full font-mono text-xs bg-cream-well text-chocolate-milk hover:bg-cream-subtle flex items-center gap-1.5 cursor-pointer font-medium border border-cream-border">
+                <span class="w-2 h-2 rounded-full bg-pastel-mint-dot"></span>
                 <span>Completed</span> <span class="opacity-80 text-[10px]" id="pill-comp-count">0</span>
             </button>
-            <button data-status="running" class="history-pill px-3 py-1 rounded-full text-mono-sm font-mono-sm bg-surface-container-low text-on-surface hover:bg-surface-container-high flex items-center gap-1.5 cursor-pointer">
-                <span class="w-2 h-2 rounded-full bg-[#0284C7]"></span>
+            <button data-status="running" class="history-pill px-3 py-1 rounded-full font-mono text-xs bg-cream-well text-chocolate-milk hover:bg-cream-subtle flex items-center gap-1.5 cursor-pointer font-medium border border-cream-border">
+                <span class="w-2 h-2 rounded-full bg-pastel-sky-dot"></span>
                 <span>Running</span> <span class="opacity-80 text-[10px]" id="pill-run-count">0</span>
             </button>
-            <button data-status="uncertain" class="history-pill px-3 py-1 rounded-full text-mono-sm font-mono-sm bg-surface-container-low text-on-surface hover:bg-surface-container-high flex items-center gap-1.5 cursor-pointer">
-                <span class="w-2 h-2 rounded-full bg-[#D97706]"></span>
+            <button data-status="uncertain" class="history-pill px-3 py-1 rounded-full font-mono text-xs bg-cream-well text-chocolate-milk hover:bg-cream-subtle flex items-center gap-1.5 cursor-pointer font-medium border border-cream-border">
+                <span class="w-2 h-2 rounded-full bg-pastel-amber-dot"></span>
                 <span>Uncertain</span> <span class="opacity-80 text-[10px]" id="pill-unc-count">0</span>
             </button>
-            <button data-status="failed" class="history-pill px-3 py-1 rounded-full text-mono-sm font-mono-sm bg-surface-container-low text-on-surface hover:bg-surface-container-high flex items-center gap-1.5 cursor-pointer">
-                <span class="w-2 h-2 rounded-full bg-[#E11D48]"></span>
+            <button data-status="failed" class="history-pill px-3 py-1 rounded-full font-mono text-xs bg-cream-well text-chocolate-milk hover:bg-cream-subtle flex items-center gap-1.5 cursor-pointer font-medium border border-cream-border">
+                <span class="w-2 h-2 rounded-full bg-pastel-rose-dot"></span>
                 <span>Failed</span> <span class="opacity-80 text-[10px]" id="pill-fail-count">0</span>
             </button>
         </div>
@@ -122,7 +128,7 @@
     <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
             <thead>
-                <tr class="bg-surface-container-low/80 border-b border-outline-variant/30 font-label-caps text-label-caps text-outline uppercase tracking-wider">
+                <tr class="bg-cream-well/70 border-b border-cream-border font-mono text-[11px] text-chocolate-muted uppercase tracking-wider">
                     <th class="py-2.5 px-4 font-semibold">Workflow ID</th>
                     <th class="py-2.5 px-4 font-semibold">Order &amp; Customer</th>
                     <th class="py-2.5 px-4 font-semibold">Workflow Type</th>
@@ -132,9 +138,9 @@
                     <th class="py-2.5 px-4 font-semibold text-center">Action</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-outline-variant/20 text-body-sm font-body-sm" id="history-tbody">
+            <tbody class="divide-y divide-cream-border/60 text-xs font-sans" id="history-tbody">
                 <tr>
-                    <td colspan="7" class="py-12 text-center text-outline">
+                    <td colspan="7" class="py-12 text-center text-chocolate-muted font-mono">
                         Loading persistent workflow history…
                     </td>
                 </tr>
@@ -143,10 +149,10 @@
     </div>
 
     <!-- Table Footer with Pagination Controls -->
-    <div class="p-4 bg-surface-container-low/50 border-t border-outline-variant/30 flex flex-col sm:flex-row items-center justify-between text-mono-sm font-mono-sm text-outline gap-3">
+    <div class="p-4 bg-cream-well/40 border-t border-cream-border flex flex-col sm:flex-row items-center justify-between font-mono text-xs text-chocolate-muted gap-3">
         <div id="history-count-summary">Showing 0 of 0 entries</div>
         <div class="flex items-center gap-4">
-            <select id="history-page-size" class="px-2 py-1 rounded bg-surface-container-lowest border border-outline-variant/40 text-on-surface cursor-pointer text-mono-sm">
+            <select id="history-page-size" class="px-2.5 py-1 rounded-lg bg-cream-surface border border-cream-border text-chocolate-dark cursor-pointer text-xs font-mono outline-none">
                 <option value="10">10 per page</option>
                 <option value="25" selected>25 per page</option>
                 <option value="50">50 per page</option>
@@ -206,6 +212,9 @@
             if (historyState.status !== 'all') {
                 url += `&status=${encodeURIComponent(historyState.status)}`;
             }
+            if (historyState.search) {
+                url += `&search=${encodeURIComponent(historyState.search)}`;
+            }
             const res = await fetch(url);
             if (!res.ok) throw new Error('Failed to fetch workflows');
             const data = await res.json();
@@ -219,7 +228,7 @@
         } catch (e) {
             const tbody = document.getElementById('history-tbody');
             if (tbody) {
-                tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-[#BE123C]">Error: ${e.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-pastel-rose-text font-mono">Error: ${e.message}</td></tr>`;
             }
         }
     }
@@ -230,61 +239,54 @@
         if (!tbody) return;
 
         let items = historyState.workflows;
-        if (historyState.search) {
-            const q = historyState.search.toLowerCase();
-            items = items.filter(w => {
-                const idMatch = (w.id || '').toLowerCase().includes(q);
-                const typeMatch = (w.workflow_type || '').toLowerCase().includes(q);
-                const orderMatch = (w.order_id || '').toLowerCase().includes(q);
-                const eventMatch = (w.external_event_id || '').toLowerCase().includes(q);
-                return idMatch || typeMatch || orderMatch || eventMatch;
-            });
-        }
-
         if (summary) {
             summary.textContent = `Showing ${items.length} of ${historyState.total} entries`;
         }
 
         if (items.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" class="py-12 text-center text-outline">No workflows match the selected criteria.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="py-12 text-center text-chocolate-muted font-mono">No workflow records found for this query.</td></tr>`;
             return;
         }
 
         tbody.innerHTML = items.map(w => {
             const shortId = (w.id || '').substring(0, 11);
             const st = (w.status || 'pending').toLowerCase();
-            const badgeCls = st === 'completed' ? 'bg-[#D1FAE5] text-[#065F46] border-[#A7F3D0]' : (st === 'failed' ? 'bg-[#FFE4E6] text-[#BE123C] border-[#FECDD3]' : 'bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]');
-            const dotCls = st === 'completed' ? 'bg-[#059669]' : (st === 'failed' ? 'bg-[#E11D48]' : 'bg-[#0284C7]');
+            const badgeCls = st === 'completed' 
+                ? 'bg-pastel-mint-bg text-pastel-mint-text border-pastel-mint-border' 
+                : (st === 'failed' 
+                    ? 'bg-pastel-rose-bg text-pastel-rose-text border-pastel-rose-border' 
+                    : (st === 'running' 
+                        ? 'bg-pastel-sky-bg text-pastel-sky-text border-pastel-sky-border' 
+                        : 'bg-pastel-amber-bg text-pastel-amber-text border-pastel-amber-border'));
+            const dotCls = st === 'completed' ? 'bg-pastel-mint-dot' : (st === 'failed' ? 'bg-pastel-rose-dot' : 'bg-pastel-sky-dot');
             const dur = w.duration_ms != null ? `${Math.round(w.duration_ms)}ms` : '—';
             const created = w.created_at ? new Date(w.created_at).toLocaleString() : '—';
 
             return `
-                <tr class="hover:bg-[#F8F7F3] transition-colors group">
-                    <td class="py-2.5 px-4 font-mono-sm text-mono-sm text-[#0F172A] whitespace-nowrap">
-                        <div class="flex items-center gap-1.5">
-                            <span class="select-all font-medium">${shortId}</span>
-                        </div>
+                <tr class="hover:bg-cream-well/50 transition-colors group">
+                    <td class="py-3 px-4 font-mono text-xs text-chocolate-dark whitespace-nowrap">
+                        <span class="select-all font-semibold text-chocolate-warm">${shortId}</span>
                     </td>
-                    <td class="py-2.5 px-4 font-mono-sm text-mono-sm">
-                        <span class="font-semibold text-primary block">${w.order_id || '—'}</span>
-                        ${w.customer_id ? `<span class="text-outline text-[10px] block">${w.customer_id}</span>` : ''}
+                    <td class="py-3 px-4 font-mono text-xs">
+                        <span class="font-semibold text-chocolate-dark block">${w.order_id || '—'}</span>
+                        ${w.customer_id ? `<span class="text-chocolate-muted text-[10px] block font-sans">${w.customer_id}</span>` : ''}
                     </td>
-                    <td class="py-2.5 px-4 font-medium text-[#0F172A]">
+                    <td class="py-3 px-4 font-medium text-chocolate-dark">
                         <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[16px] text-slate-500">alt_route</span>
+                            <span class="material-symbols-outlined text-[16px] text-caramel">alt_route</span>
                             <span>${w.workflow_type || 'order_change'}</span>
                         </div>
                     </td>
-                    <td class="py-2.5 px-4 whitespace-nowrap">
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-mono-sm font-mono-sm ${badgeCls} font-medium border">
+                    <td class="py-3 px-4 whitespace-nowrap">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-mono text-[11px] ${badgeCls} font-medium border">
                             <span class="w-1.5 h-1.5 rounded-full ${dotCls}"></span>
                             <span>${(w.status || 'PENDING').toUpperCase()}</span>
                         </span>
                     </td>
-                    <td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">${dur}</td>
-                    <td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-outline">${created}</td>
-                    <td class="py-2.5 px-4 text-center whitespace-nowrap">
-                        <a class="inline-flex items-center gap-1 font-mono-sm text-mono-sm text-[#0F172A] font-medium hover:underline bg-surface-container-high px-2.5 py-1 rounded" href="/workflows/${w.id}">
+                    <td class="py-3 px-4 text-right font-mono text-xs text-chocolate-milk">${dur}</td>
+                    <td class="py-3 px-4 text-right font-mono text-xs text-chocolate-muted">${created}</td>
+                    <td class="py-3 px-4 text-center whitespace-nowrap">
+                        <a class="inline-flex items-center gap-1 font-mono text-xs text-chocolate-warm font-semibold hover:text-caramel bg-cream-well hover:bg-cream-subtle px-3 py-1 rounded-lg border border-cream-border transition-colors" href="/workflows/${w.id}">
                             <span class="material-symbols-outlined text-[14px]">schema</span>
                             <span>Inspect</span>
                         </a>
@@ -305,8 +307,10 @@
 
         let html = '';
         for (let i = 1; i <= historyState.pages; i++) {
-            const active = i === historyState.page ? 'bg-[#0F172A] text-white font-semibold' : 'bg-surface-container-low text-on-surface hover:bg-surface-container-high';
-            html += `<button class="px-2.5 py-1 rounded text-mono-sm ${active}" onclick="setPage(${i})">${i}</button>`;
+            const active = i === historyState.page 
+                ? 'bg-navy text-white font-semibold' 
+                : 'bg-cream-well text-chocolate-milk hover:bg-cream-subtle border border-cream-border';
+            html += `<button class="px-2.5 py-1 rounded text-xs font-mono cursor-pointer ${active}" onclick="setPage(${i})">${i}</button>`;
         }
         container.innerHTML = html;
     }
@@ -316,7 +320,6 @@
         loadHistoryTable();
     }
 
-    // Export helpers
     function downloadBlob(content, filename, type) {
         const blob = new Blob([content], { type });
         const url = URL.createObjectURL(blob);
@@ -338,21 +341,26 @@
         pills.forEach(p => {
             p.addEventListener('click', () => {
                 pills.forEach(b => {
-                    b.className = 'history-pill px-3 py-1 rounded-full text-mono-sm font-mono-sm bg-surface-container-low text-on-surface hover:bg-surface-container-high flex items-center gap-1.5 cursor-pointer';
+                    b.className = 'history-pill px-3 py-1 rounded-full font-mono text-xs bg-cream-well text-chocolate-milk hover:bg-cream-subtle flex items-center gap-1.5 cursor-pointer font-medium border border-cream-border';
                 });
-                p.className = 'history-pill px-3 py-1 rounded-full text-mono-sm font-mono-sm bg-[#0F172A] text-white flex items-center gap-1.5 cursor-pointer';
+                p.className = 'history-pill px-3 py-1 rounded-full font-mono text-xs bg-navy text-white flex items-center gap-1.5 cursor-pointer font-medium shadow-xs';
                 historyState.status = p.dataset.status;
                 historyState.page = 1;
                 loadHistoryTable();
             });
         });
 
-        // Search
+        // Search debouncing
+        let searchTimeout = null;
         const searchInput = document.getElementById('history-search-input');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
-                historyState.search = e.target.value.trim();
-                renderHistoryRows();
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    historyState.search = e.target.value.trim();
+                    historyState.page = 1;
+                    loadHistoryTable();
+                }, 300);
             });
         }
 
@@ -369,14 +377,15 @@
         // CSV Export
         document.getElementById('btn-export-csv').addEventListener('click', () => {
             if (historyState.workflows.length === 0) return alert('No records to export');
-            const headers = ['id', 'workflow_type', 'status', 'created_at', 'duration_ms', 'order_id'];
+            const headers = ['id', 'workflow_type', 'status', 'created_at', 'duration_ms', 'order_id', 'customer_id'];
             const rows = historyState.workflows.map(w => [
                 `"${w.id}"`,
                 `"${w.workflow_type || ''}"`,
                 `"${w.status || ''}"`,
                 `"${w.created_at || ''}"`,
                 w.duration_ms != null ? w.duration_ms : '',
-                `"${w.order_id || ''}"`
+                `"${w.order_id || ''}"`,
+                `"${w.customer_id || ''}"`
             ].join(','));
             const csv = [headers.join(','), ...rows].join('\n');
             downloadBlob(csv, `relay-workflows-${Date.now()}.csv`, 'text/csv');

@@ -257,3 +257,22 @@ class TestFrontendDataIntegrity:
         adapter = OpenAIAdapter(api_key="test-key")
         assert adapter.model_name == "gpt-4o-mini"
         assert adapter.provider_name == "openai"
+
+    def test_retry_workflow_not_found(self, client):
+        test_client, mock_session = client
+        mock_res = MagicMock()
+        mock_res.scalar_one_or_none.return_value = None
+        mock_session.execute.return_value = mock_res
+
+        res = test_client.post(f"/api/v1/workflows/{uuid.uuid4()}/retry")
+        assert res.status_code == 404
+
+    def test_cancel_workflow_not_found(self, client):
+        test_client, mock_session = client
+        mock_res = MagicMock()
+        mock_res.scalar_one_or_none.return_value = None
+        mock_session.execute.return_value = mock_res
+
+        res = test_client.post(f"/api/v1/workflows/{uuid.uuid4()}/cancel")
+        assert res.status_code == 404
+
