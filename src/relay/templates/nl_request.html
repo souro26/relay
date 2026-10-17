@@ -33,9 +33,9 @@
             <span id="nl-char-counter" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #7A5A47; font-weight: 600;">86 / 2000 chars</span>
         </div>
 
-        <!-- Textarea in Cream Well -->
+        <!-- Textarea in Cream Well with Real-time Keystroke Tracking -->
         <div>
-            <textarea id="nl-prompt-text" rows="5" style="width: 100%; padding: 14px; font-size: 13px; font-family: inherit; border-radius: 8px; background: #F5EFEB; border: 1px solid #E8DFD5; color: #2C1D14; outline: none; resize: none; line-height: 1.6;" placeholder="Enter an order modification request...">Please postpone delivery for order ORD-61964039 to 2026-12-28 for customer customer-101</textarea>
+            <textarea id="nl-prompt-text" rows="5" oninput="window.updateClientPreview(this.value)" onkeyup="window.updateClientPreview(this.value)" onchange="window.updateClientPreview(this.value)" style="width: 100%; padding: 14px; font-size: 13px; font-family: inherit; border-radius: 8px; background: #F5EFEB; border: 1px solid #E8DFD5; color: #2C1D14; outline: none; resize: none; line-height: 1.6;" placeholder="Enter an order modification request...">Please postpone delivery for order ORD-61964039 to 2026-12-28 for customer customer-101</textarea>
         </div>
 
         <!-- Prompt Suggestions -->
@@ -159,7 +159,7 @@
     const outcomeCost = document.getElementById('outcome-cost');
     const outcomeAction = document.getElementById('outcome-action-container');
 
-    function updateClientPreview(val) {
+    window.updateClientPreview = function(val) {
         if (typeof val !== 'string') {
             const el = document.getElementById('nl-prompt-text');
             val = el ? el.value : '';
@@ -167,47 +167,51 @@
         val = val || '';
         const len = val.length;
 
-        if (charCounter) {
-            charCounter.textContent = `${len} / 2000 chars`;
+        const counter = document.getElementById('nl-char-counter');
+        if (counter) {
+            counter.textContent = `${len} / 2000 chars`;
             if (len > 2000) {
-                charCounter.style.color = '#C5221F';
-                charCounter.style.fontWeight = '700';
+                counter.style.color = '#C5221F';
+                counter.style.fontWeight = '700';
             } else if (len > 1800) {
-                charCounter.style.color = '#B06000';
-                charCounter.style.fontWeight = '600';
+                counter.style.color = '#B06000';
+                counter.style.fontWeight = '600';
             } else {
-                charCounter.style.color = '#7A5A47';
-                charCounter.style.fontWeight = '600';
+                counter.style.color = '#7A5A47';
+                counter.style.fontWeight = '600';
             }
         }
 
         const ordMatch = val.match(/ORD-[A-Za-z0-9]+/i);
-        if (previewOrderId) previewOrderId.textContent = ordMatch ? ordMatch[0].toUpperCase() : 'None detected';
+        const pOrder = document.getElementById('preview-order-id');
+        if (pOrder) pOrder.textContent = ordMatch ? ordMatch[0].toUpperCase() : 'None detected';
 
         const dateMatch = val.match(/\b\d{4}-\d{2}-\d{2}\b/);
-        if (previewTargetDate) {
+        const pDate = document.getElementById('preview-target-date');
+        if (pDate) {
             if (dateMatch) {
-                previewTargetDate.textContent = dateMatch[0];
+                pDate.textContent = dateMatch[0];
             } else {
                 const monthMatch = val.match(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}\b/i);
-                previewTargetDate.textContent = monthMatch ? monthMatch[0] : (val ? 'Parsed on submit' : 'None detected');
+                pDate.textContent = monthMatch ? monthMatch[0] : (val ? 'Parsed on submit' : 'None detected');
             }
         }
 
         const custMatch = val.match(/customer-\w+|CUST-\w+/i);
-        if (previewCustId) previewCustId.textContent = custMatch ? custMatch[0] : (val ? 'Optional in prompt' : 'None detected');
-    }
+        const pCust = document.getElementById('preview-customer-id');
+        if (pCust) pCust.textContent = custMatch ? custMatch[0] : (val ? 'Optional in prompt' : 'None detected');
+    };
 
     if (promptText) {
-        ['input', 'keyup', 'change', 'paste', 'cut'].forEach(evt => {
-            promptText.addEventListener(evt, () => setTimeout(() => updateClientPreview(promptText.value), 0));
+        ['input', 'keyup', 'keydown', 'keypress', 'change', 'paste', 'cut'].forEach(evt => {
+            promptText.addEventListener(evt, (e) => window.updateClientPreview(e.target ? e.target.value : promptText.value));
         });
     }
 
     // Initialize immediately and on window load
-    updateClientPreview();
-    document.addEventListener('DOMContentLoaded', updateClientPreview);
-    window.addEventListener('load', updateClientPreview);
+    window.updateClientPreview();
+    document.addEventListener('DOMContentLoaded', () => window.updateClientPreview());
+    window.addEventListener('load', () => window.updateClientPreview());
 
     // Suggestion chips
     document.querySelectorAll('.prompt-chip').forEach(chip => {
