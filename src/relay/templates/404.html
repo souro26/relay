@@ -1,15 +1,24 @@
 {% extends "base.html" %}
 
-{% block title %}Not Found - Relay{% endblock %}
+{% block title %}Relay — Page Not Found{% endblock %}
 
 {% block content %}
-<div class="error-page">
-    <div class="error-code">404</div>
-    <h1 class="error-title">Page Not Found</h1>
-    <p class="error-message">The page you're looking for doesn't exist or has been moved.</p>
-    <div style="display: flex; gap: var(--spacing-md); justify-content: center; flex-wrap: wrap;">
-        <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
-        <a href="{{ url_for('workflow_history') }}" class="btn btn-secondary">View Workflows</a>
+<div class="py-16 text-center max-w-md mx-auto space-y-4">
+    <div class="w-16 h-16 rounded-full bg-[#FFE4E6] text-[#BE123C] flex items-center justify-center mx-auto shadow-sm">
+        <span class="material-symbols-outlined text-[32px]">error</span>
+    </div>
+    <div class="space-y-1">
+        <div class="font-mono-lg text-mono-lg font-semibold text-[#BE123C]">404 ERROR</div>
+        <h1 class="text-headline-lg font-headline-lg text-[#0F172A] tracking-tight">Resource Not Found</h1>
+        <p class="text-body-md font-body-md text-on-surface-variant">The requested page or workflow execution trace does not exist in persistent storage.</p>
+    </div>
+    <div class="pt-4 flex items-center justify-center gap-3">
+        <a href="{{ url_for('dashboard') }}" class="px-4 py-2 rounded-lg bg-[#0F172A] text-white hover:bg-slate-800 font-headline-sm text-headline-sm transition-all shadow-sm">
+            Overview Dashboard
+        </a>
+        <a href="{{ url_for('workflow_history') }}" class="px-4 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant text-on-surface hover:bg-surface-container-high font-headline-sm text-headline-sm transition-all">
+            Workflow History
+        </a>
     </div>
 </div>
 {% endblock %}

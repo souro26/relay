@@ -1,103 +1,247 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html class="h-full" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Relay - Mission-Critical Workflow Orchestrator{% endblock %}</title>
-    
-    <!-- Modern Enterprise Typography -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Chart.js for Telemetry & Analytics -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-    
-    <!-- Main Stylesheet -->
-    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>{% block title %}Relay — Business Workflow Orchestration{% endblock %}</title>
+
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Material Symbols Outlined -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+    <!-- Tailwind Custom Configuration -->
+    <script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "secondary-container": "#8fa7fe",
+                "secondary-fixed-dim": "#b6c4ff",
+                "tertiary": "#000000",
+                "background": "#faf9f5",
+                "on-surface": "#1b1c1a",
+                "on-primary-container": "#7c839b",
+                "secondary-fixed": "#dce1ff",
+                "primary-fixed-dim": "#bec6e0",
+                "surface": "#faf9f5",
+                "on-secondary": "#ffffff",
+                "on-primary-fixed-variant": "#3f465c",
+                "outline": "#76777d",
+                "tertiary-fixed-dim": "#b7c8e1",
+                "on-tertiary-fixed-variant": "#38485d",
+                "primary-container": "#131b2e",
+                "secondary": "#4059aa",
+                "inverse-on-surface": "#f2f1ed",
+                "on-secondary-container": "#1d3989",
+                "on-secondary-fixed-variant": "#264191",
+                "primary": "#000000",
+                "surface-container-high": "#e9e8e4",
+                "on-surface-variant": "#45464d",
+                "error": "#ba1a1a",
+                "on-tertiary-container": "#75859d",
+                "surface-dim": "#dbdad6",
+                "on-secondary-fixed": "#00164e",
+                "on-error": "#ffffff",
+                "primary-fixed": "#dae2fd",
+                "error-container": "#ffdad6",
+                "outline-variant": "#c6c6cd",
+                "surface-bright": "#faf9f5",
+                "tertiary-fixed": "#d3e4fe",
+                "on-background": "#1b1c1a",
+                "surface-container-lowest": "#ffffff",
+                "on-primary": "#ffffff",
+                "on-error-container": "#93000a",
+                "on-primary-fixed": "#131b2e",
+                "surface-container-low": "#f4f4f0",
+                "tertiary-container": "#0b1c30",
+                "inverse-surface": "#2f312e",
+                "on-tertiary": "#ffffff",
+                "surface-tint": "#565e74",
+                "surface-container-highest": "#e3e2df",
+                "on-tertiary-fixed": "#0b1c30",
+                "surface-variant": "#e3e2df",
+                "surface-container": "#efeeea",
+                "inverse-primary": "#bec6e0"
+              },
+              borderRadius: {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+              },
+              fontFamily: {
+                "label-caps": ["Inter", "sans-serif"],
+                "mono-lg": ["JetBrains Mono", "monospace"],
+                "body-md": ["Inter", "sans-serif"],
+                "headline-lg": ["Inter", "sans-serif"],
+                "mono-sm": ["JetBrains Mono", "monospace"],
+                "mono-md": ["JetBrains Mono", "monospace"],
+                "display-lg": ["Inter", "sans-serif"],
+                "body-sm": ["Inter", "sans-serif"],
+                "body-lg": ["Inter", "sans-serif"],
+                "headline-sm": ["Inter", "sans-serif"],
+                "headline-md": ["Inter", "sans-serif"]
+              },
+              fontSize: {
+                "label-caps": ["11px", { lineHeight: "14px", letterSpacing: "0.06em", fontWeight: "600" }],
+                "mono-lg": ["14px", { lineHeight: "20px", letterSpacing: "-0.01em", fontWeight: "500" }],
+                "body-md": ["13px", { lineHeight: "20px", letterSpacing: "0em", fontWeight: "400" }],
+                "headline-lg": ["24px", { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "600" }],
+                "mono-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.02em", fontWeight: "400" }],
+                "mono-md": ["12px", { lineHeight: "18px", letterSpacing: "0em", fontWeight: "400" }],
+                "display-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.025em", fontWeight: "600" }],
+                "body-sm": ["12px", { lineHeight: "16px", letterSpacing: "0.005em", fontWeight: "400" }],
+                "body-lg": ["15px", { lineHeight: "24px", letterSpacing: "0em", fontWeight: "400" }],
+                "headline-sm": ["16px", { lineHeight: "24px", letterSpacing: "-0.01em", fontWeight: "600" }],
+                "headline-md": ["20px", { lineHeight: "28px", letterSpacing: "-0.015em", fontWeight: "600" }]
+              }
+            }
+          }
+        };
+    </script>
+
+    <style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 18px;
+            line-height: 1;
+            display: inline-block;
+            white-space: nowrap;
+            -webkit-font-smoothing: antialiased;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.2); }
+        }
+        .pulse-dot {
+            animation: pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .hairline-border {
+            border: 1px solid #E2E8F0;
+        }
+    </style>
     {% block head %}{% endblock %}
 </head>
-<body>
-    <!-- Global Header -->
-    <header class="header">
-        <div class="header-container">
-            <div class="header-left">
-                <a href="{{ url_for('dashboard') }}" class="brand-wrapper">
-                    <div class="brand-icon">R</div>
-                    <span class="brand-title">Relay</span>
-                    <span class="brand-tag">v1.0-prod</span>
-                </a>
-
-                <nav class="header-nav" aria-label="Main Navigation">
-                    <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.url.path == '/' %}active{% endif %}">Overview</a>
-                    <a href="{{ url_for('workflow_history') }}" class="nav-item {% if '/workflows' in request.url.path and not '/workflows/new' in request.url.path %}active{% endif %}">Workflow History</a>
-                    <a href="{{ url_for('nl_request_form') }}" class="nav-item {% if '/request' in request.url.path or '/workflows/new' in request.url.path %}active{% endif %}">NL Request Studio</a>
-                    <a href="/ready" target="_blank" class="nav-item">System Health</a>
+<body class="min-h-full bg-background text-on-surface antialiased flex flex-col font-body-md text-body-md selection:bg-secondary-fixed selection:text-on-secondary-fixed">
+    <!-- TopNavBar -->
+    <header class="bg-surface-container-lowest/90 dark:bg-surface-container/90 backdrop-blur-md text-primary dark:text-on-surface docked full-width top-0 z-50 sticky border-b border-outline-variant/40 dark:border-outline/20 shadow-sm">
+        <div class="w-full max-w-[2560px] mx-auto px-6 h-14 flex items-center justify-between">
+            <!-- Brand & Navigation Links -->
+            <div class="flex items-center gap-8 h-full">
+                <div class="flex items-center gap-3">
+                    <a class="text-headline-md font-headline-md tracking-tight font-bold text-primary flex items-center gap-2" href="{{ url_for('dashboard') }}">
+                        <div class="w-7 h-7 rounded-lg bg-[#0F172A] flex items-center justify-center text-white shadow-xs">
+                            <span class="material-symbols-outlined text-[18px]">polyline</span>
+                        </div>
+                        <span>Relay</span>
+                    </a>
+                    <span class="text-mono-sm font-mono-sm px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant border border-outline-variant/40">
+                        v1.0-prod
+                    </span>
+                </div>
+                <nav class="hidden md:flex items-center gap-6 h-full text-body-md font-body-md">
+                    <a class="{% if request.url.path == '/' %}text-primary border-b-2 border-primary font-headline-sm{% else %}text-on-surface-variant hover:text-on-surface{% endif %} py-3 transition-colors flex items-center gap-1.5" href="{{ url_for('dashboard') }}">
+                        Overview
+                    </a>
+                    <a class="{% if '/workflows' in request.url.path and not '/workflows/new' in request.url.path %}text-primary border-b-2 border-primary font-headline-sm{% else %}text-on-surface-variant hover:text-on-surface{% endif %} py-3 transition-colors" href="{{ url_for('workflow_history') }}">
+                        Workflow History
+                    </a>
+                    <a class="{% if '/request' in request.url.path or '/workflows/new' in request.url.path %}text-primary border-b-2 border-primary font-headline-sm{% else %}text-on-surface-variant hover:text-on-surface{% endif %} py-3 transition-colors" href="{{ url_for('nl_request_form') }}">
+                        NL Request Studio
+                    </a>
+                    <a class="text-on-surface-variant hover:text-on-surface py-3 transition-colors" href="/ready" target="_blank">
+                        System Health
+                    </a>
                 </nav>
             </div>
 
-            <div class="header-right">
-                <!-- Live System Health Pill -->
-                <div id="system-health-pill" class="system-status-pill">
-                    <span class="pulse-dot"></span>
-                    <span id="health-text">System: Ready</span>
-                    <span class="latency-badge" id="health-latency" style="display: none;"></span>
+            <!-- Right Trailing Status & Actions -->
+            <div class="flex items-center gap-3">
+                <!-- Live Status Badge -->
+                <div id="system-status-pill" class="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded bg-[#ECFDF5] border border-[#A7F3D0] text-[#065F46] font-mono-sm text-mono-sm">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10B981] opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-[#059669]"></span>
+                    </span>
+                    <span class="font-medium" id="system-status-text">System: Ready</span>
                 </div>
 
-                <!-- Docs Link -->
-                <a href="https://github.com/souro26/relay" target="_blank" class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-weight: 500;">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                    </svg>
+                <!-- Latency Telemetry Pill -->
+                <div class="hidden lg:flex items-center gap-1 px-2 py-1 rounded bg-surface-container-low border border-outline-variant/30 text-on-surface-variant font-mono-sm text-mono-sm">
+                    <span class="text-outline">p95</span>
+                    <span class="font-semibold text-primary" id="header-latency-text">~14ms</span>
+                </div>
+
+                <div class="h-4 w-[1px] bg-outline-variant/40 mx-1"></div>
+
+                <!-- Docs Action -->
+                <a class="px-3 py-1.5 rounded-lg border border-outline-variant/60 bg-surface-container-lowest text-on-surface hover:bg-surface-container-high transition-all duration-150 active:scale-[0.99] font-label-caps text-label-caps flex items-center gap-1" href="https://github.com/souro26/relay" target="_blank">
+                    <span class="material-symbols-outlined text-[15px]">menu_book</span>
                     <span>Docs</span>
                 </a>
 
                 <!-- Theme Toggle -->
-                <button type="button" id="theme-toggle-btn" class="icon-btn" aria-label="Toggle theme" title="Toggle theme">
-                    <svg class="theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                    </svg>
+                <button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors" onclick="document.documentElement.classList.toggle('dark')" title="Toggle Theme" type="button">
+                    <span class="material-symbols-outlined text-[18px]">dark_mode</span>
                 </button>
 
-                <!-- Notifications -->
-                <button type="button" class="icon-btn" aria-label="Notifications" style="position: relative;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                    </svg>
-                </button>
-
-                <!-- User Profile -->
-                <div class="user-avatar" title="Relay Operator">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                        <circle cx="12" cy="7" r="4"/>
-                    </svg>
+                <!-- Profile Icon -->
+                <div class="flex items-center pl-1 text-on-surface" title="Relay Operator">
+                    <span class="material-symbols-outlined text-[26px] text-[#0F172A]">account_circle</span>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- Main Content Injection -->
-    <main class="main-content">
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-6 sm:px-8 py-8 space-y-8">
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Global Footer -->
-    <footer class="footer">
-        <div class="footer-container">
-            <div>
-                <strong>Relay</strong> &mdash; Business Workflow Integration Platform
+    <!-- Tactile Footer Bar -->
+    <footer class="mt-auto border-t border-outline-variant/30 bg-surface-container-lowest/60 py-4 px-8 text-body-sm font-body-sm text-outline">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <span class="font-semibold text-on-surface font-headline-sm">Relay</span>
+                <span>— Mission-Critical Event Automation Engine</span>
             </div>
-            <div>
-                Deterministic Process Orchestration &bull; Environment: Live
+            <div class="flex items-center gap-4 font-mono-sm text-mono-sm">
+                <span>Deterministic Business Process Orchestration</span>
+                <span>•</span>
+                <span class="text-on-surface font-medium">Production Node #01</span>
             </div>
         </div>
     </footer>
 
-    <!-- App JavaScript -->
-    <script src="{{ url_for('static', path='app.js') }}"></script>
+    <!-- Shared Health Probe Script -->
+    <script>
+        async function probeHealth() {
+            try {
+                const t0 = performance.now();
+                const res = await fetch('/ready');
+                const t1 = performance.now();
+                const latency = Math.round(t1 - t0);
+                if (res.ok) {
+                    const latEl = document.getElementById('header-latency-text');
+                    if (latEl) latEl.textContent = `~${latency}ms`;
+                }
+            } catch (e) {
+                const st = document.getElementById('system-status-text');
+                if (st) st.textContent = 'System: Checking';
+            }
+        }
+        document.addEventListener('DOMContentLoaded', probeHealth);
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

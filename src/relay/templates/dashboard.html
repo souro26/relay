@@ -1,875 +1,503 @@
-<!DOCTYPE html><html class="h-full" lang="en"><head>
-<meta charset="utf-8">
-<meta content="width=device-width, initial-scale=1.0" name="viewport">
-<title>Relay — Observability &amp; Orchestration</title>
-<!-- Material Symbols Outlined -->
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
-<!-- Inter & JetBrains Mono Fonts -->
-<link href="https://fonts.googleapis.com" rel="preconnect">
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
-<!-- Tailwind CSS CDN -->
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<!-- Tailwind Configuration verbatim -->
-<script id="tailwind-config">
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          "colors": {
-            "secondary-container": "#8fa7fe",
-            "secondary-fixed-dim": "#b6c4ff",
-            "tertiary": "#000000",
-            "background": "#faf9f5",
-            "on-surface": "#1b1c1a",
-            "on-primary-container": "#7c839b",
-            "secondary-fixed": "#dce1ff",
-            "primary-fixed-dim": "#bec6e0",
-            "surface": "#faf9f5",
-            "on-secondary": "#ffffff",
-            "on-primary-fixed-variant": "#3f465c",
-            "outline": "#76777d",
-            "tertiary-fixed-dim": "#b7c8e1",
-            "on-tertiary-fixed-variant": "#38485d",
-            "primary-container": "#131b2e",
-            "secondary": "#4059aa",
-            "inverse-on-surface": "#f2f1ed",
-            "on-secondary-container": "#1d3989",
-            "on-secondary-fixed-variant": "#264191",
-            "primary": "#000000",
-            "surface-container-high": "#e9e8e4",
-            "on-surface-variant": "#45464d",
-            "error": "#ba1a1a",
-            "on-tertiary-container": "#75859d",
-            "surface-dim": "#dbdad6",
-            "on-secondary-fixed": "#00164e",
-            "on-error": "#ffffff",
-            "primary-fixed": "#dae2fd",
-            "error-container": "#ffdad6",
-            "outline-variant": "#c6c6cd",
-            "surface-bright": "#faf9f5",
-            "tertiary-fixed": "#d3e4fe",
-            "on-background": "#1b1c1a",
-            "surface-container-lowest": "#ffffff",
-            "on-primary": "#ffffff",
-            "on-error-container": "#93000a",
-            "on-primary-fixed": "#131b2e",
-            "surface-container-low": "#f4f4f0",
-            "tertiary-container": "#0b1c30",
-            "inverse-surface": "#2f312e",
-            "on-tertiary": "#ffffff",
-            "surface-tint": "#565e74",
-            "surface-container-highest": "#e3e2df",
-            "on-tertiary-fixed": "#0b1c30",
-            "surface-variant": "#e3e2df",
-            "surface-container": "#efeeea",
-            "inverse-primary": "#bec6e0"
-          },
-          "borderRadius": {
-            "DEFAULT": "0.125rem",
-            "lg": "0.25rem",
-            "xl": "0.5rem",
-            "full": "0.75rem"
-          },
-          "spacing": {
-            "space-xl": "2rem",
-            "space-xs": "0.25rem",
-            "space-xxl": "3rem",
-            "margin-compact": "1rem",
-            "gutter": "1.25rem",
-            "space-lg": "1.25rem",
-            "space-xxs": "0.125rem",
-            "margin": "2rem",
-            "space-md": "0.875rem",
-            "space-sm": "0.5rem",
-            "gutter-dense": "0.75rem"
-          },
-          "fontFamily": {
-            "label-caps": ["Inter"],
-            "mono-lg": ["JetBrains Mono"],
-            "body-md": ["Inter"],
-            "headline-lg": ["Inter"],
-            "mono-sm": ["JetBrains Mono"],
-            "mono-md": ["JetBrains Mono"],
-            "display-lg": ["Inter"],
-            "body-sm": ["Inter"],
-            "body-lg": ["Inter"],
-            "headline-sm": ["Inter"],
-            "headline-md": ["Inter"]
-          },
-          "fontSize": {
-            "label-caps": ["11px", { "lineHeight": "14px", "letterSpacing": "0.06em", "fontWeight": "600" }],
-            "mono-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "500" }],
-            "body-md": ["13px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400" }],
-            "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
-            "mono-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.02em", "fontWeight": "400" }],
-            "mono-md": ["12px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400" }],
-            "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.025em", "fontWeight": "600" }],
-            "body-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.005em", "fontWeight": "400" }],
-            "body-lg": ["15px", { "lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400" }],
-            "headline-sm": ["16px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
-            "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.015em", "fontWeight": "600" }]
-          }
-        },
-      },
-    }
-  </script>
-<style>
-    /* Swiss subtle grid & micro-refinements */
-    body {
-      background-color: #FAF9F5;
-      color: #1b1c1a;
-      -webkit-font-smoothing: antialiased;
-    }
-    .hairline-border {
-      border: 1px solid #E2E8F0;
-    }
-    .custom-scroll::-webkit-scrollbar {
-      height: 6px;
-      width: 6px;
-    }
-    .custom-scroll::-webkit-scrollbar-thumb {
-      background: #CBD5E1;
-      border-radius: 3px;
-    }
-    .custom-scroll::-webkit-scrollbar-track {
-      background: transparent;
-    }
-  </style>
-</head>
-<body class="min-h-full bg-surface text-on-surface antialiased flex flex-col font-body-md text-body-md">
-<!-- TopNavBar (Shared Component from JSON Blueprint) -->
-<header class="bg-surface-container-lowest/90 dark:bg-surface-container/90 backdrop-blur-md text-primary dark:text-on-surface docked full-width top-0 z-50 sticky border-b border-outline-variant/40 dark:border-outline/20 shadow-sm dark:shadow-none">
-<div class="w-full max-w-[2560px] mx-auto px-6 h-14 flex items-center justify-between">
-<!-- Brand & Navigation Cluster -->
-<div class="flex items-center gap-8 h-full">
-<div class="flex items-center gap-3">
-<a class="text-headline-md font-headline-md tracking-tight font-bold text-primary dark:text-inverse-primary flex items-center gap-2" href="/">
-<div class="w-7 h-7 rounded-lg bg-[#0F172A] flex items-center justify-center text-white shadow-xs">
-<span class="material-symbols-outlined text-[18px]">polyline</span>
-</div>
-<span>Relay</span>
-</a>
-<span class="text-mono-sm font-mono-sm px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant border border-outline-variant/40">
-            v1.0-prod
-          </span>
-</div>
-<nav class="hidden md:flex items-center gap-6 h-full text-body-md font-body-md">
-<a class="text-primary dark:text-primary-fixed border-b-2 border-primary dark:border-primary-fixed font-headline-sm py-3 transition-colors flex items-center gap-1.5" href="/">
-            Overview
-          </a>
-<a class="text-on-surface-variant dark:text-outline hover:text-on-surface dark:hover:text-inverse-on-surface font-body-md py-3 transition-colors" href="/workflows">
-            Workflow History
-          </a>
-<a class="text-on-surface-variant dark:text-outline hover:text-on-surface dark:hover:text-inverse-on-surface font-body-md py-3 transition-colors" href="/request">
-            NL Request Studio
-          </a>
-<a class="text-on-surface-variant dark:text-outline hover:text-on-surface dark:hover:text-inverse-on-surface font-body-md py-3 transition-colors" href="/ready" target="_blank">
-            System Health
-          </a>
-</nav>
-</div>
-<!-- Right Trailing Status & Actions -->
-<div class="flex items-center gap-3">
-<!-- Live Status Badge with Pastel Mint Glow -->
-<div class="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded bg-[#ECFDF5] border border-[#A7F3D0] text-[#065F46] font-mono-sm text-mono-sm">
-<span class="relative flex h-2 w-2">
-<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10B981] opacity-75"></span>
-<span class="relative inline-flex rounded-full h-2 w-2 bg-[#059669]"></span>
-</span>
-<span class="font-medium">System: Operational</span>
-</div>
-<!-- Latency Telemetry Pill -->
-<div class="hidden lg:flex items-center gap-1 px-2 py-1 rounded bg-surface-container-low border border-outline-variant/30 text-on-surface-variant font-mono-sm text-mono-sm">
-<span class="text-outline">p95</span>
-<span class="font-semibold text-primary" id="header-p95-latency">~14ms</span>
-</div>
-<div class="h-4 w-[1px] bg-outline-variant/40 mx-1"></div>
-<!-- Trailing Primary Action: Docs -->
-<a class="px-3 py-1.5 rounded-lg border border-outline-variant/60 bg-surface-container-lowest text-on-surface hover:bg-surface-container-high transition-all duration-150 active:scale-[0.99] font-label-caps text-label-caps flex items-center gap-1" href="https://github.com/souro26/relay" target="_blank">
-<span class="material-symbols-outlined text-[15px]">menu_book</span>
-<span>Docs</span>
-</a>
-<!-- Trailing Icon Actions -->
-<button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors" onclick="document.documentElement.classList.toggle('dark')" title="Toggle Theme" type="button">
-<span class="material-symbols-outlined text-[18px]">dark_mode</span>
-</button>
-<button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors relative" title="Notifications" type="button">
-<span class="material-symbols-outlined text-[18px]">notifications</span>
-<span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#BE123C] rounded-full"></span>
-</button>
-<!-- User Profile Avatar -->
-<button class="flex items-center pl-1 text-on-surface hover:opacity-85 transition-opacity" title="Executive Profile" type="button">
-<span class="material-symbols-outlined text-[28px] text-[#0F172A]">account_circle</span>
-</button>
-</div>
-</div>
-</header>
-<!-- Main Content Container -->
-<main class="flex-1 max-w-7xl w-full mx-auto px-6 sm:px-8 py-8 space-y-8">
+{% extends "base.html" %}
+
+{% block title %}Relay — Observability &amp; Orchestration{% endblock %}
+
+{% block content %}
 <!-- 1. Hero Header Banner -->
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-outline-variant/30">
-<div class="space-y-1">
-<h1 class="text-headline-lg font-headline-lg text-[#0F172A] tracking-tight">
-          Observability &amp; Orchestration Dashboard
+    <div class="space-y-1">
+        <h1 class="text-headline-lg font-headline-lg text-[#0F172A] tracking-tight">
+            Observability &amp; Orchestration Dashboard
         </h1>
-<p class="text-body-md font-body-md text-on-surface-variant max-w-3xl">
-          Real-time telemetry, model latency, and automated business event routing across enterprise microservices.
+        <p class="text-body-md font-body-md text-on-surface-variant max-w-3xl">
+            Real-time telemetry, model latency, and automated business event routing across enterprise microservices.
         </p>
+    </div>
+    <div class="flex items-center gap-3 shrink-0">
+        <a href="{{ url_for('nl_request_form') }}" class="px-4 py-2 rounded-lg bg-[#0F172A] text-white hover:bg-slate-800 font-headline-sm text-headline-sm flex items-center gap-2 transition-all shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">add_circle</span>
+            <span>New NL Workflow</span>
+        </a>
+    </div>
 </div>
-<div class="flex items-center gap-3 shrink-0">
-<!-- Secondary Button -->
-<button onclick="replayFailedWorkflows()" class="px-4 py-2 rounded-lg bg-surface-container-lowest border border-[#CBD5E1] text-[#0F172A] hover:bg-[#F8F7F3] font-headline-sm text-headline-sm flex items-center gap-2 transition-all shadow-xs" type="button">
-<span class="material-symbols-outlined text-[18px]">history</span>
-<span>Replay Failed</span>
-</button>
-<!-- Primary Deep Navy Button -->
-<a href="/request" class="px-4 py-2 rounded-lg bg-[#0F172A] text-white hover:bg-slate-800 font-headline-sm text-headline-sm flex items-center gap-2 transition-all shadow-sm">
-<span class="material-symbols-outlined text-[18px]">add_circle</span>
-<span>New NL Workflow</span>
-</a>
-</div>
-</div>
+
 <!-- 2. KPI Stat Cards (8 metrics in 4-column responsive grid) -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-<!-- Metric 1: Total Executions -->
-<div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
-<div class="flex items-center justify-between mb-2">
-<span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Total Executions</span>
-<span class="inline-flex items-center px-1.5 py-0.5 rounded text-mono-sm font-mono-sm bg-[#D1FAE5] text-[#065F46] font-medium" id="kpi-exec-growth">
-            +12.4%
-          </span>
+    <!-- Metric 1: Total Executions -->
+    <div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+            <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Total Executions</span>
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-mono-sm font-mono-sm bg-[#D1FAE5] text-[#065F46] font-medium" id="kpi-exec-pill">Live</span>
+        </div>
+        <div class="flex items-baseline justify-between mt-1">
+            <span class="text-[26px] leading-8 font-semibold tracking-tight text-[#0B0E14] font-headline-lg" id="kpi-total-executions">0</span>
+            <span class="text-mono-sm font-mono-sm text-on-surface-variant">Total recorded</span>
+        </div>
+        <div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
+            <div class="bg-[#0F172A] h-1 rounded-full" id="kpi-total-bar" style="width: 100%"></div>
+        </div>
+    </div>
+
+    <!-- Metric 2: Success Rate -->
+    <div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+            <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Success Rate</span>
+            <span class="flex items-center gap-1 font-mono-sm text-mono-sm text-[#065F46] bg-[#ECFDF5] px-1.5 py-0.5 rounded">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>
+                <span id="kpi-success-label">Optimal</span>
+            </span>
+        </div>
+        <div class="flex items-baseline justify-between mt-1">
+            <span class="text-[26px] leading-8 font-semibold tracking-tight text-[#0B0E14] font-headline-lg" id="kpi-success-rate">—</span>
+            <span class="text-mono-sm font-mono-sm text-[#059669] font-medium" id="kpi-success-sub">Resolved</span>
+        </div>
+        <div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
+            <div class="bg-[#10B981] h-1 rounded-full" id="kpi-success-bar" style="width: 100%"></div>
+        </div>
+    </div>
+
+    <!-- Metric 3: P50 Latency -->
+    <div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+            <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Median Latency</span>
+            <svg class="w-12 h-4 text-slate-400 stroke-current fill-none stroke-[1.5]" viewBox="0 0 48 16">
+                <polyline points="0,12 8,10 16,14 24,7 32,9 40,4 48,6"></polyline>
+            </svg>
+        </div>
+        <div class="flex items-baseline justify-between mt-1">
+            <span class="text-[26px] leading-8 font-semibold tracking-tight text-[#0B0E14] font-mono-lg" id="kpi-median-latency">—</span>
+            <span class="text-mono-sm font-mono-sm text-on-surface-variant">Completed traces</span>
+        </div>
+        <div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
+            <div class="bg-slate-500 h-1 rounded-full" style="width: 60%"></div>
+        </div>
+    </div>
+
+    <!-- Metric 4: P95 Latency -->
+    <div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+            <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">P95 Latency</span>
+            <svg class="w-12 h-4 text-sky-500 stroke-current fill-none stroke-[1.5]" viewBox="0 0 48 16">
+                <polyline points="0,8 8,12 16,5 24,11 32,6 40,8 48,3"></polyline>
+            </svg>
+        </div>
+        <div class="flex items-baseline justify-between mt-1">
+            <span class="text-[26px] leading-8 font-semibold tracking-tight text-[#0B0E14] font-mono-lg" id="kpi-p95-latency">—</span>
+            <span class="text-mono-sm font-mono-sm text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded">Tail trace</span>
+        </div>
+        <div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
+            <div class="bg-sky-500 h-1 rounded-full" style="width: 80%"></div>
+        </div>
+    </div>
+
+    <!-- Metric 5: Failed / Edge Runs -->
+    <div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+            <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Failed Workflows</span>
+            <span class="px-1.5 py-0.5 rounded text-mono-sm font-mono-sm bg-[#FFE4E6] text-[#BE123C] font-semibold border border-[#FECDD3]" id="kpi-failed-badge">
+                0 Total
+            </span>
+        </div>
+        <div class="flex items-baseline justify-between mt-1">
+            <span class="text-[26px] leading-8 font-semibold tracking-tight text-[#9F1239] font-headline-lg" id="kpi-failed-count">0</span>
+            <span class="text-mono-sm font-mono-sm text-outline">Terminal errors</span>
+        </div>
+        <div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
+            <div class="bg-[#BE123C] h-1 rounded-full" id="kpi-failed-bar" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <!-- Metric 6: In-Flight Workflows -->
+    <div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+            <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">In-Flight Workflows</span>
+            <span class="flex items-center gap-1.5 px-2 py-0.5 rounded text-mono-sm font-mono-sm bg-[#E0F2FE] text-[#0369A1] font-medium">
+                <span class="w-2 h-2 rounded-full bg-[#0284C7] animate-pulse"></span>
+                <span>Active Slots</span>
+            </span>
+        </div>
+        <div class="flex items-baseline justify-between mt-1">
+            <span class="text-[26px] leading-8 font-semibold tracking-tight text-[#0B0E14] font-headline-lg" id="kpi-running-count">0</span>
+            <span class="text-mono-sm font-mono-sm text-on-surface-variant">Live operations</span>
+        </div>
+        <div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
+            <div class="bg-[#0284C7] h-1 rounded-full" style="width: 20%"></div>
+        </div>
+    </div>
+
+    <!-- Metric 7: Total LLM Tokens -->
+    <div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+            <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Total LLM Tokens</span>
+            <span class="text-mono-sm font-mono-sm text-on-surface-variant font-medium">Inference usage</span>
+        </div>
+        <div class="flex items-baseline justify-between mt-1">
+            <span class="text-[26px] leading-8 font-semibold tracking-tight text-[#0B0E14] font-mono-lg" id="kpi-total-tokens">—</span>
+            <span class="text-mono-sm font-mono-sm text-on-surface-variant">Tokens consumed</span>
+        </div>
+        <div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 flex overflow-hidden">
+            <div class="bg-[#0F172A] h-1" style="width: 100%"></div>
+        </div>
+    </div>
+
+    <!-- Metric 8: Estimated LLM Cost -->
+    <div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+            <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Estimated LLM Spend</span>
+            <span class="font-mono-sm text-mono-sm px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant">Pricing Model</span>
+        </div>
+        <div class="flex items-baseline justify-between mt-1">
+            <span class="text-[26px] leading-8 font-semibold tracking-tight text-[#0B0E14] font-mono-lg" id="kpi-estimated-cost">$0.00</span>
+            <span class="text-mono-sm font-mono-sm text-outline">Accumulated</span>
+        </div>
+        <div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
+            <div class="bg-[#059669] h-1 rounded-full" style="width: 100%"></div>
+        </div>
+    </div>
 </div>
-<div class="flex items-baseline justify-between mt-1">
-<span class="text-[26px] leading-8 font-semibold tracking-tight text-[#0B0E14] font-headline-lg" id="kpi-total-executions">142,890</span>
-<span class="text-mono-sm font-mono-sm text-on-surface-variant">24h rolling</span>
-</div>
-<div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
-<div class="bg-[#0F172A] h-1 rounded-full" style="width: 82%"></div>
-</div>
-</div>
-<!-- Metric 2: Success Rate -->
-<div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
-<div class="flex items-center justify-between mb-2">
-<span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Success Rate</span>
-<span class="flex items-center gap-1 font-mono-sm text-mono-sm text-[#065F46] bg-[#ECFDF5] px-1.5 py-0.5 rounded">
-<span class="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>
-<span>Optimal</span>
-</span>
-</div>
-<div class="flex items-baseline justify-between mt-1">
-<span class="text-[26px] leading-8 font-semibold tracking-tight text-[#0B0E14] font-headline-lg" id="kpi-success-rate">99.42%</span>
-<span class="text-mono-sm font-mono-sm text-[#059669] font-medium">+0.04%</span>
-</div>
-<div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
-<div class="bg-[#10B981] h-1 rounded-full" style="width: 99.42%"></div>
-</div>
-</div>
-<!-- Metric 3: P50 Latency -->
-<div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
-<div class="flex items-center justify-between mb-2">
-<span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">P50 Latency</span>
-<!-- Micro sparkline slate -->
-<svg class="w-12 h-4 text-slate-400 stroke-current fill-none stroke-[1.5]" viewBox="0 0 48 16">
-<polyline points="0,12 8,10 16,14 24,7 32,9 40,4 48,6"></polyline>
-</svg>
-</div>
-<div class="flex items-baseline justify-between mt-1">
-<span class="text-[26px] leading-8 font-semibold tracking-tight text-[#0B0E14] font-mono-lg" id="kpi-median-latency">142ms</span>
-<span class="text-mono-sm font-mono-sm text-on-surface-variant">Target: &lt;180ms</span>
-</div>
-<div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
-<div class="bg-slate-500 h-1 rounded-full" style="width: 64%"></div>
-</div>
-</div>
-<!-- Metric 4: P95 Latency -->
-<div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
-<div class="flex items-center justify-between mb-2">
-<span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">P95 Latency</span>
-<!-- Micro sparkline soft ice blue -->
-<svg class="w-12 h-4 text-sky-500 stroke-current fill-none stroke-[1.5]" viewBox="0 0 48 16">
-<polyline points="0,8 8,12 16,5 24,11 32,6 40,8 48,3"></polyline>
-</svg>
-</div>
-<div class="flex items-baseline justify-between mt-1">
-<span class="text-[26px] leading-8 font-semibold tracking-tight text-[#0B0E14] font-mono-lg" id="kpi-p95-latency">412ms</span>
-<span class="text-mono-sm font-mono-sm text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded">Stable</span>
-</div>
-<div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
-<div class="bg-sky-500 h-1 rounded-full" style="width: 48%"></div>
-</div>
-</div>
-<!-- Metric 5: Failed / Edge Runs -->
-<div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
-<div class="flex items-center justify-between mb-2">
-<span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Failed / Edge Runs</span>
-<span class="px-1.5 py-0.5 rounded text-mono-sm font-mono-sm bg-[#FFE4E6] text-[#BE123C] font-semibold border border-[#FECDD3]" id="kpi-failed-badge">
-            14 Total
-          </span>
-</div>
-<div class="flex items-baseline justify-between mt-1">
-<span class="text-[26px] leading-8 font-semibold tracking-tight text-[#9F1239] font-headline-lg" id="kpi-failed-count">14</span>
-<span class="text-mono-sm font-mono-sm text-outline">0.01% error</span>
-</div>
-<div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
-<div class="bg-[#BE123C] h-1 rounded-full" style="width: 4%"></div>
-</div>
-</div>
-<!-- Metric 6: In-Flight Workflows -->
-<div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
-<div class="flex items-center justify-between mb-2">
-<span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">In-Flight Workflows</span>
-<span class="flex items-center gap-1.5 px-2 py-0.5 rounded text-mono-sm font-mono-sm bg-[#E0F2FE] text-[#0369A1] font-medium">
-<span class="w-2 h-2 rounded-full bg-[#0284C7] animate-pulse"></span>
-<span>Live Stream</span>
-</span>
-</div>
-<div class="flex items-baseline justify-between mt-1">
-<span class="text-[26px] leading-8 font-semibold tracking-tight text-[#0B0E14] font-headline-lg" id="kpi-running-count">6</span>
-<span class="text-mono-sm font-mono-sm text-on-surface-variant">Active slots</span>
-</div>
-<div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
-<div class="bg-[#0284C7] h-1 rounded-full" style="width: 30%"></div>
-</div>
-</div>
-<!-- Metric 7: Total LLM Tokens -->
-<div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
-<div class="flex items-center justify-between mb-2">
-<span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Total LLM Tokens</span>
-<span class="text-mono-sm font-mono-sm text-on-surface-variant font-medium">GPT-4o / Claude</span>
-</div>
-<div class="flex items-baseline justify-between mt-1">
-<span class="text-[26px] leading-8 font-semibold tracking-tight text-[#0B0E14] font-mono-lg" id="kpi-total-tokens">48.2M</span>
-<span class="text-mono-sm font-mono-sm text-on-surface-variant">Tokens/24h</span>
-</div>
-<!-- Dual segmented bar -->
-<div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 flex overflow-hidden">
-<div class="bg-[#0F172A] h-1" style="width: 62%" title="GPT-4o: 62%"></div>
-<div class="bg-[#38BDF8] h-1" style="width: 38%" title="Claude 3.5 Sonnet: 38%"></div>
-</div>
-</div>
-<!-- Metric 8: Estimated LLM Cost -->
-<div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
-<div class="flex items-center justify-between mb-2">
-<span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Estimated LLM Cost</span>
-<span class="font-mono-sm text-mono-sm px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant">
-            Budget $250
-          </span>
-</div>
-<div class="flex items-baseline justify-between mt-1">
-<span class="text-[26px] leading-8 font-semibold tracking-tight text-[#0B0E14] font-mono-lg" id="kpi-estimated-cost">$184.20</span>
-<span class="text-mono-sm font-mono-sm text-outline">73.6% used</span>
-</div>
-<div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
-<div class="bg-[#0F172A] h-1 rounded-full" style="width: 73.6%"></div>
-</div>
-</div>
-</div>
-<!-- 3. Visual Analytics Dual-Card Section (2-Column Desktop Grid) -->
+
+<!-- 3. Visual Analytics Section (2-Column Desktop Grid) -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-<!-- Left Card: Status Distribution -->
-<div class="p-6 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
-<div class="flex items-center justify-between pb-3 border-b border-outline-variant/30">
-<div>
-<h2 class="text-headline-sm font-headline-sm text-[#0F172A]">Status Distribution</h2>
-<p class="text-body-sm font-body-sm text-outline mt-0.5" id="donut-subtext">Execution outcomes across 142k dispatched operations</p>
+    <!-- Left Card: Status Distribution -->
+    <div class="p-6 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
+        <div class="flex items-center justify-between pb-3 border-b border-outline-variant/30">
+            <div>
+                <h2 class="text-headline-sm font-headline-sm text-[#0F172A]">Status Distribution</h2>
+                <p class="text-body-sm font-body-sm text-outline mt-0.5" id="donut-subtext">Execution outcomes across recorded workflows</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-6 py-5 items-center">
+            <!-- Donut Graphic -->
+            <div class="sm:col-span-5 flex flex-col items-center justify-center relative">
+                <svg class="w-40 h-40 transform -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" fill="transparent" r="38" stroke="#F1F5F9" stroke-width="12"></circle>
+                    <circle id="donut-svg-completed" cx="50" cy="50" fill="transparent" r="38" stroke="#10B981" stroke-dasharray="238.7" stroke-dashoffset="238.7" stroke-linecap="round" stroke-width="12"></circle>
+                    <circle id="donut-svg-running" cx="50" cy="50" fill="transparent" r="38" stroke="#38BDF8" stroke-dasharray="238.7" stroke-dashoffset="238.7" stroke-linecap="round" stroke-width="12"></circle>
+                    <circle id="donut-svg-uncertain" cx="50" cy="50" fill="transparent" r="38" stroke="#F59E0B" stroke-dasharray="238.7" stroke-dashoffset="238.7" stroke-width="12"></circle>
+                    <circle id="donut-svg-failed" cx="50" cy="50" fill="transparent" r="38" stroke="#F43F5E" stroke-dasharray="238.7" stroke-dashoffset="238.7" stroke-width="12"></circle>
+                </svg>
+                <div class="absolute flex flex-col items-center justify-center text-center">
+                    <span class="text-mono-lg font-mono-lg font-semibold text-[#0B0E14]" id="donut-center-pct">—</span>
+                    <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider" id="donut-center-lbl">SUCCESS</span>
+                </div>
+            </div>
+
+            <!-- Tabular Legend -->
+            <div class="sm:col-span-7 space-y-2.5">
+                <div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-low border border-outline-variant/20">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-3 h-3 rounded-full bg-[#10B981]"></span>
+                        <span class="text-body-md font-body-md font-medium text-on-surface">Completed</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-mono-sm text-mono-sm font-semibold text-[#0F172A]" id="legend-completed-cnt">0</span>
+                        <span class="text-mono-sm font-mono-sm text-outline w-12 text-right" id="legend-completed-pct">—</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-low border border-outline-variant/20">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-3 h-3 rounded-full bg-[#38BDF8]"></span>
+                        <span class="text-body-md font-body-md font-medium text-on-surface">Running</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-mono-sm text-mono-sm font-semibold text-[#0F172A]" id="legend-running-cnt">0</span>
+                        <span class="text-mono-sm font-mono-sm text-outline w-12 text-right" id="legend-running-pct">—</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-low border border-outline-variant/20">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-3 h-3 rounded-full bg-[#F59E0B]"></span>
+                        <span class="text-body-md font-body-md font-medium text-on-surface">Uncertain</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-mono-sm text-mono-sm font-semibold text-[#0F172A]" id="legend-uncertain-cnt">0</span>
+                        <span class="text-mono-sm font-mono-sm text-outline w-12 text-right" id="legend-uncertain-pct">—</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-low border border-outline-variant/20">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-3 h-3 rounded-full bg-[#F43F5E]"></span>
+                        <span class="text-body-md font-body-md font-medium text-on-surface">Failed</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-mono-sm text-mono-sm font-semibold text-[#BE123C]" id="legend-failed-cnt">0</span>
+                        <span class="text-mono-sm font-mono-sm text-outline w-12 text-right" id="legend-failed-pct">—</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pt-3 border-t border-outline-variant/30 flex items-center justify-between text-mono-sm font-mono-sm text-outline">
+            <span>Derived from persisted database records</span>
+            <span class="text-[#059669] font-medium" id="sla-delta-text">Real-time status</span>
+        </div>
+    </div>
+
+    <!-- Right Card: Pipeline & Model Diagnostics -->
+    <div class="p-6 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
+        <div class="flex items-center justify-between pb-3 border-b border-outline-variant/30">
+            <div>
+                <h2 class="text-headline-sm font-headline-sm text-[#0F172A]">Pipeline &amp; Model Diagnostics</h2>
+                <p class="text-body-sm font-body-sm text-outline mt-0.5">Step failure telemetry and model response latency</p>
+            </div>
+            <span class="font-mono-sm text-mono-sm px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant" id="diag-summary-pill">
+                Telemetry Active
+            </span>
+        </div>
+
+        <div class="space-y-4 py-4 flex-1 flex flex-col justify-center">
+            <div class="grid grid-cols-2 gap-3">
+                <div class="p-3 rounded-lg bg-surface-container-low border border-outline-variant/30">
+                    <span class="text-mono-sm font-mono-sm text-outline block">Avg LLM Latency</span>
+                    <span class="text-mono-lg font-mono-lg font-semibold text-[#0F172A] mt-1 block" id="diag-avg-llm-latency">—</span>
+                </div>
+                <div class="p-3 rounded-lg bg-surface-container-low border border-outline-variant/30">
+                    <span class="text-mono-sm font-mono-sm text-outline block">Total LLM Calls</span>
+                    <span class="text-mono-lg font-mono-lg font-semibold text-[#0F172A] mt-1 block" id="diag-total-llm-calls">0</span>
+                </div>
+            </div>
+
+            <div>
+                <span class="text-label-caps font-label-caps text-outline uppercase block mb-1.5">Recorded Step Failures</span>
+                <div id="diag-step-failures-list" class="space-y-1.5 max-h-36 overflow-y-auto">
+                    <div class="text-body-sm text-outline italic p-2 bg-surface-container-low rounded">
+                        No step failures recorded across persistent workflows.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pt-3 border-t border-outline-variant/30 flex items-center justify-between text-mono-sm font-mono-sm text-outline">
+            <span>WorkflowStep &amp; LLMInvocation metrics</span>
+            <a class="text-[#0F172A] hover:underline font-medium flex items-center gap-1" href="{{ url_for('nl_request_form') }}">
+                <span>New Request</span>
+                <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+            </a>
+        </div>
+    </div>
 </div>
-<button class="text-on-surface-variant hover:text-primary transition-colors" type="button">
-<span class="material-symbols-outlined text-[20px]">filter_list</span>
-</button>
-</div>
-<!-- Donut Visual & Tabular Legend Split -->
-<div class="grid grid-cols-1 sm:grid-cols-12 gap-6 py-5 items-center">
-<!-- Donut Graphic Representation -->
-<div class="sm:col-span-5 flex flex-col items-center justify-center relative">
-<svg class="w-40 h-40 transform -rotate-90" viewBox="0 0 100 100">
-<!-- Background Circle -->
-<circle cx="50" cy="50" fill="transparent" r="38" stroke="#F1F5F9" stroke-width="12"></circle>
-<!-- Completed 94.2% Pastel Mint #10B981 -->
-<circle cx="50" cy="50" fill="transparent" r="38" stroke="#10B981" stroke-dasharray="238.7" stroke-dashoffset="13.8" stroke-linecap="round" stroke-width="12"></circle>
-<!-- Running 3.5% Pastel Ice Blue #38BDF8 -->
-<circle cx="50" cy="50" fill="transparent" r="38" stroke="#38BDF8" stroke-dasharray="238.7" stroke-dashoffset="230.3" stroke-linecap="round" stroke-width="12"></circle>
-<!-- Uncertain 1.8% Pastel Amber #F59E0B -->
-<circle cx="50" cy="50" fill="transparent" r="38" stroke="#F59E0B" stroke-dasharray="238.7" stroke-dashoffset="234.4" stroke-width="12"></circle>
-<!-- Failed 0.5% Pastel Rose #F43F5E -->
-<circle cx="50" cy="50" fill="transparent" r="38" stroke="#F43F5E" stroke-dasharray="238.7" stroke-dashoffset="237.5" stroke-width="12"></circle>
-</svg>
-<div class="absolute flex flex-col items-center justify-center text-center">
-<span class="text-mono-lg font-mono-lg font-semibold text-[#0B0E14]" id="donut-center-pct">94.2%</span>
-<span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Healthy</span>
-</div>
-</div>
-<!-- Tabular Legend -->
-<div class="sm:col-span-7 space-y-2.5">
-<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-low border border-outline-variant/20">
-<div class="flex items-center gap-2.5">
-<span class="w-3 h-3 rounded-full bg-[#10B981]"></span>
-<span class="text-body-md font-body-md font-medium text-on-surface">Completed</span>
-</div>
-<div class="flex items-center gap-3">
-<span class="font-mono-sm text-mono-sm font-semibold text-[#0F172A]" id="legend-completed-cnt">134,602</span>
-<span class="text-mono-sm font-mono-sm text-outline w-12 text-right" id="legend-completed-pct">94.2%</span>
-</div>
-</div>
-<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-low border border-outline-variant/20">
-<div class="flex items-center gap-2.5">
-<span class="w-3 h-3 rounded-full bg-[#38BDF8]"></span>
-<span class="text-body-md font-body-md font-medium text-on-surface">Running</span>
-</div>
-<div class="flex items-center gap-3">
-<span class="font-mono-sm text-mono-sm font-semibold text-[#0F172A]" id="legend-running-cnt">5,001</span>
-<span class="text-mono-sm font-mono-sm text-outline w-12 text-right" id="legend-running-pct">3.5%</span>
-</div>
-</div>
-<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-low border border-outline-variant/20">
-<div class="flex items-center gap-2.5">
-<span class="w-3 h-3 rounded-full bg-[#F59E0B]"></span>
-<span class="text-body-md font-body-md font-medium text-on-surface">Uncertain / Review</span>
-</div>
-<div class="flex items-center gap-3">
-<span class="font-mono-sm text-mono-sm font-semibold text-[#0F172A]" id="legend-uncertain-cnt">2,572</span>
-<span class="text-mono-sm font-mono-sm text-outline w-12 text-right" id="legend-uncertain-pct">1.8%</span>
-</div>
-</div>
-<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-low border border-outline-variant/20">
-<div class="flex items-center gap-2.5">
-<span class="w-3 h-3 rounded-full bg-[#F43F5E]"></span>
-<span class="text-body-md font-body-md font-medium text-on-surface">Failed</span>
-</div>
-<div class="flex items-center gap-3">
-<span class="font-mono-sm text-mono-sm font-semibold text-[#BE123C]" id="legend-failed-cnt">715</span>
-<span class="text-mono-sm font-mono-sm text-outline w-12 text-right" id="legend-failed-pct">0.5%</span>
-</div>
-</div>
-</div>
-</div>
-<div class="pt-3 border-t border-outline-variant/30 flex items-center justify-between text-mono-sm font-mono-sm text-outline">
-<span>Target reliability SLA: 99.0%</span>
-<span class="text-[#059669] font-medium">+0.42% above SLA</span>
-</div>
-</div>
-<!-- Right Card: Stage Latency Waterfall -->
-<div class="p-6 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
-<div class="flex items-center justify-between pb-3 border-b border-outline-variant/30">
-<div>
-<h2 class="text-headline-sm font-headline-sm text-[#0F172A]">Stage Latency Waterfall</h2>
-<p class="text-body-sm font-body-sm text-outline mt-0.5">Mean execution duration aggregated across pipeline stages</p>
-</div>
-<span class="font-mono-sm text-mono-sm px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant">
-            P50 Cumulative: 354ms
-          </span>
-</div>
-<!-- Comparative Waterfall Bars -->
-<div class="space-y-4 py-4">
-<!-- Stage 1 -->
-<div class="space-y-1.5">
-<div class="flex justify-between items-center text-body-sm font-body-sm">
-<span class="font-medium text-on-surface">1. Request Validation &amp; Token Sanitization</span>
-<span class="font-mono-sm text-mono-sm text-on-surface-variant font-medium">18ms</span>
-</div>
-<div class="w-full bg-[#F1F5F9] h-2.5 rounded-sm overflow-hidden flex">
-<div class="bg-slate-400 h-full rounded-sm" style="width: 8%"></div>
-</div>
-</div>
-<!-- Stage 2 -->
-<div class="space-y-1.5">
-<div class="flex justify-between items-center text-body-sm font-body-sm">
-<span class="font-medium text-on-surface">2. Enterprise Context &amp; Schema Fetch</span>
-<span class="font-mono-sm text-mono-sm text-on-surface-variant font-medium">84ms</span>
-</div>
-<div class="w-full bg-[#F1F5F9] h-2.5 rounded-sm overflow-hidden flex">
-<div class="bg-slate-300 h-full" style="width: 8%"></div>
-<div class="bg-sky-400 h-full rounded-sm" style="width: 24%"></div>
-</div>
-</div>
-<!-- Stage 3 -->
-<div class="space-y-1.5">
-<div class="flex justify-between items-center text-body-sm font-body-sm">
-<span class="font-medium text-[#0F172A] font-semibold">3. LLM Intent &amp; Routing Decision</span>
-<span class="font-mono-sm text-mono-sm text-[#0F172A] font-semibold">210ms</span>
-</div>
-<div class="w-full bg-[#F1F5F9] h-2.5 rounded-sm overflow-hidden flex">
-<div class="bg-slate-300 h-full" style="width: 32%"></div>
-<div class="bg-[#0F172A] h-full rounded-sm" style="width: 55%"></div>
-</div>
-</div>
-<!-- Stage 4 -->
-<div class="space-y-1.5">
-<div class="flex justify-between items-center text-body-sm font-body-sm">
-<span class="font-medium text-on-surface">4. Backend State Mutation &amp; Webhook Dispatch</span>
-<span class="font-mono-sm text-mono-sm text-on-surface-variant font-medium">42ms</span>
-</div>
-<div class="w-full bg-[#F1F5F9] h-2.5 rounded-sm overflow-hidden flex">
-<div class="bg-slate-300 h-full" style="width: 87%"></div>
-<div class="bg-[#10B981] h-full rounded-sm" style="width: 13%"></div>
-</div>
-</div>
-</div>
-<div class="pt-3 border-t border-outline-variant/30 flex items-center justify-between text-mono-sm font-mono-sm text-outline">
-<span>Bottleneck: LLM Model Inference (59.3% total duration)</span>
-<a class="text-[#0F172A] hover:underline font-medium flex items-center gap-1" href="/request">
-<span>Tune Cache</span>
-<span class="material-symbols-outlined text-[14px]">arrow_forward</span>
-</a>
-</div>
-</div>
-</div>
-<!-- 4. Live Execution Ledger Table (Rich widescreen desktop table) -->
+
+<!-- 4. Live Execution Ledger Table -->
 <div class="rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] overflow-hidden">
-<!-- Table Header & Filter Toolbar -->
-<div class="p-4 border-b border-outline-variant/30 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-container-lowest">
-<div class="flex items-center gap-3">
-<div class="relative w-72">
-<span class="material-symbols-outlined absolute left-2.5 top-2 text-outline text-[18px]">search</span>
-<input id="dashboard-search-input" class="w-full pl-8 pr-3 py-1.5 text-body-sm font-body-sm rounded bg-surface-container-low border border-outline-variant/40 focus:outline-none focus:ring-1 focus:ring-[#0F172A] focus:border-[#0F172A] text-on-surface placeholder:text-outline" placeholder="Filter by execution UUID, trace, or pipeline..." type="text">
-</div>
-<!-- Status Dropdown Filter -->
-<div class="relative inline-block text-left">
-<select id="dashboard-status-select" class="px-3 py-1.5 rounded bg-surface-container-low border border-outline-variant/40 text-body-sm font-body-sm text-on-surface flex items-center gap-2 hover:bg-surface-container-high transition-colors cursor-pointer outline-none">
-<option value="all">All Statuses</option>
-<option value="completed">Completed</option>
-<option value="running">Running</option>
-<option value="uncertain">Uncertain</option>
-<option value="failed">Failed</option>
-</select>
-</div>
-</div>
-<div class="flex items-center gap-4 text-mono-sm font-mono-sm text-outline">
-<span id="dashboard-showing-count">Showing <strong class="text-on-surface font-semibold">6</strong> of 1,248 recent runs</span>
-<div class="flex items-center gap-1">
-<button class="p-1 rounded hover:bg-surface-container-high text-on-surface disabled:opacity-40" disabled="">
-<span class="material-symbols-outlined text-[18px]">chevron_left</span>
-</button>
-<button class="p-1 rounded hover:bg-surface-container-high text-on-surface">
-<span class="material-symbols-outlined text-[18px]">chevron_right</span>
-</button>
-</div>
-</div>
-</div>
-<!-- Table Element -->
-<div class="overflow-x-auto custom-scroll">
-<table class="w-full text-left border-collapse">
-<thead>
-<tr class="bg-surface-container-low/80 border-b border-outline-variant/30 font-label-caps text-label-caps text-outline uppercase tracking-wider">
-<th class="py-2.5 px-4 font-semibold" scope="col">Execution UUID</th>
-<th class="py-2.5 px-4 font-semibold" scope="col">Workflow Name / Pipeline</th>
-<th class="py-2.5 px-4 font-semibold" scope="col">Status</th>
-<th class="py-2.5 px-4 font-semibold text-right" scope="col">Latency</th>
-<th class="py-2.5 px-4 font-semibold text-right" scope="col">Tokens</th>
-<th class="py-2.5 px-4 font-semibold text-right" scope="col">Time</th>
-<th class="py-2.5 px-4 font-semibold text-center" scope="col">Actions</th>
-</tr>
-</thead>
-<tbody class="divide-y divide-outline-variant/20 text-body-sm font-body-sm" id="dashboard-runs-tbody">
-<!-- Row 1: COMPLETED -->
-<tr class="hover:bg-[#F8F7F3] transition-colors group">
-<td class="py-2.5 px-4 font-mono-sm text-mono-sm text-[#0F172A] whitespace-nowrap">
-<div class="flex items-center gap-1.5">
-<span class="select-all">ex_8f3a9d21</span>
-<button class="text-outline opacity-0 group-hover:opacity-100 hover:text-primary transition-opacity" title="Copy UUID" type="button">
-<span class="material-symbols-outlined text-[14px]">content_copy</span>
-</button>
-</div>
-</td>
-<td class="py-2.5 px-4 font-medium text-[#0F172A]">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-[16px] text-slate-500">local_shipping</span>
-<span>order_delivery_date_delay</span>
-</div>
-</td>
-<td class="py-2.5 px-4 whitespace-nowrap">
-<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-mono-sm font-mono-sm bg-[#D1FAE5] text-[#065F46] font-medium border border-[#A7F3D0]">
-<span class="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>
-<span>COMPLETED</span>
-</span>
-</td>
-<td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">248ms</td>
-<td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">1,420</td>
-<td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-outline">12s ago</td>
-<td class="py-2.5 px-4 text-center whitespace-nowrap">
-<a class="inline-flex items-center gap-1 font-mono-sm text-mono-sm text-[#0F172A] font-medium hover:underline bg-surface-container-high px-2 py-1 rounded" href="/workflows/ex_8f3a9d21">
-<span class="material-symbols-outlined text-[13px]">schema</span>
-<span>Inspect DAG</span>
-</a>
-</td>
-</tr>
-<!-- Row 2: RUNNING -->
-<tr class="hover:bg-[#F8F7F3] transition-colors group">
-<td class="py-2.5 px-4 font-mono-sm text-mono-sm text-[#0F172A] whitespace-nowrap">
-<div class="flex items-center gap-1.5">
-<span class="select-all">ex_6b19ac04</span>
-<button class="text-outline opacity-0 group-hover:opacity-100 hover:text-primary transition-opacity" title="Copy UUID" type="button">
-<span class="material-symbols-outlined text-[14px]">content_copy</span>
-</button>
-</div>
-</td>
-<td class="py-2.5 px-4 font-medium text-[#0F172A]">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-[16px] text-sky-600">stars</span>
-<span>customer_tier_upgrade</span>
-</div>
-</td>
-<td class="py-2.5 px-4 whitespace-nowrap">
-<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-mono-sm font-mono-sm bg-[#E0F2FE] text-[#0369A1] font-medium border border-[#BAE6FD]">
-<span class="w-1.5 h-1.5 rounded-full bg-[#0284C7] animate-ping"></span>
-<span>RUNNING</span>
-</span>
-</td>
-<td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-sky-700 font-medium">--</td>
-<td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">890</td>
-<td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-outline">24s ago</td>
-<td class="py-2.5 px-4 text-center whitespace-nowrap">
-<a class="inline-flex items-center gap-1 font-mono-sm text-mono-sm text-[#0F172A] font-medium hover:underline bg-surface-container-high px-2 py-1 rounded" href="/workflows/ex_6b19ac04">
-<span class="material-symbols-outlined text-[13px]">schema</span>
-<span>Inspect DAG</span>
-</a>
-</td>
-</tr>
-<!-- Row 3: COMPLETED -->
-<tr class="hover:bg-[#F8F7F3] transition-colors group">
-<td class="py-2.5 px-4 font-mono-sm text-mono-sm text-[#0F172A] whitespace-nowrap">
-<div class="flex items-center gap-1.5">
-<span class="select-all">ex_4e77b198</span>
-<button class="text-outline opacity-0 group-hover:opacity-100 hover:text-primary transition-opacity" title="Copy UUID" type="button">
-<span class="material-symbols-outlined text-[14px]">content_copy</span>
-</button>
-</div>
-</td>
-<td class="py-2.5 px-4 font-medium text-[#0F172A]">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-[16px] text-slate-500">sync_alt</span>
-<span>erp_inventory_sync</span>
-</div>
-</td>
-<td class="py-2.5 px-4 whitespace-nowrap">
-<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-mono-sm font-mono-sm bg-[#D1FAE5] text-[#065F46] font-medium border border-[#A7F3D0]">
-<span class="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>
-<span>COMPLETED</span>
-</span>
-</td>
-<td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">114ms</td>
-<td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">640</td>
-<td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-outline">48s ago</td>
-<td class="py-2.5 px-4 text-center whitespace-nowrap">
-<a class="inline-flex items-center gap-1 font-mono-sm text-mono-sm text-[#0F172A] font-medium hover:underline bg-surface-container-high px-2 py-1 rounded" href="/workflows/ex_4e77b198">
-<span class="material-symbols-outlined text-[13px]">schema</span>
-<span>Inspect DAG</span>
-</a>
-</td>
-</tr>
-<!-- Row 4: UNCERTAIN -->
-<tr class="hover:bg-[#F8F7F3] transition-colors group">
-<td class="py-2.5 px-4 font-mono-sm text-mono-sm text-[#0F172A] whitespace-nowrap">
-<div class="flex items-center gap-1.5">
-<span class="select-all">ex_91fa2312</span>
-<button class="text-outline opacity-0 group-hover:opacity-100 hover:text-primary transition-opacity" title="Copy UUID" type="button">
-<span class="material-symbols-outlined text-[14px]">content_copy</span>
-</button>
-</div>
-</td>
-<td class="py-2.5 px-4 font-medium text-[#0F172A]">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-[16px] text-amber-600">contact_support</span>
-<span>support_sla_escalation</span>
-</div>
-</td>
-<td class="py-2.5 px-4 whitespace-nowrap">
-<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-mono-sm font-mono-sm bg-[#FEF3C7] text-[#92400E] font-medium border border-[#FDE68A]">
-<span class="w-1.5 h-1.5 rounded-full bg-[#D97706]"></span>
-<span>UNCERTAIN</span>
-</span>
-</td>
-<td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">518ms</td>
-<td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">3,890</td>
-<td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-outline">1m ago</td>
-<td class="py-2.5 px-4 text-center whitespace-nowrap">
-<a class="inline-flex items-center gap-1 font-mono-sm text-mono-sm text-[#0F172A] font-medium hover:underline bg-surface-container-high px-2 py-1 rounded" href="/workflows/ex_91fa2312">
-<span class="material-symbols-outlined text-[13px]">schema</span>
-<span>Inspect DAG</span>
-</a>
-</td>
-</tr>
-<!-- Row 5: FAILED -->
-<tr class="hover:bg-[#F8F7F3] transition-colors group">
-<td class="py-2.5 px-4 font-mono-sm text-mono-sm text-[#0F172A] whitespace-nowrap">
-<div class="flex items-center gap-1.5">
-<span class="select-all">ex_1784ca11</span>
-<button class="text-outline opacity-0 group-hover:opacity-100 hover:text-primary transition-opacity" title="Copy UUID" type="button">
-<span class="material-symbols-outlined text-[14px]">content_copy</span>
-</button>
-</div>
-</td>
-<td class="py-2.5 px-4 font-medium text-[#0F172A]">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-[16px] text-rose-600">payments</span>
-<span>stripe_refund_reconciliation</span>
-</div>
-</td>
-<td class="py-2.5 px-4 whitespace-nowrap">
-<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-mono-sm font-mono-sm bg-[#FFE4E6] text-[#BE123C] font-semibold border border-[#FECDD3]">
-<span class="w-1.5 h-1.5 rounded-full bg-[#E11D48]"></span>
-<span>FAILED</span>
-</span>
-</td>
-<td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-[#BE123C]">892ms</td>
-<td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">2,110</td>
-<td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-outline">3m ago</td>
-<td class="py-2.5 px-4 text-center whitespace-nowrap">
-<a class="inline-flex items-center gap-1 font-mono-sm text-mono-sm text-[#BE123C] font-medium hover:underline bg-[#FFE4E6] px-2 py-1 rounded" href="/workflows/ex_1784ca11">
-<span class="material-symbols-outlined text-[13px]">error_outline</span>
-<span>Inspect Error</span>
-</a>
-</td>
-</tr>
-<!-- Row 6: COMPLETED -->
-<tr class="hover:bg-[#F8F7F3] transition-colors group">
-<td class="py-2.5 px-4 font-mono-sm text-mono-sm text-[#0F172A] whitespace-nowrap">
-<div class="flex items-center gap-1.5">
-<span class="select-all">ex_0029db55</span>
-<button class="text-outline opacity-0 group-hover:opacity-100 hover:text-primary transition-opacity" title="Copy UUID" type="button">
-<span class="material-symbols-outlined text-[14px]">content_copy</span>
-</button>
-</div>
-</td>
-<td class="py-2.5 px-4 font-medium text-[#0F172A]">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-[16px] text-slate-500">key</span>
-<span>iam_credential_rotation</span>
-</div>
-</td>
-<td class="py-2.5 px-4 whitespace-nowrap">
-<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-mono-sm font-mono-sm bg-[#D1FAE5] text-[#065F46] font-medium border border-[#A7F3D0]">
-<span class="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>
-<span>COMPLETED</span>
-</span>
-</td>
-<td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">92ms</td>
-<td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">520</td>
-<td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-outline">4m ago</td>
-<td class="py-2.5 px-4 text-center whitespace-nowrap">
-<a class="inline-flex items-center gap-1 font-mono-sm text-mono-sm text-[#0F172A] font-medium hover:underline bg-surface-container-high px-2 py-1 rounded" href="/workflows/ex_0029db55">
-<span class="material-symbols-outlined text-[13px]">schema</span>
-<span>Inspect DAG</span>
-</a>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-<!-- Table Footer / Telemetry Summary -->
-<div class="py-3 px-4 bg-surface-container-low/50 border-t border-outline-variant/30 flex flex-col sm:flex-row items-center justify-between text-mono-sm font-mono-sm text-outline gap-2">
-<div class="flex items-center gap-2">
-<span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
-<span>Ledger streaming via gRPC edge socket: relay-node-us-east-4a</span>
-</div>
-<div class="flex items-center gap-4">
-<span>Ingest throughput: 1.4k msg/sec</span>
-<a class="text-[#0F172A] hover:underline font-medium" href="/workflows">Export CSV</a>
-</div>
-</div>
-</div>
-</main>
-<!-- Tactile Footer Bar -->
-<footer class="mt-auto border-t border-outline-variant/30 bg-surface-container-lowest/60 py-4 px-8 text-body-sm font-body-sm text-outline">
-<div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-<div class="flex items-center gap-2">
-<span class="font-semibold text-on-surface font-headline-sm">Relay</span>
-<span>— Mission-Critical Event Automation Engine</span>
-</div>
-<div class="flex items-center gap-4 font-mono-sm text-mono-sm">
-<span>SOC2 Type II Certified</span>
-<span>•</span>
-<span>Zero Purple Guarantee</span>
-<span>•</span>
-<span class="text-on-surface font-medium">Production Node #04</span>
-</div>
-</div>
-</footer>
+    <!-- Table Header & Filter Toolbar -->
+    <div class="p-4 border-b border-outline-variant/30 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-container-lowest">
+        <div class="flex items-center gap-3">
+            <div class="relative w-72">
+                <span class="material-symbols-outlined absolute left-2.5 top-2 text-outline text-[18px]">search</span>
+                <input id="dashboard-search-input" class="w-full pl-8 pr-3 py-1.5 text-body-sm font-body-sm rounded bg-surface-container-low border border-outline-variant/40 focus:outline-none focus:ring-1 focus:ring-[#0F172A] text-on-surface placeholder:text-outline" placeholder="Filter by execution UUID or workflow type..." type="text">
+            </div>
+            <!-- Status Dropdown Filter -->
+            <select id="dashboard-status-select" class="px-3 py-1.5 rounded bg-surface-container-low border border-outline-variant/40 text-body-sm font-body-sm text-on-surface cursor-pointer outline-none">
+                <option value="all">All Statuses</option>
+                <option value="completed">Completed</option>
+                <option value="running">Running</option>
+                <option value="uncertain">Uncertain</option>
+                <option value="failed">Failed</option>
+            </select>
+        </div>
+        <div class="flex items-center gap-4 text-mono-sm font-mono-sm text-outline">
+            <span id="dashboard-showing-count">Showing recent runs</span>
+        </div>
+    </div>
 
+    <!-- Table Element -->
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-surface-container-low/80 border-b border-outline-variant/30 font-label-caps text-label-caps text-outline uppercase tracking-wider">
+                    <th class="py-2.5 px-4 font-semibold" scope="col">Execution UUID</th>
+                    <th class="py-2.5 px-4 font-semibold" scope="col">Workflow Type</th>
+                    <th class="py-2.5 px-4 font-semibold" scope="col">Status</th>
+                    <th class="py-2.5 px-4 font-semibold text-right" scope="col">Latency</th>
+                    <th class="py-2.5 px-4 font-semibold text-right" scope="col">Tokens</th>
+                    <th class="py-2.5 px-4 font-semibold text-right" scope="col">Created</th>
+                    <th class="py-2.5 px-4 font-semibold text-center" scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-outline-variant/20 text-body-sm font-body-sm" id="dashboard-runs-tbody">
+                <tr>
+                    <td colspan="7" class="py-8 text-center text-outline">
+                        Loading persistent workflow runs…
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Table Footer -->
+    <div class="py-3 px-4 bg-surface-container-low/50 border-t border-outline-variant/30 flex items-center justify-between text-mono-sm font-mono-sm text-outline">
+        <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+            <span>Relay Persistence: PostgreSQL Ledger</span>
+        </div>
+        <div>
+            <a class="text-[#0F172A] hover:underline font-medium" href="{{ url_for('workflow_history') }}">View Complete History &rarr;</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script>
-  function replayFailedWorkflows() {
-    alert('Replay failed workflows triggered.');
-  }
+    let rawMetrics = null;
 
-  // Live metrics hydration
-  document.addEventListener('DOMContentLoaded', async () => {
-    try {
-      const res = await fetch('/api/v1/metrics');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.total_workflows != null && data.total_workflows > 0) {
-          const numFmt = new Intl.NumberFormat('en-US');
-          document.getElementById('kpi-total-executions').textContent = numFmt.format(data.total_workflows);
-          if (data.success_rate_percentage) document.getElementById('kpi-success-rate').textContent = data.success_rate_percentage;
-          if (data.median_duration_ms != null) document.getElementById('kpi-median-latency').textContent = `${data.median_duration_ms}ms`;
-          if (data.p95_duration_ms != null) {
-            document.getElementById('kpi-p95-latency').textContent = `${data.p95_duration_ms}ms`;
-            const headerP95 = document.getElementById('header-p95-latency');
-            if (headerP95) headerP95.textContent = `~${data.p95_duration_ms}ms`;
-          }
-          if (data.failed_workflows != null) {
-            document.getElementById('kpi-failed-count').textContent = data.failed_workflows;
-            document.getElementById('kpi-failed-badge').textContent = `${data.failed_workflows} Total`;
-          }
-          if (data.running_workflows != null) document.getElementById('kpi-running-count').textContent = data.running_workflows;
-          if (data.total_tokens != null) document.getElementById('kpi-total-tokens').textContent = numFmt.format(data.total_tokens);
-          if (data.total_estimated_cost_usd != null) document.getElementById('kpi-estimated-cost').textContent = `$${data.total_estimated_cost_usd.toFixed(2)}`;
+    async function hydrateDashboard() {
+        try {
+            const res = await fetch('/api/v1/metrics');
+            if (!res.ok) return;
+            const data = await res.json();
+            rawMetrics = data;
+            const numFmt = new Intl.NumberFormat('en-US');
 
-          if (data.completed_workflows != null) document.getElementById('legend-completed-cnt').textContent = numFmt.format(data.completed_workflows);
-          if (data.running_workflows != null) document.getElementById('legend-running-cnt').textContent = numFmt.format(data.running_workflows);
-          if (data.uncertain_workflows != null) document.getElementById('legend-uncertain-cnt').textContent = numFmt.format(data.uncertain_workflows);
-          if (data.failed_workflows != null) document.getElementById('legend-failed-cnt').textContent = numFmt.format(data.failed_workflows);
+            // 1. KPI Cards
+            const total = data.total_workflows || 0;
+            document.getElementById('kpi-total-executions').textContent = numFmt.format(total);
+            if (data.success_rate_percentage) document.getElementById('kpi-success-rate').textContent = data.success_rate_percentage;
+            if (data.median_duration_ms != null) document.getElementById('kpi-median-latency').textContent = `${data.median_duration_ms}ms`;
+            if (data.p95_duration_ms != null) document.getElementById('kpi-p95-latency').textContent = `${data.p95_duration_ms}ms`;
+            document.getElementById('kpi-failed-count').textContent = data.failed_workflows || 0;
+            document.getElementById('kpi-failed-badge').textContent = `${data.failed_workflows || 0} Total`;
+            document.getElementById('kpi-running-count').textContent = data.running_workflows || 0;
+            if (data.total_tokens) document.getElementById('kpi-total-tokens').textContent = numFmt.format(data.total_tokens);
+            if (data.total_estimated_cost_usd != null) document.getElementById('kpi-estimated-cost').textContent = `$${data.total_estimated_cost_usd.toFixed(4)}`;
+
+            // 2. Donut & Legend
+            const comp = data.completed_workflows || 0;
+            const run = data.running_workflows || 0;
+            const unc = data.uncertain_workflows || 0;
+            const fail = data.failed_workflows || 0;
+            const sum = comp + run + unc + fail;
+
+            document.getElementById('legend-completed-cnt').textContent = numFmt.format(comp);
+            document.getElementById('legend-running-cnt').textContent = numFmt.format(run);
+            document.getElementById('legend-uncertain-cnt').textContent = numFmt.format(unc);
+            document.getElementById('legend-failed-cnt').textContent = numFmt.format(fail);
+
+            if (sum > 0) {
+                const compPct = ((comp / sum) * 100).toFixed(1);
+                document.getElementById('donut-center-pct').textContent = `${compPct}%`;
+                document.getElementById('legend-completed-pct').textContent = `${compPct}%`;
+                document.getElementById('legend-running-pct').textContent = `${((run / sum) * 100).toFixed(1)}%`;
+                document.getElementById('legend-uncertain-pct').textContent = `${((unc / sum) * 100).toFixed(1)}%`;
+                document.getElementById('legend-failed-pct').textContent = `${((fail / sum) * 100).toFixed(1)}%`;
+
+                // SVG Donut dashoffsets
+                const circum = 238.7;
+                const compOffset = circum - (comp / sum) * circum;
+                const compCircle = document.getElementById('donut-svg-completed');
+                if (compCircle) compCircle.style.strokeDashoffset = compOffset;
+            } else {
+                document.getElementById('donut-center-pct').textContent = '—';
+                document.getElementById('donut-center-lbl').textContent = 'NO DATA';
+            }
+
+            // 3. Diagnostics
+            if (data.avg_llm_latency_ms != null) {
+                document.getElementById('diag-avg-llm-latency').textContent = `${data.avg_llm_latency_ms}ms`;
+            }
+            document.getElementById('diag-total-llm-calls').textContent = data.total_llm_invocations || 0;
+
+            const failList = document.getElementById('diag-step-failures-list');
+            if (data.step_failure_counts && Object.keys(data.step_failure_counts).length > 0) {
+                failList.innerHTML = Object.entries(data.step_failure_counts).map(([step, count]) => `
+                    <div class="flex justify-between items-center text-body-sm p-1.5 bg-surface-container-low rounded border border-outline-variant/30">
+                        <span class="font-mono-sm">${step}</span>
+                        <span class="px-1.5 py-0.5 rounded text-mono-sm bg-[#FFE4E6] text-[#BE123C] font-semibold">${count} failures</span>
+                    </div>
+                `).join('');
+            }
+
+            // 4. Recent Runs Table
+            renderRunsTable(data.recent_workflows || []);
+
+        } catch (e) {
+            console.error('Failed to load metrics:', e);
+        }
+    }
+
+    function renderRunsTable(runs) {
+        const tbody = document.getElementById('dashboard-runs-tbody');
+        const countSpan = document.getElementById('dashboard-showing-count');
+        if (!tbody) return;
+
+        if (countSpan) countSpan.textContent = `Showing ${runs.length} recent runs`;
+
+        if (runs.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="py-8 text-center text-outline">
+                        No workflow runs recorded yet. Start one from the <a href="/request" class="text-secondary underline font-medium">NL Request Studio</a>.
+                    </td>
+                </tr>
+            `;
+            return;
         }
 
-        if (data.recent_workflows && data.recent_workflows.length > 0) {
-          const tbody = document.getElementById('dashboard-runs-tbody');
-          const countSpan = document.getElementById('dashboard-showing-count');
-          if (countSpan) countSpan.innerHTML = `Showing <strong class="text-on-surface font-semibold">${data.recent_workflows.length}</strong> of ${data.total_workflows || data.recent_workflows.length} recent runs`;
-
-          tbody.innerHTML = data.recent_workflows.map(w => {
+        tbody.innerHTML = runs.map(w => {
             const shortId = (w.id || '').substring(0, 11);
-            const statusLower = (w.status || 'pending').toLowerCase();
-            const badgeBg = statusLower === 'completed' ? 'bg-[#D1FAE5] text-[#065F46] border-[#A7F3D0]' : (statusLower === 'failed' ? 'bg-[#FFE4E6] text-[#BE123C] border-[#FECDD3]' : 'bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]');
-            const dotColor = statusLower === 'completed' ? 'bg-[#059669]' : (statusLower === 'failed' ? 'bg-[#E11D48]' : 'bg-[#0284C7]');
-            const duration = w.duration_ms != null ? `${Math.round(w.duration_ms)}ms` : '—';
+            const st = (w.status || 'pending').toLowerCase();
+            const badgeCls = st === 'completed' ? 'bg-[#D1FAE5] text-[#065F46] border-[#A7F3D0]' : (st === 'failed' ? 'bg-[#FFE4E6] text-[#BE123C] border-[#FECDD3]' : 'bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]');
+            const dotCls = st === 'completed' ? 'bg-[#059669]' : (st === 'failed' ? 'bg-[#E11D48]' : 'bg-[#0284C7]');
+            const dur = w.duration_ms != null ? `${Math.round(w.duration_ms)}ms` : '—';
             const tokens = w.total_tokens ? new Intl.NumberFormat('en-US').format(w.total_tokens) : '—';
+            const dateStr = w.created_at ? new Date(w.created_at).toLocaleTimeString() : '—';
 
             return `
-              <tr class="hover:bg-[#F8F7F3] transition-colors group">
-                <td class="py-2.5 px-4 font-mono-sm text-mono-sm text-[#0F172A] whitespace-nowrap">
-                  <div class="flex items-center gap-1.5">
-                    <span class="select-all">${shortId}</span>
-                  </div>
-                </td>
-                <td class="py-2.5 px-4 font-medium text-[#0F172A]">
-                  <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-[16px] text-slate-500">alt_route</span>
-                    <span>${w.workflow_type || 'order_change'}</span>
-                  </div>
-                </td>
-                <td class="py-2.5 px-4 whitespace-nowrap">
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-mono-sm font-mono-sm ${badgeBg} font-medium border">
-                    <span class="w-1.5 h-1.5 rounded-full ${dotColor}"></span>
-                    <span>${(w.status || 'PENDING').toUpperCase()}</span>
-                  </span>
-                </td>
-                <td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">${duration}</td>
-                <td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">${tokens}</td>
-                <td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-outline">Just now</td>
-                <td class="py-2.5 px-4 text-center whitespace-nowrap">
-                  <a class="inline-flex items-center gap-1 font-mono-sm text-mono-sm text-[#0F172A] font-medium hover:underline bg-surface-container-high px-2 py-1 rounded" href="/workflows/${w.id}">
-                    <span class="material-symbols-outlined text-[13px]">schema</span>
-                    <span>Inspect DAG</span>
-                  </a>
-                </td>
-              </tr>
+                <tr class="hover:bg-[#F8F7F3] transition-colors group">
+                    <td class="py-2.5 px-4 font-mono-sm text-mono-sm text-[#0F172A] whitespace-nowrap">
+                        <span class="select-all font-medium">${shortId}</span>
+                    </td>
+                    <td class="py-2.5 px-4 font-medium text-[#0F172A]">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[16px] text-slate-500">alt_route</span>
+                            <span>${w.workflow_type || 'order_change'}</span>
+                        </div>
+                    </td>
+                    <td class="py-2.5 px-4 whitespace-nowrap">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-mono-sm font-mono-sm ${badgeCls} font-medium border">
+                            <span class="w-1.5 h-1.5 rounded-full ${dotCls}"></span>
+                            <span>${(w.status || 'PENDING').toUpperCase()}</span>
+                        </span>
+                    </td>
+                    <td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">${dur}</td>
+                    <td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">${tokens}</td>
+                    <td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-outline">${dateStr}</td>
+                    <td class="py-2.5 px-4 text-center whitespace-nowrap">
+                        <a class="inline-flex items-center gap-1 font-mono-sm text-mono-sm text-[#0F172A] font-medium hover:underline bg-surface-container-high px-2.5 py-1 rounded" href="/workflows/${w.id}">
+                            <span class="material-symbols-outlined text-[14px]">schema</span>
+                            <span>Inspect</span>
+                        </a>
+                    </td>
+                </tr>
             `;
-          }).join('');
-        }
-      }
-    } catch (e) {
-      console.debug('Metrics hydration error:', e);
+        }).join('');
     }
-  });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        hydrateDashboard();
+
+        const searchInput = document.getElementById('dashboard-search-input');
+        const statusSelect = document.getElementById('dashboard-status-select');
+
+        function filterRuns() {
+            if (!rawMetrics || !rawMetrics.recent_workflows) return;
+            const query = (searchInput.value || '').toLowerCase().trim();
+            const status = statusSelect.value;
+
+            const filtered = rawMetrics.recent_workflows.filter(w => {
+                const matchQ = !query || (w.id || '').toLowerCase().includes(query) || (w.workflow_type || '').toLowerCase().includes(query);
+                const matchS = status === 'all' || (w.status || '').toLowerCase() === status;
+                return matchQ && matchS;
+            });
+            renderRunsTable(filtered);
+        }
+
+        if (searchInput) searchInput.addEventListener('input', filterRuns);
+        if (statusSelect) statusSelect.addEventListener('change', filterRuns);
+    });
 </script>
-</body></html>
+{% endblock %}

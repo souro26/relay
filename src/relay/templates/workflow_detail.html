@@ -1,846 +1,552 @@
-<!DOCTYPE html>
-<html class="h-full" lang="en">
-<head>
-<meta charset="utf-8">
-<meta content="width=device-width, initial-scale=1.0" name="viewport">
-<title>Relay — Workflow Execution Detail &amp; DAG Trace</title>
-<link href="https://fonts.googleapis.com" rel="preconnect">
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<script id="tailwind-config">
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            "secondary-container": "#8fa7fe",
-            "secondary-fixed-dim": "#b6c4ff",
-            "tertiary": "#000000",
-            "background": "#faf9f5",
-            "on-surface": "#1b1c1a",
-            "on-primary-container": "#7c839b",
-            "secondary-fixed": "#dce1ff",
-            "primary-fixed-dim": "#bec6e0",
-            "surface": "#faf9f5",
-            "on-secondary": "#ffffff",
-            "on-primary-fixed-variant": "#3f465c",
-            "outline": "#76777d",
-            "tertiary-fixed-dim": "#b7c8e1",
-            "on-tertiary-fixed-variant": "#38485d",
-            "primary-container": "#131b2e",
-            "secondary": "#4059aa",
-            "inverse-on-surface": "#f2f1ed",
-            "on-secondary-container": "#1d3989",
-            "on-secondary-fixed-variant": "#264191",
-            "primary": "#000000",
-            "surface-container-high": "#e9e8e4",
-            "on-surface-variant": "#45464d",
-            "error": "#ba1a1a",
-            "on-tertiary-container": "#75859d",
-            "surface-dim": "#dbdad6",
-            "on-secondary-fixed": "#00164e",
-            "on-error": "#ffffff",
-            "primary-fixed": "#dae2fd",
-            "error-container": "#ffdad6",
-            "outline-variant": "#c6c6cd",
-            "surface-bright": "#faf9f5",
-            "tertiary-fixed": "#d3e4fe",
-            "on-background": "#1b1c1a",
-            "surface-container-lowest": "#ffffff",
-            "on-primary": "#ffffff",
-            "on-error-container": "#93000a",
-            "on-primary-fixed": "#131b2e",
-            "surface-container-low": "#f4f4f0",
-            "tertiary-container": "#0b1c30",
-            "inverse-surface": "#2f312e",
-            "on-tertiary": "#ffffff",
-            "surface-tint": "#565e74",
-            "surface-container-highest": "#e3e2df",
-            "on-tertiary-fixed": "#0b1c30",
-            "surface-variant": "#e3e2df",
-            "surface-container": "#efeeea",
-            "inverse-primary": "#bec6e0"
-          },
-          borderRadius: {
-            "DEFAULT": "0.125rem",
-            "lg": "0.25rem",
-            "xl": "0.5rem",
-            "full": "0.75rem"
-          },
-          spacing: {
-            "space-xl": "2rem",
-            "space-xs": "0.25rem",
-            "space-xxl": "3rem",
-            "margin-compact": "1rem",
-            "gutter": "1.25rem",
-            "space-lg": "1.25rem",
-            "space-xxs": "0.125rem",
-            "margin": "2rem",
-            "space-md": "0.875rem",
-            "space-sm": "0.5rem",
-            "gutter-dense": "0.75rem"
-          },
-          fontFamily: {
-            "label-caps": ["Inter", "sans-serif"],
-            "mono-lg": ["JetBrains Mono", "monospace"],
-            "body-md": ["Inter", "sans-serif"],
-            "headline-lg": ["Inter", "sans-serif"],
-            "mono-sm": ["JetBrains Mono", "monospace"],
-            "mono-md": ["JetBrains Mono", "monospace"],
-            "display-lg": ["Inter", "sans-serif"],
-            "body-sm": ["Inter", "sans-serif"],
-            "body-lg": ["Inter", "sans-serif"],
-            "headline-sm": ["Inter", "sans-serif"],
-            "headline-md": ["Inter", "sans-serif"]
-          },
-          fontSize: {
-            "label-caps": ["11px", { lineHeight: "14px", letterSpacing: "0.06em", fontWeight: "600" }],
-            "mono-lg": ["14px", { lineHeight: "20px", letterSpacing: "-0.01em", fontWeight: "500" }],
-            "body-md": ["13px", { lineHeight: "20px", letterSpacing: "0em", fontWeight: "400" }],
-            "headline-lg": ["24px", { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "600" }],
-            "mono-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.02em", fontWeight: "400" }],
-            "mono-md": ["12px", { lineHeight: "18px", letterSpacing: "0em", fontWeight: "400" }],
-            "display-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.025em", fontWeight: "600" }],
-            "body-sm": ["12px", { lineHeight: "16px", letterSpacing: "0.005em", fontWeight: "400" }],
-            "body-lg": ["15px", { lineHeight: "24px", letterSpacing: "0em", fontWeight: "400" }],
-            "headline-sm": ["16px", { lineHeight: "24px", letterSpacing: "-0.01em", fontWeight: "600" }],
-            "headline-md": ["20px", { lineHeight: "28px", letterSpacing: "-0.015em", fontWeight: "600" }]
-          }
-        }
-      }
-    };
-  </script>
-<style>
-    .material-symbols-outlined {
-      font-family: 'Material Symbols Outlined';
-      font-weight: normal;
-      font-style: normal;
-      font-size: 18px;
-      line-height: 1;
-      letter-spacing: normal;
-      text-transform: none;
-      display: inline-block;
-      white-space: nowrap;
-      word-wrap: normal;
-      direction: ltr;
-      -webkit-font-feature-settings: 'liga';
-      -webkit-font-smoothing: antialiased;
-    }
-    @keyframes pulseGlow {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(1.2); }
-    }
-    .pulse-dot {
-      animation: pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-  </style>
-</head>
-<body class="bg-background text-on-surface min-h-screen flex flex-col font-body-md antialiased selection:bg-secondary-fixed selection:text-on-secondary-fixed">
-<!-- TopNavBar (Shared Component) -->
-<header class="docked full-width top-0 z-50 sticky border-b border-outline-variant/40 bg-surface-container-lowest/90 backdrop-blur-md shadow-sm">
-<div class="w-full max-w-[2560px] mx-auto px-6 h-14 flex items-center justify-between">
-<!-- Brand & Product -->
-<div class="flex items-center gap-8">
-<a class="text-headline-md font-headline-md tracking-tight font-bold text-primary flex items-center gap-2 transition-colors duration-150 ease-out active:scale-[0.99]" href="/">
-<span class="w-6 h-6 rounded-lg bg-primary-container text-surface-container-lowest flex items-center justify-center font-mono-sm text-xs font-semibold">R</span>
-<span>Relay</span>
-</a>
-<!-- Top Navigation Links -->
-<nav class="hidden md:flex items-center gap-6">
-<a class="text-on-surface-variant hover:text-on-surface font-body-md py-3 transition-colors" href="/">Overview</a>
-<a class="text-primary border-b-2 border-primary font-headline-sm py-3 transition-colors" href="/workflows">Workflow History</a>
-<a class="text-on-surface-variant hover:text-on-surface font-body-md py-3 transition-colors" href="/request">NL Request Studio</a>
-<a class="text-on-surface-variant hover:text-on-surface font-body-md py-3 transition-colors" href="/ready" target="_blank">System Health</a>
-</nav>
-</div>
-<!-- Trailing Actions Cluster -->
-<div class="flex items-center gap-3">
-<a class="text-label-caps font-label-caps px-3 py-1.5 rounded-lg border border-outline-variant hover:bg-surface-container-high text-on-surface transition-all duration-150 active:scale-[0.99]" href="https://github.com/souro26/relay" target="_blank">
-          Docs
-        </a>
-<div class="h-4 w-[1px] bg-outline-variant/60 mx-1"></div>
-<button aria-label="Toggle dark mode" onclick="document.documentElement.classList.toggle('dark')" class="w-8 h-8 rounded-lg flex items-center justify-center text-outline hover:text-primary hover:bg-surface-container-high transition-all duration-150 active:scale-[0.99]">
-<span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
-</button>
-<button aria-label="Notifications" class="w-8 h-8 rounded-lg flex items-center justify-center text-outline hover:text-primary hover:bg-surface-container-high transition-all duration-150 active:scale-[0.99] relative">
-<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
-<span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-secondary"></span>
-</button>
-<button aria-label="Executive Profile" class="w-8 h-8 rounded-lg flex items-center justify-center text-outline hover:text-primary hover:bg-surface-container-high transition-all duration-150 active:scale-[0.99]">
-<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
-</button>
-</div>
-</div>
-</header>
-<!-- Main Container -->
-<main class="flex-1 max-w-7xl w-full mx-auto px-8 py-8 space-y-8">
+{% extends "base.html" %}
+
+{% block title %}Relay — Workflow {{ execution_id[:8] }}… Detail &amp; DAG Trace{% endblock %}
+
+{% block content %}
 <!-- 1. HERO BAR & BREADCRUMB -->
 <div class="space-y-4">
-<!-- Breadcrumb Navigation -->
-<div class="flex items-center justify-between">
-<nav aria-label="Breadcrumbs" class="flex items-center gap-2 font-mono-sm text-mono-sm text-on-surface-variant">
-<a class="hover:text-primary transition-colors flex items-center gap-1.5" href="/workflows">
-<span class="material-symbols-outlined text-[16px]" data-icon="alt_route">alt_route</span>
-<span>Workflows</span>
-</a>
-<span class="text-outline-variant">/</span>
-<div class="flex items-center gap-2 bg-surface-container-low px-2 py-0.5 rounded-lg border border-outline-variant/60">
-<span class="text-primary font-mono-sm font-medium tracking-tight" id="breadcrumb-execution-id">{{ execution_id }}</span>
-<button class="text-outline hover:text-primary p-0.5 rounded transition-colors active:scale-90 flex items-center" id="copy-uuid-btn" onclick="copyTraceId('{{ execution_id }}')" title="Copy UUID">
-<span class="material-symbols-outlined text-[14px]" data-icon="content_copy">content_copy</span>
-</button>
+    <!-- Breadcrumb Navigation -->
+    <div class="flex items-center justify-between">
+        <nav aria-label="Breadcrumbs" class="flex items-center gap-2 font-mono-sm text-mono-sm text-on-surface-variant">
+            <a class="hover:text-primary transition-colors flex items-center gap-1.5" href="{{ url_for('workflow_history') }}">
+                <span class="material-symbols-outlined text-[16px]" data-icon="alt_route">alt_route</span>
+                <span>Workflows</span>
+            </a>
+            <span class="text-outline-variant">/</span>
+            <div class="flex items-center gap-2 bg-surface-container-low px-2 py-0.5 rounded-lg border border-outline-variant/60">
+                <span class="text-primary font-mono-sm font-medium tracking-tight" id="breadcrumb-execution-id">{{ execution_id }}</span>
+                <button class="text-outline hover:text-primary p-0.5 rounded transition-colors active:scale-90 flex items-center" id="copy-uuid-btn" onclick="copyTraceId('{{ execution_id }}')" title="Copy UUID">
+                    <span class="material-symbols-outlined text-[14px]">content_copy</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Quick Actions -->
+        <div class="flex items-center gap-2">
+            <button onclick="exportWorkflowJson()" class="px-3 py-1.5 bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-on-surface rounded-lg font-label-caps text-label-caps transition-all flex items-center gap-1.5 shadow-sm active:scale-[0.99] cursor-pointer">
+                <span class="material-symbols-outlined text-[15px]">download</span>
+                <span>Export JSON Trace</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Execution Headline & High-Density Status Pill Ribbon -->
+    <div class="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-5 shadow-sm space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <h1 class="text-headline-lg font-headline-lg text-primary tracking-tight" id="workflow-headline-title">order_adjustment_orchestration</h1>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-mono-sm text-mono-sm font-semibold border border-secondary-fixed-dim" id="workflow-status-badge">
+                    <span class="w-2 h-2 rounded-full bg-secondary pulse-dot"></span>
+                    <span id="workflow-status-text">COMPLETED</span>
+                </span>
+            </div>
+            <div class="flex items-center gap-2 text-on-surface-variant font-mono-sm text-mono-sm">
+                <span class="text-outline">Execution Engine:</span>
+                <span class="px-1.5 py-0.5 rounded bg-surface-container-high text-primary font-mono-sm">v2.14.0-stable</span>
+            </div>
+        </div>
+
+        <!-- Telemetry Metadata Strip -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 border-t border-outline-variant/40">
+            <div>
+                <span class="block text-label-caps font-label-caps text-outline mb-0.5">TRIGGER SOURCE</span>
+                <span class="flex items-center gap-1.5 font-body-sm text-body-sm font-medium text-primary">
+                    <span class="material-symbols-outlined text-[15px] text-secondary">webhook</span>
+                    <span id="telemetry-trigger-source">Webhook (Shopify ERP)</span>
+                </span>
+            </div>
+            <div>
+                <span class="block text-label-caps font-label-caps text-outline mb-0.5">STARTED AT</span>
+                <span class="font-mono-sm text-mono-sm text-on-surface" id="telemetry-started-at">—</span>
+            </div>
+            <div>
+                <span class="block text-label-caps font-label-caps text-outline mb-0.5">COMPLETED AT</span>
+                <span class="font-mono-sm text-mono-sm text-on-surface" id="telemetry-completed-at">—</span>
+            </div>
+            <div>
+                <span class="block text-label-caps font-label-caps text-outline mb-0.5">TOTAL RUNTIME LATENCY</span>
+                <span class="inline-flex items-center gap-1 font-mono-sm text-mono-sm font-semibold text-primary">
+                    <span class="material-symbols-outlined text-[15px] text-secondary">timer</span>
+                    <span id="telemetry-runtime-latency">354ms</span>
+                </span>
+            </div>
+        </div>
+    </div>
 </div>
-</nav>
-<!-- Quick Actions -->
-<div class="flex items-center gap-2">
-<button onclick="exportWorkflowJson()" class="px-3 py-1.5 bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-on-surface rounded-lg font-label-caps text-label-caps transition-all flex items-center gap-1.5 shadow-sm active:scale-[0.99]">
-<span class="material-symbols-outlined text-[15px]" data-icon="download">download</span>
-<span>Export JSON Trace</span>
-</button>
-<button onclick="rerunWorkflow()" class="px-3 py-1.5 bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-on-surface rounded-lg font-label-caps text-label-caps transition-all flex items-center gap-1.5 shadow-sm active:scale-[0.99]">
-<span class="material-symbols-outlined text-[15px]" data-icon="replay">replay</span>
-<span>Re-run Workflow</span>
-</button>
-<button onclick="cancelWorkflow()" class="px-3 py-1.5 bg-error-container/40 border border-error-container hover:bg-error-container text-error rounded-lg font-label-caps text-label-caps transition-all flex items-center gap-1.5 active:scale-[0.99]">
-<span class="material-symbols-outlined text-[15px]" data-icon="cancel">cancel</span>
-<span>Cancel</span>
-</button>
-</div>
-</div>
-<!-- Execution Headline & High-Density Status Pill Ribbon -->
-<div class="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-5 shadow-sm space-y-4">
-<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-<div class="flex items-center gap-3">
-<h1 class="text-headline-lg font-headline-lg text-primary tracking-tight" id="workflow-headline-title">order_adjustment_orchestration</h1>
-<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-mono-sm text-mono-sm font-semibold border border-secondary-fixed-dim" id="workflow-status-badge">
-<span class="w-2 h-2 rounded-full bg-secondary pulse-dot"></span>
-              <span id="workflow-status-text">COMPLETED</span>
-            </span>
-</div>
-<div class="flex items-center gap-2 text-on-surface-variant font-mono-sm text-mono-sm">
-<span class="text-outline">Execution Engine:</span>
-<span class="px-1.5 py-0.5 rounded bg-surface-container-high text-primary font-mono-sm">v2.14.0-stable</span>
-</div>
-</div>
-<!-- Telemetry Metadata Strip -->
-<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 border-t border-outline-variant/40">
-<div>
-<span class="block text-label-caps font-label-caps text-outline mb-0.5">TRIGGER SOURCE</span>
-<span class="flex items-center gap-1.5 font-body-sm text-body-sm font-medium text-primary">
-<span class="material-symbols-outlined text-[15px] text-secondary" data-icon="webhook">webhook</span>
-              <span id="telemetry-trigger-source">Webhook (Shopify ERP)</span>
-            </span>
-</div>
-<div>
-<span class="block text-label-caps font-label-caps text-outline mb-0.5">STARTED AT</span>
-<span class="font-mono-sm text-mono-sm text-on-surface" id="telemetry-started-at">May 16, 2025 14:22:04 UTC</span>
-</div>
-<div>
-<span class="block text-label-caps font-label-caps text-outline mb-0.5">COMPLETED AT</span>
-<span class="font-mono-sm text-mono-sm text-on-surface" id="telemetry-completed-at">14:22:04.354 UTC</span>
-</div>
-<div>
-<span class="block text-label-caps font-label-caps text-outline mb-0.5">TOTAL RUNTIME LATENCY</span>
-<span class="inline-flex items-center gap-1 font-mono-sm text-mono-sm font-semibold text-primary">
-<span class="material-symbols-outlined text-[15px] text-secondary" data-icon="timer">timer</span>
-              <span id="telemetry-runtime-latency">354ms</span>
-            </span>
-</div>
-</div>
-</div>
-</div>
+
 <!-- 2. VISUAL DAG PIPELINE / STEPPER TRACK -->
 <section class="space-y-3">
-<div class="flex items-center justify-between">
-<h2 class="text-headline-sm font-headline-sm text-primary flex items-center gap-2">
-<span>Execution DAG Trace</span>
-<span class="text-label-caps font-label-caps px-2 py-0.5 rounded bg-surface-container text-on-surface-variant" id="dag-nodes-succeeded-pill">5/5 Nodes Succeeded</span>
-</h2>
-<div class="flex items-center gap-3 text-mono-sm font-mono-sm text-outline">
-<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-secondary"></span> Synchronous Step</span>
-<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-secondary-container"></span> LLM Inference</span>
-</div>
-</div>
-<!-- Interactive Stepper Canvas -->
-<div class="bg-surface-container-low border border-outline-variant/60 rounded-xl p-6 overflow-x-auto shadow-inner">
-<div class="min-w-[1020px] flex items-center justify-between relative py-4" id="dag-stepper-canvas">
-<!-- Connecting Track Line Underlay -->
-<div class="absolute left-10 right-10 top-1/2 -translate-y-1/2 h-[2px] bg-outline-variant z-0"></div>
-<!-- Step 1 -->
-<div class="relative z-10 flex flex-col items-center group cursor-pointer w-44">
-<div class="w-9 h-9 rounded-full bg-surface-container-lowest border-2 border-secondary flex items-center justify-center text-secondary shadow-sm transition-transform duration-150 group-hover:scale-110">
-<span class="material-symbols-outlined text-[18px]" data-icon="check">check</span>
-</div>
-<div class="mt-3 bg-surface-container-lowest border border-outline-variant/70 rounded-lg p-2.5 w-full shadow-sm text-center transition-all group-hover:border-secondary">
-<div class="flex items-center justify-between text-mono-sm font-mono-sm text-outline mb-1">
-<span>01</span>
-<span class="px-1 rounded bg-secondary-fixed/50 text-on-secondary-fixed text-[10px]" id="step-1-duration">18ms</span>
-</div>
-<h3 class="font-headline-sm text-body-sm font-semibold text-primary truncate">Validate Request</h3>
-<p class="font-mono-sm text-[10px] text-on-surface-variant mt-0.5">Attempt 1/1</p>
-</div>
-</div>
-<!-- Direct Line Indicator 1-2 -->
-<div class="z-10 -mx-3 flex items-center text-outline-variant">
-<span class="material-symbols-outlined text-[16px] text-secondary" data-icon="arrow_forward">arrow_forward</span>
-</div>
-<!-- Step 2 -->
-<div class="relative z-10 flex flex-col items-center group cursor-pointer w-44">
-<div class="w-9 h-9 rounded-full bg-surface-container-lowest border-2 border-secondary flex items-center justify-center text-secondary shadow-sm transition-transform duration-150 group-hover:scale-110">
-<span class="material-symbols-outlined text-[18px]" data-icon="inventory_2">inventory_2</span>
-</div>
-<div class="mt-3 bg-surface-container-lowest border border-outline-variant/70 rounded-lg p-2.5 w-full shadow-sm text-center transition-all group-hover:border-secondary">
-<div class="flex items-center justify-between text-mono-sm font-mono-sm text-outline mb-1">
-<span>02</span>
-<span class="px-1 rounded bg-secondary-fixed/50 text-on-secondary-fixed text-[10px]" id="step-2-duration">84ms</span>
-</div>
-<h3 class="font-headline-sm text-body-sm font-semibold text-primary truncate">Check ERP Inventory</h3>
-<p class="font-mono-sm text-[10px] text-on-surface-variant mt-0.5">NetSuite API</p>
-</div>
-</div>
-<!-- Direct Line Indicator 2-3 -->
-<div class="z-10 -mx-3 flex items-center text-outline-variant">
-<span class="material-symbols-outlined text-[16px] text-secondary" data-icon="arrow_forward">arrow_forward</span>
-</div>
-<!-- Step 3 -->
-<div class="relative z-10 flex flex-col items-center group cursor-pointer w-44">
-<div class="w-9 h-9 rounded-full bg-surface-container-lowest border-2 border-secondary flex items-center justify-center text-secondary shadow-sm transition-transform duration-150 group-hover:scale-110">
-<span class="material-symbols-outlined text-[18px]" data-icon="verified_user">verified_user</span>
-</div>
-<div class="mt-3 bg-surface-container-lowest border border-outline-variant/70 rounded-lg p-2.5 w-full shadow-sm text-center transition-all group-hover:border-secondary">
-<div class="flex items-center justify-between text-mono-sm font-mono-sm text-outline mb-1">
-<span>03</span>
-<span class="px-1 rounded bg-secondary-fixed/50 text-on-secondary-fixed text-[10px]" id="step-3-duration">14ms</span>
-</div>
-<h3 class="font-headline-sm text-body-sm font-semibold text-primary truncate">Verify VIP Tier SLA</h3>
-<p class="font-mono-sm text-[10px] text-on-surface-variant mt-0.5">Tier 1 Elite</p>
-</div>
-</div>
-<!-- Direct Line Indicator 3-4 -->
-<div class="z-10 -mx-3 flex items-center text-outline-variant">
-<span class="material-symbols-outlined text-[16px] text-secondary" data-icon="arrow_forward">arrow_forward</span>
-</div>
-<!-- Step 4 (LLM Step Highlight) -->
-<div class="relative z-10 flex flex-col items-center group cursor-pointer w-48">
-<div class="w-9 h-9 rounded-full bg-surface-container-lowest border-2 border-secondary-container flex items-center justify-center text-secondary shadow-sm transition-transform duration-150 group-hover:scale-110 ring-4 ring-secondary-fixed/40">
-<span class="material-symbols-outlined text-[18px]" data-icon="neurology">neurology</span>
-</div>
-<div class="mt-3 bg-surface-container-lowest border-2 border-secondary-container/80 rounded-lg p-2.5 w-full shadow-sm text-center transition-all group-hover:border-secondary">
-<div class="flex items-center justify-between text-mono-sm font-mono-sm text-outline mb-1">
-<span class="text-secondary font-semibold">04 (AI)</span>
-<span class="px-1.5 py-0.2 rounded bg-secondary-fixed text-on-secondary-fixed font-semibold text-[10px]" id="step-4-duration">192ms</span>
-</div>
-<h3 class="font-headline-sm text-body-sm font-semibold text-primary truncate">Dispatch Date Delay</h3>
-<p class="font-mono-sm text-[10px] text-secondary mt-0.5 font-medium">gpt-4o-mini reasoning</p>
-</div>
-</div>
-<!-- Direct Line Indicator 4-5 -->
-<div class="z-10 -mx-3 flex items-center text-outline-variant">
-<span class="material-symbols-outlined text-[16px] text-secondary" data-icon="arrow_forward">arrow_forward</span>
-</div>
-<!-- Step 5 -->
-<div class="relative z-10 flex flex-col items-center group cursor-pointer w-44">
-<div class="w-9 h-9 rounded-full bg-surface-container-lowest border-2 border-secondary flex items-center justify-center text-secondary shadow-sm transition-transform duration-150 group-hover:scale-110">
-<span class="material-symbols-outlined text-[18px]" data-icon="forward_to_inbox">forward_to_inbox</span>
-</div>
-<div class="mt-3 bg-surface-container-lowest border border-outline-variant/70 rounded-lg p-2.5 w-full shadow-sm text-center transition-all group-hover:border-secondary">
-<div class="flex items-center justify-between text-mono-sm font-mono-sm text-outline mb-1">
-<span>05</span>
-<span class="px-1 rounded bg-secondary-fixed/50 text-on-secondary-fixed text-[10px]" id="step-5-duration">46ms</span>
-</div>
-<h3 class="font-headline-sm text-body-sm font-semibold text-primary truncate">Notify Customer</h3>
-<p class="font-mono-sm text-[10px] text-on-surface-variant mt-0.5">SendGrid Dispatch</p>
-</div>
-</div>
-</div>
-</div>
+    <div class="flex items-center justify-between">
+        <h2 class="text-headline-sm font-headline-sm text-primary flex items-center gap-2">
+            <span>Execution DAG Trace</span>
+            <span class="text-label-caps font-label-caps px-2 py-0.5 rounded bg-surface-container text-on-surface-variant" id="dag-nodes-succeeded-pill">5/5 Nodes Succeeded</span>
+        </h2>
+        <div class="flex items-center gap-3 text-mono-sm font-mono-sm text-outline">
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-secondary"></span> Synchronous Step</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-secondary-container"></span> LLM Inference</span>
+        </div>
+    </div>
+
+    <!-- Interactive Stepper Canvas -->
+    <div class="bg-surface-container-low border border-outline-variant/60 rounded-xl p-6 overflow-x-auto shadow-inner">
+        <div class="min-w-[1020px] flex items-center justify-between relative py-4" id="dag-stepper-canvas">
+            <!-- Track line underlay -->
+            <div class="absolute left-10 right-10 top-1/2 -translate-y-1/2 h-[2px] bg-outline-variant z-0"></div>
+
+            <!-- Step 1 -->
+            <div class="relative z-10 flex flex-col items-center group cursor-pointer w-44">
+                <div class="w-9 h-9 rounded-full bg-surface-container-lowest border-2 border-secondary flex items-center justify-center text-secondary shadow-sm transition-transform duration-150 group-hover:scale-110">
+                    <span class="material-symbols-outlined text-[18px]">check</span>
+                </div>
+                <div class="mt-3 bg-surface-container-lowest border border-outline-variant/70 rounded-lg p-2.5 w-full shadow-sm text-center transition-all group-hover:border-secondary">
+                    <div class="flex items-center justify-between text-mono-sm font-mono-sm text-outline mb-1">
+                        <span>01</span>
+                        <span class="px-1 rounded bg-secondary-fixed/50 text-on-secondary-fixed text-[10px]" id="step-1-duration">18ms</span>
+                    </div>
+                    <h3 class="font-headline-sm text-body-sm font-semibold text-primary truncate">validate_inbound_request</h3>
+                    <p class="font-mono-sm text-[10px] text-on-surface-variant mt-0.5">Attempt 1/1</p>
+                </div>
+            </div>
+
+            <div class="z-10 -mx-3 flex items-center text-outline-variant">
+                <span class="material-symbols-outlined text-[16px] text-secondary">arrow_forward</span>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="relative z-10 flex flex-col items-center group cursor-pointer w-44">
+                <div class="w-9 h-9 rounded-full bg-surface-container-lowest border-2 border-secondary flex items-center justify-center text-secondary shadow-sm transition-transform duration-150 group-hover:scale-110">
+                    <span class="material-symbols-outlined text-[18px]">inventory_2</span>
+                </div>
+                <div class="mt-3 bg-surface-container-lowest border border-outline-variant/70 rounded-lg p-2.5 w-full shadow-sm text-center transition-all group-hover:border-secondary">
+                    <div class="flex items-center justify-between text-mono-sm font-mono-sm text-outline mb-1">
+                        <span>02</span>
+                        <span class="px-1 rounded bg-secondary-fixed/50 text-on-secondary-fixed text-[10px]" id="step-2-duration">84ms</span>
+                    </div>
+                    <h3 class="font-headline-sm text-body-sm font-semibold text-primary truncate">fetch_order_details</h3>
+                    <p class="font-mono-sm text-[10px] text-on-surface-variant mt-0.5">Order Service API</p>
+                </div>
+            </div>
+
+            <div class="z-10 -mx-3 flex items-center text-outline-variant">
+                <span class="material-symbols-outlined text-[16px] text-secondary">arrow_forward</span>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="relative z-10 flex flex-col items-center group cursor-pointer w-44">
+                <div class="w-9 h-9 rounded-full bg-surface-container-lowest border-2 border-secondary flex items-center justify-center text-secondary shadow-sm transition-transform duration-150 group-hover:scale-110">
+                    <span class="material-symbols-outlined text-[18px]">verified_user</span>
+                </div>
+                <div class="mt-3 bg-surface-container-lowest border border-outline-variant/70 rounded-lg p-2.5 w-full shadow-sm text-center transition-all group-hover:border-secondary">
+                    <div class="flex items-center justify-between text-mono-sm font-mono-sm text-outline mb-1">
+                        <span>03</span>
+                        <span class="px-1 rounded bg-secondary-fixed/50 text-on-secondary-fixed text-[10px]" id="step-3-duration">14ms</span>
+                    </div>
+                    <h3 class="font-headline-sm text-body-sm font-semibold text-primary truncate">verify_customer</h3>
+                    <p class="font-mono-sm text-[10px] text-on-surface-variant mt-0.5">Customer Verification</p>
+                </div>
+            </div>
+
+            <div class="z-10 -mx-3 flex items-center text-outline-variant">
+                <span class="material-symbols-outlined text-[16px] text-secondary">arrow_forward</span>
+            </div>
+
+            <!-- Step 4 (AI Node) -->
+            <div class="relative z-10 flex flex-col items-center group cursor-pointer w-48">
+                <div class="w-9 h-9 rounded-full bg-surface-container-lowest border-2 border-secondary-container flex items-center justify-center text-secondary shadow-sm transition-transform duration-150 group-hover:scale-110 ring-4 ring-secondary-fixed/40">
+                    <span class="material-symbols-outlined text-[18px]">psychology</span>
+                </div>
+                <div class="mt-3 bg-surface-container-lowest border-2 border-secondary-container/80 rounded-lg p-2.5 w-full shadow-sm text-center transition-all group-hover:border-secondary">
+                    <div class="flex items-center justify-between text-mono-sm font-mono-sm text-outline mb-1">
+                        <span class="text-secondary font-semibold">04 (AI)</span>
+                        <span class="px-1.5 py-0.2 rounded bg-secondary-fixed text-on-secondary-fixed font-semibold text-[10px]" id="step-4-duration">192ms</span>
+                    </div>
+                    <h3 class="font-headline-sm text-body-sm font-semibold text-primary truncate">interpret_intent</h3>
+                    <p class="font-mono-sm text-[10px] text-secondary mt-0.5 font-medium" id="dag-ai-node-sub">LLM Reasoning</p>
+                </div>
+            </div>
+
+            <div class="z-10 -mx-3 flex items-center text-outline-variant">
+                <span class="material-symbols-outlined text-[16px] text-secondary">arrow_forward</span>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="relative z-10 flex flex-col items-center group cursor-pointer w-44">
+                <div class="w-9 h-9 rounded-full bg-surface-container-lowest border-2 border-secondary flex items-center justify-center text-secondary shadow-sm transition-transform duration-150 group-hover:scale-110">
+                    <span class="material-symbols-outlined text-[18px]">forward_to_inbox</span>
+                </div>
+                <div class="mt-3 bg-surface-container-lowest border border-outline-variant/70 rounded-lg p-2.5 w-full shadow-sm text-center transition-all group-hover:border-secondary">
+                    <div class="flex items-center justify-between text-mono-sm font-mono-sm text-outline mb-1">
+                        <span>05</span>
+                        <span class="px-1 rounded bg-secondary-fixed/50 text-on-secondary-fixed text-[10px]" id="step-5-duration">46ms</span>
+                    </div>
+                    <h3 class="font-headline-sm text-body-sm font-semibold text-primary truncate">update_order_delivery</h3>
+                    <p class="font-mono-sm text-[10px] text-on-surface-variant mt-0.5">Order Service Dispatch</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </section>
+
 <!-- 3. STRUCTURED METADATA GRID (4 EXPANSIVE CARDS) -->
 <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-<!-- Card 1: Execution Metadata -->
-<div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 shadow-sm flex flex-col justify-between">
-<div>
-<div class="flex items-center justify-between pb-3 border-b border-outline-variant/30 mb-3">
-<span class="text-label-caps font-label-caps text-outline">EXECUTION METADATA</span>
-<span class="material-symbols-outlined text-outline text-[18px]" data-icon="settings_suggest">settings_suggest</span>
-</div>
-<div class="space-y-2.5">
-<div>
-<span class="text-mono-sm font-mono-sm text-outline block">Workflow Type</span>
-<span class="font-mono-md text-mono-md text-primary font-medium" id="meta-workflow-type">order_change</span>
-</div>
-<div>
-<span class="text-mono-sm font-mono-sm text-outline block">Environment</span>
-<span class="inline-flex items-center gap-1 font-mono-sm text-mono-sm text-on-surface">
-<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> <span id="meta-environment">Production-US-East</span>
-              </span>
-</div>
-<div>
-<span class="text-mono-sm font-mono-sm text-outline block">External Ref ID</span>
-<span class="font-mono-sm text-mono-sm text-on-surface truncate block" id="meta-external-ref-id" title="ext_ref_shpfy_992144">ext_ref_shpfy_992144</span>
-</div>
-</div>
-</div>
-<div class="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between text-mono-sm font-mono-sm text-outline">
-<span id="meta-worker">Worker: node-us-east-4a</span>
-<span id="meta-pid">PID: 88102</span>
-</div>
-</div>
-<!-- Card 2: Business Operation Payload -->
-<div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 shadow-sm flex flex-col justify-between">
-<div>
-<div class="flex items-center justify-between pb-3 border-b border-outline-variant/30 mb-3">
-<span class="text-label-caps font-label-caps text-outline">BUSINESS OPERATION PAYLOAD</span>
-<span class="material-symbols-outlined text-outline text-[18px]" data-icon="receipt_long">receipt_long</span>
-</div>
-<div class="space-y-2.5">
-<div class="flex justify-between items-center">
-<span class="text-mono-sm font-mono-sm text-outline">Order ID</span>
-<span class="font-mono-sm text-mono-sm font-semibold text-primary" id="meta-order-id">ORD-1002</span>
-</div>
-<div class="flex justify-between items-center">
-<span class="text-mono-sm font-mono-sm text-outline">Customer ID</span>
-<span class="font-mono-sm text-mono-sm text-primary" id="meta-customer-id">CUST-8492 (VIP)</span>
-</div>
-<div class="flex justify-between items-center">
-<span class="text-mono-sm font-mono-sm text-outline">Original Delivery</span>
-<span class="font-mono-sm text-mono-sm text-outline line-through" id="meta-original-delivery">2025-05-10</span>
-</div>
-<div class="flex justify-between items-center bg-secondary-fixed/30 px-2 py-1 rounded">
-<span class="text-mono-sm font-mono-sm text-on-secondary-fixed font-medium">Adjusted Delivery</span>
-<span class="font-mono-sm text-mono-sm font-bold text-secondary" id="meta-adjusted-delivery">2025-05-17</span>
-</div>
-</div>
-</div>
-<div class="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between text-mono-sm font-mono-sm text-outline">
-<span id="meta-delta-days">Delta: +7 Days</span>
-<span class="text-secondary font-medium" id="meta-sla-status">SLA Preserved</span>
-</div>
-</div>
-<!-- Card 3: Distributed Tracing & Guardrails -->
-<div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 shadow-sm flex flex-col justify-between">
-<div>
-<div class="flex items-center justify-between pb-3 border-b border-outline-variant/30 mb-3">
-<span class="text-label-caps font-label-caps text-outline">TRACING &amp; GUARDRAILS</span>
-<span class="material-symbols-outlined text-outline text-[18px]" data-icon="shield">shield</span>
-</div>
-<div class="space-y-2.5">
-<div>
-<span class="text-mono-sm font-mono-sm text-outline block">Correlation ID</span>
-<span class="font-mono-sm text-mono-sm text-primary truncate block" id="meta-correlation-id" title="c-8fa2981-01f">c-8fa2981-01f</span>
-</div>
-<div>
-<span class="text-mono-sm font-mono-sm text-outline block">Idempotency Key</span>
-<span class="font-mono-sm text-mono-sm text-primary truncate block" id="meta-idempotency-key" title="idem-shopify-ord-1002-v1">idem-shopify-ord-1002-v1</span>
-</div>
-<div>
-<span class="text-mono-sm font-mono-sm text-outline block">Guardrail Check</span>
-<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-secondary-fixed text-on-secondary-fixed font-mono-sm text-mono-sm font-medium mt-0.5" id="meta-guardrail-check">
-<span class="material-symbols-outlined text-[13px]" data-icon="verified">verified</span>
-                PASSED (99.4% confidence)
-              </span>
-</div>
-</div>
-</div>
-<div class="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between text-mono-sm font-mono-sm text-outline">
-<span>Policy: safe-reorder-v2</span>
-<span>Zero Overlap</span>
-</div>
-</div>
-<!-- Card 4: LLM Telemetry -->
-<div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 shadow-sm flex flex-col justify-between">
-<div>
-<div class="flex items-center justify-between pb-3 border-b border-outline-variant/30 mb-3">
-<span class="text-label-caps font-label-caps text-outline">LLM TELEMETRY</span>
-<span class="material-symbols-outlined text-secondary text-[18px]" data-icon="smart_toy">smart_toy</span>
-</div>
-<div class="space-y-2.5">
-<div class="flex justify-between items-center">
-<span class="text-mono-sm font-mono-sm text-outline">Model</span>
-<span class="font-mono-sm text-mono-sm font-semibold text-primary" id="meta-llm-model">gpt-4o-mini</span>
-</div>
-<div class="flex justify-between items-center">
-<span class="text-mono-sm font-mono-sm text-outline">LLM Latency</span>
-<span class="font-mono-sm text-mono-sm text-primary" id="meta-llm-latency">284ms</span>
-</div>
-<div class="flex justify-between items-center">
-<span class="text-mono-sm font-mono-sm text-outline">Tokens (In / Out)</span>
-<span class="font-mono-sm text-mono-sm text-primary" id="meta-llm-tokens">380 / 120 (500 total)</span>
-</div>
-<div class="flex justify-between items-center">
-<span class="text-mono-sm font-mono-sm text-outline">Estimated Cost</span>
-<span class="font-mono-sm text-mono-sm font-semibold text-secondary" id="meta-llm-cost">$0.00042 USD</span>
-</div>
-</div>
-</div>
-<div class="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between text-mono-sm font-mono-sm text-outline">
-<span>Temp: 0.0</span>
-<span>Finish: stop</span>
-</div>
-</div>
+    <!-- Card 1: Execution Metadata -->
+    <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+        <div>
+            <div class="flex items-center justify-between pb-3 border-b border-outline-variant/30 mb-3">
+                <span class="text-label-caps font-label-caps text-outline uppercase">EXECUTION METADATA</span>
+                <span class="material-symbols-outlined text-outline text-[18px]">settings_suggest</span>
+            </div>
+            <div class="space-y-2.5">
+                <div>
+                    <span class="text-mono-sm font-mono-sm text-outline block">Workflow Type</span>
+                    <span class="font-mono-md text-mono-md text-primary font-medium" id="meta-workflow-type">order_change</span>
+                </div>
+                <div>
+                    <span class="text-mono-sm font-mono-sm text-outline block">Source System</span>
+                    <span class="inline-flex items-center gap-1 font-mono-sm text-mono-sm text-on-surface" id="meta-source-system">
+                        <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Shopify ERP
+                    </span>
+                </div>
+                <div>
+                    <span class="text-mono-sm font-mono-sm text-outline block">External Ref ID</span>
+                    <span class="font-mono-sm text-mono-sm text-on-surface truncate block" id="meta-external-ref-id" title="ext_ref_shpfy_992144">ext_ref_shpfy_992144</span>
+                </div>
+            </div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between text-mono-sm font-mono-sm text-outline">
+            <span id="meta-worker">Worker: node-01</span>
+            <span id="meta-pid">Status: Active</span>
+        </div>
+    </div>
+
+    <!-- Card 2: Business Operation Payload -->
+    <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+        <div>
+            <div class="flex items-center justify-between pb-3 border-b border-outline-variant/30 mb-3">
+                <span class="text-label-caps font-label-caps text-outline uppercase">BUSINESS OPERATION PAYLOAD</span>
+                <span class="material-symbols-outlined text-outline text-[18px]">receipt_long</span>
+            </div>
+            <div class="space-y-2.5">
+                <div class="flex justify-between items-center">
+                    <span class="text-mono-sm font-mono-sm text-outline">Order ID</span>
+                    <span class="font-mono-sm text-mono-sm font-semibold text-primary" id="meta-order-id">ORD-1002</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-mono-sm font-mono-sm text-outline">Customer ID</span>
+                    <span class="font-mono-sm text-mono-sm text-primary" id="meta-customer-id">CUST-8492</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-mono-sm font-mono-sm text-outline">Previous Delivery</span>
+                    <span class="font-mono-sm text-mono-sm text-outline line-through" id="meta-original-delivery">2026-11-10</span>
+                </div>
+                <div class="flex justify-between items-center bg-secondary-fixed/30 px-2 py-1 rounded">
+                    <span class="text-mono-sm font-mono-sm text-on-secondary-fixed font-medium">New Delivery</span>
+                    <span class="font-mono-sm text-mono-sm font-bold text-secondary" id="meta-adjusted-delivery">2026-11-25</span>
+                </div>
+            </div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between text-mono-sm font-mono-sm text-outline">
+            <span id="meta-delta-days">Order Status: Active</span>
+            <span class="text-secondary font-medium" id="meta-sla-status">Valid</span>
+        </div>
+    </div>
+
+    <!-- Card 3: Distributed Tracing & Guardrails -->
+    <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+        <div>
+            <div class="flex items-center justify-between pb-3 border-b border-outline-variant/30 mb-3">
+                <span class="text-label-caps font-label-caps text-outline uppercase">TRACING &amp; DIAGNOSTICS</span>
+                <span class="material-symbols-outlined text-outline text-[18px]">shield</span>
+            </div>
+            <div class="space-y-2.5">
+                <div>
+                    <span class="text-mono-sm font-mono-sm text-outline block">Correlation ID</span>
+                    <span class="font-mono-sm text-mono-sm text-primary truncate block" id="meta-correlation-id" title="c-8fa2981-01f">c-8fa2981-01f</span>
+                </div>
+                <div>
+                    <span class="text-mono-sm font-mono-sm text-outline block">Idempotency Key</span>
+                    <span class="font-mono-sm text-mono-sm text-primary truncate block" id="meta-idempotency-key" title="idem-shopify-ord-1002-v1">idem-shopify-ord-1002-v1</span>
+                </div>
+                <div>
+                    <span class="text-mono-sm font-mono-sm text-outline block">Failure Category</span>
+                    <span class="font-mono-sm text-mono-sm text-primary truncate block" id="meta-failure-cat">None</span>
+                </div>
+            </div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between text-mono-sm font-mono-sm text-outline">
+            <span>Deduplication: Active</span>
+            <span class="text-secondary font-medium">Verified</span>
+        </div>
+    </div>
+
+    <!-- Card 4: LLM Telemetry -->
+    <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+        <div>
+            <div class="flex items-center justify-between pb-3 border-b border-outline-variant/30 mb-3">
+                <span class="text-label-caps font-label-caps text-outline uppercase">LLM TELEMETRY</span>
+                <span class="material-symbols-outlined text-secondary text-[18px]">smart_toy</span>
+            </div>
+            <div class="space-y-2.5">
+                <div class="flex justify-between items-center">
+                    <span class="text-mono-sm font-mono-sm text-outline">Model</span>
+                    <span class="font-mono-sm text-mono-sm font-semibold text-primary" id="meta-llm-model">gpt-4o-mini</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-mono-sm font-mono-sm text-outline">LLM Latency</span>
+                    <span class="font-mono-sm text-mono-sm text-primary" id="meta-llm-latency">284ms</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-mono-sm font-mono-sm text-outline">Tokens</span>
+                    <span class="font-mono-sm text-mono-sm text-primary" id="meta-llm-tokens">500 total</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-mono-sm font-mono-sm text-outline">Estimated Cost</span>
+                    <span class="font-mono-sm text-mono-sm font-semibold text-secondary" id="meta-llm-cost">$0.0004 USD</span>
+                </div>
+            </div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between text-mono-sm font-mono-sm text-outline">
+            <span>Inference: Online</span>
+            <span>Deterministic</span>
+        </div>
+    </div>
 </section>
+
 <!-- 4. DETAILED EXECUTION LOG / STEP ATTEMPTS TABLE -->
 <section class="space-y-3">
-<div class="flex items-center justify-between">
-<h2 class="text-headline-sm font-headline-sm text-primary flex items-center gap-2">
-<span>Execution Step Telemetry Log</span>
-<span class="font-mono-sm text-mono-sm text-outline" id="execution-step-count-header">(5 Recorded Operations)</span>
-</h2>
-<div class="flex items-center gap-2">
-<button class="px-2.5 py-1 text-mono-sm font-mono-sm border border-outline-variant rounded bg-surface-container-lowest text-on-surface hover:bg-surface-container-low transition-colors flex items-center gap-1">
-<span class="material-symbols-outlined text-[14px]" data-icon="filter_list">filter_list</span>
-<span>Filter</span>
-</button>
-</div>
-</div>
-<div class="border border-outline-variant/60 rounded-xl overflow-hidden bg-surface-container-lowest shadow-sm">
-<table class="w-full text-left border-collapse">
-<thead>
-<tr class="border-b border-outline-variant/60 bg-surface-container-low/70 text-label-caps font-label-caps text-outline">
-<th class="py-2.5 px-4">STEP IDENTIFIER</th>
-<th class="py-2.5 px-4">STATUS</th>
-<th class="py-2.5 px-4 text-right">START TIME (UTC)</th>
-<th class="py-2.5 px-4 text-right">DURATION</th>
-<th class="py-2.5 px-4 text-center">ATTEMPT</th>
-<th class="py-2.5 px-4 text-right">INSPECT PAYLOAD</th>
-</tr>
-</thead>
-<tbody class="divide-y divide-outline-variant/30 text-body-sm font-body-sm font-normal" id="execution-steps-table-body">
-<!-- Row 1 -->
-<tr class="hover:bg-surface-container-low/40 transition-colors">
-<td class="py-3 px-4 flex items-center gap-2">
-<span class="material-symbols-outlined text-secondary text-[16px]" data-icon="rule">rule</span>
-<span class="font-medium text-primary">Validate Request</span>
-</td>
-<td class="py-3 px-4">
-<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-mono-sm font-mono-sm bg-secondary-fixed text-on-secondary-fixed">
-<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> SUCCESS
-                </span>
-</td>
-<td class="py-3 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">14:22:04.000</td>
-<td class="py-3 px-4 text-right font-mono-sm text-mono-sm font-medium text-primary">18ms</td>
-<td class="py-3 px-4 text-center font-mono-sm text-mono-sm text-outline">1 / 1</td>
-<td class="py-3 px-4 text-right">
-<button class="text-label-caps font-label-caps text-secondary hover:underline inline-flex items-center gap-1">
-<span>View IO</span>
-<span class="material-symbols-outlined text-[14px]" data-icon="chevron_right">chevron_right</span>
-</button>
-</td>
-</tr>
-<!-- Row 2 -->
-<tr class="hover:bg-surface-container-low/40 transition-colors">
-<td class="py-3 px-4 flex items-center gap-2">
-<span class="material-symbols-outlined text-secondary text-[16px]" data-icon="database">database</span>
-<span class="font-medium text-primary">Check ERP Inventory</span>
-</td>
-<td class="py-3 px-4">
-<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-mono-sm font-mono-sm bg-secondary-fixed text-on-secondary-fixed">
-<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> SUCCESS
-                </span>
-</td>
-<td class="py-3 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">14:22:04.018</td>
-<td class="py-3 px-4 text-right font-mono-sm text-mono-sm font-medium text-primary">84ms</td>
-<td class="py-3 px-4 text-center font-mono-sm text-mono-sm text-outline">1 / 1</td>
-<td class="py-3 px-4 text-right">
-<button class="text-label-caps font-label-caps text-secondary hover:underline inline-flex items-center gap-1">
-<span>View IO</span>
-<span class="material-symbols-outlined text-[14px]" data-icon="chevron_right">chevron_right</span>
-</button>
-</td>
-</tr>
-<!-- Row 3 -->
-<tr class="hover:bg-surface-container-low/40 transition-colors">
-<td class="py-3 px-4 flex items-center gap-2">
-<span class="material-symbols-outlined text-secondary text-[16px]" data-icon="military_tech">military_tech</span>
-<span class="font-medium text-primary">Verify VIP Tier SLA</span>
-</td>
-<td class="py-3 px-4">
-<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-mono-sm font-mono-sm bg-secondary-fixed text-on-secondary-fixed">
-<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> SUCCESS
-                </span>
-</td>
-<td class="py-3 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">14:22:04.102</td>
-<td class="py-3 px-4 text-right font-mono-sm text-mono-sm font-medium text-primary">14ms</td>
-<td class="py-3 px-4 text-center font-mono-sm text-mono-sm text-outline">1 / 1</td>
-<td class="py-3 px-4 text-right">
-<button class="text-label-caps font-label-caps text-secondary hover:underline inline-flex items-center gap-1">
-<span>View IO</span>
-<span class="material-symbols-outlined text-[14px]" data-icon="chevron_right">chevron_right</span>
-</button>
-</td>
-</tr>
-<!-- Row 4 -->
-<tr class="hover:bg-surface-container-low/40 transition-colors bg-secondary-fixed/10">
-<td class="py-3 px-4 flex items-center gap-2">
-<span class="material-symbols-outlined text-secondary text-[16px]" data-icon="psychology">psychology</span>
-<span class="font-medium text-primary">Dispatch Date Delay (LLM Step)</span>
-</td>
-<td class="py-3 px-4">
-<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-mono-sm font-mono-sm bg-secondary-fixed text-on-secondary-fixed">
-<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> SUCCESS
-                </span>
-</td>
-<td class="py-3 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">14:22:04.116</td>
-<td class="py-3 px-4 text-right font-mono-sm text-mono-sm font-medium text-secondary">192ms</td>
-<td class="py-3 px-4 text-center font-mono-sm text-mono-sm text-outline">1 / 1</td>
-<td class="py-3 px-4 text-right">
-<button class="text-label-caps font-label-caps text-secondary hover:underline inline-flex items-center gap-1">
-<span>View IO</span>
-<span class="material-symbols-outlined text-[14px]" data-icon="chevron_right">chevron_right</span>
-</button>
-</td>
-</tr>
-<!-- Row 5 -->
-<tr class="hover:bg-surface-container-low/40 transition-colors">
-<td class="py-3 px-4 flex items-center gap-2">
-<span class="material-symbols-outlined text-secondary text-[16px]" data-icon="mail">mail</span>
-<span class="font-medium text-primary">Notify Customer</span>
-</td>
-<td class="py-3 px-4">
-<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-mono-sm font-mono-sm bg-secondary-fixed text-on-secondary-fixed">
-<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> SUCCESS
-                </span>
-</td>
-<td class="py-3 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">14:22:04.308</td>
-<td class="py-3 px-4 text-right font-mono-sm text-mono-sm font-medium text-primary">46ms</td>
-<td class="py-3 px-4 text-center font-mono-sm text-mono-sm text-outline">1 / 1</td>
-<td class="py-3 px-4 text-right">
-<button class="text-label-caps font-label-caps text-secondary hover:underline inline-flex items-center gap-1">
-<span>View IO</span>
-<span class="material-symbols-outlined text-[14px]" data-icon="chevron_right">chevron_right</span>
-</button>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+    <div class="flex items-center justify-between">
+        <h2 class="text-headline-sm font-headline-sm text-primary flex items-center gap-2">
+            <span>Execution Step Telemetry Log</span>
+            <span class="font-mono-sm text-mono-sm text-outline" id="execution-step-count-header">(5 Recorded Operations)</span>
+        </h2>
+    </div>
+
+    <div class="border border-outline-variant/60 rounded-xl overflow-hidden bg-surface-container-lowest shadow-sm">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="border-b border-outline-variant/60 bg-surface-container-low/70 font-label-caps text-label-caps text-outline uppercase tracking-wider">
+                    <th class="py-2.5 px-4 font-semibold">STEP IDENTIFIER</th>
+                    <th class="py-2.5 px-4 font-semibold">STATUS</th>
+                    <th class="py-2.5 px-4 text-right font-semibold">START TIME (UTC)</th>
+                    <th class="py-2.5 px-4 text-right font-semibold">DURATION</th>
+                    <th class="py-2.5 px-4 text-center font-semibold">ATTEMPT</th>
+                    <th class="py-2.5 px-4 text-right font-semibold">DIAGNOSTIC CONTEXT</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-outline-variant/30 text-body-sm font-body-sm" id="execution-steps-table-body">
+                <!-- Dynamically populated -->
+            </tbody>
+        </table>
+    </div>
 </section>
+
 <!-- 5. RAW STATE INSPECTOR (TABBED JSON CODE VIEWER) -->
 <section class="space-y-3 pb-8">
-<div class="flex items-center justify-between">
-<h2 class="text-headline-sm font-headline-sm text-primary flex items-center gap-2">
-<span>Raw State Inspector</span>
-<span class="text-mono-sm font-mono-sm text-outline">JSON Payload</span>
-</h2>
-<!-- Action CTAs -->
-<button class="px-3 py-1.5 bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-on-surface rounded-lg font-mono-sm text-mono-sm transition-all flex items-center gap-1.5 shadow-sm active:scale-[0.99]" id="copy-json-btn" onclick="copyJsonPayload()">
-<span class="material-symbols-outlined text-[14px]" data-icon="copy_all">copy_all</span>
-<span id="copy-json-text">Copy JSON</span>
-</button>
-</div>
-<!-- Inspector Panel Frame -->
-<div class="border border-outline-variant/60 rounded-xl overflow-hidden bg-surface-container-lowest shadow-sm">
-<!-- Header Tabs -->
-<div class="bg-surface-container-low border-b border-outline-variant/60 px-4 flex items-center justify-between">
-<div class="flex items-center gap-6" role="tablist">
-<button class="py-3 text-mono-sm font-mono-sm text-outline hover:text-primary transition-colors flex items-center gap-1.5 border-b-2 border-transparent" id="tab-input" onclick="switchTab('input')">
-<span class="material-symbols-outlined text-[16px]" data-icon="input">input</span>
-<span>Input Event</span>
-</button>
-<button class="py-3 text-mono-sm font-mono-sm font-semibold text-primary border-b-2 border-primary flex items-center gap-1.5" id="tab-resolved" onclick="switchTab('resolved')">
-<span class="material-symbols-outlined text-[16px]" data-icon="check_circle">check_circle</span>
-<span>Resolved Workflow State</span>
-</button>
-<button class="py-3 text-mono-sm font-mono-sm text-outline hover:text-primary transition-colors flex items-center gap-1.5 border-b-2 border-transparent" id="tab-telemetry" onclick="switchTab('telemetry')">
-<span class="material-symbols-outlined text-[16px]" data-icon="analytics">analytics</span>
-<span>Full Telemetry Trace</span>
-</button>
-</div>
-<span class="font-mono-sm text-[11px] text-outline">UTF-8 &bull; Application/JSON</span>
-</div>
-<!-- Code Block Surface -->
-<div class="p-4 bg-[#F5F3ED] overflow-x-auto text-mono-sm font-mono-sm text-on-surface leading-relaxed">
-<pre class="whitespace-pre" id="json-viewer">{
-  <span class="text-secondary font-semibold">"workflow_id"</span>: <span class="text-primary-container">"{{ execution_id }}"</span>,
-  <span class="text-secondary font-semibold">"status"</span>: <span class="text-secondary font-semibold">"COMPLETED"</span>,
-  <span class="text-secondary font-semibold">"execution"</span>: {
-    <span class="text-secondary font-semibold">"initiated_at"</span>: <span class="text-primary-container">"2025-05-16T14:22:04.000Z"</span>,
-    <span class="text-secondary font-semibold">"settled_at"</span>: <span class="text-primary-container">"2025-05-16T14:22:04.354Z"</span>,
-    <span class="text-secondary font-semibold">"latency_ms"</span>: <span class="text-on-secondary-container">354</span>,
-    <span class="text-secondary font-semibold">"worker_pool"</span>: <span class="text-primary-container">"us-east-prod-worker-cluster"</span>
-  },
-  <span class="text-secondary font-semibold">"operation_context"</span>: {
-    <span class="text-secondary font-semibold">"order_id"</span>: <span class="text-primary-container">"ORD-1002"</span>,
-    <span class="text-secondary font-semibold">"customer_id"</span>: <span class="text-primary-container">"CUST-8492"</span>,
-    <span class="text-secondary font-semibold">"customer_tier"</span>: <span class="text-primary-container">"VIP_TIER_1"</span>,
-    <span class="text-secondary font-semibold">"reschedule_intent"</span>: {
-      <span class="text-secondary font-semibold">"requested_original_date"</span>: <span class="text-primary-container">"2025-05-10"</span>,
-      <span class="text-secondary font-semibold">"calculated_safe_dispatch"</span>: <span class="text-primary-container">"2025-05-17"</span>,
-      <span class="text-secondary font-semibold">"confidence_score"</span>: <span class="text-on-secondary-container">0.994</span>
-    }
-  },
-  <span class="text-secondary font-semibold">"guardrail_audit"</span>: {
-    <span class="text-secondary font-semibold">"policy"</span>: <span class="text-primary-container">"safe-reorder-v2"</span>,
-    <span class="text-secondary font-semibold">"passed"</span>: <span class="text-secondary font-semibold">true</span>,
-    <span class="text-secondary font-semibold">"rules_evaluated"</span>: [<span class="text-primary-container">"MAX_WINDOW_LIMIT_14D"</span>, <span class="text-primary-container">"VIP_EXPEDITE_RESERVED"</span>]
-  },
-  <span class="text-secondary font-semibold">"llm_trace"</span>: {
-    <span class="text-secondary font-semibold">"node_id"</span>: <span class="text-primary-container">"dispatch_date_delay"</span>,
-    <span class="text-secondary font-semibold">"model"</span>: <span class="text-primary-container">"gpt-4o-mini"</span>,
-    <span class="text-secondary font-semibold">"usage"</span>: {
-      <span class="text-secondary font-semibold">"prompt_tokens"</span>: <span class="text-on-secondary-container">380</span>,
-      <span class="text-secondary font-semibold">"completion_tokens"</span>: <span class="text-on-secondary-container">120</span>,
-      <span class="text-secondary font-semibold">"total_tokens"</span>: <span class="text-on-secondary-container">500</span>,
-      <span class="text-secondary font-semibold">"cost_usd"</span>: <span class="text-on-secondary-container">0.00042</span>
-    }
-  }
-}</pre>
-</div>
-</div>
+    <div class="flex items-center justify-between">
+        <h2 class="text-headline-sm font-headline-sm text-primary flex items-center gap-2">
+            <span>Raw State Inspector</span>
+            <span class="text-mono-sm font-mono-sm text-outline">JSON Payload</span>
+        </h2>
+        <button class="px-3 py-1.5 bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-on-surface rounded-lg font-mono-sm text-mono-sm transition-all flex items-center gap-1.5 shadow-sm active:scale-[0.99] cursor-pointer" id="copy-json-btn" onclick="copyJsonPayload()">
+            <span class="material-symbols-outlined text-[14px]">copy_all</span>
+            <span id="copy-json-text">Copy JSON</span>
+        </button>
+    </div>
+
+    <div class="border border-outline-variant/60 rounded-xl overflow-hidden bg-surface-container-lowest shadow-sm">
+        <!-- Header Tabs -->
+        <div class="bg-surface-container-low border-b border-outline-variant/60 px-4 flex items-center justify-between">
+            <div class="flex items-center gap-6" role="tablist">
+                <button class="py-3 text-mono-sm font-mono-sm text-outline hover:text-primary transition-colors flex items-center gap-1.5 border-b-2 border-transparent cursor-pointer" id="tab-input" onclick="switchTab('input')">
+                    <span class="material-symbols-outlined text-[16px]">input</span>
+                    <span>Input Event</span>
+                </button>
+                <button class="py-3 text-mono-sm font-mono-sm font-semibold text-primary border-b-2 border-primary flex items-center gap-1.5 cursor-pointer" id="tab-resolved" onclick="switchTab('resolved')">
+                    <span class="material-symbols-outlined text-[16px]">check_circle</span>
+                    <span>Resolved Workflow State</span>
+                </button>
+                <button class="py-3 text-mono-sm font-mono-sm text-outline hover:text-primary transition-colors flex items-center gap-1.5 border-b-2 border-transparent cursor-pointer" id="tab-telemetry" onclick="switchTab('telemetry')">
+                    <span class="material-symbols-outlined text-[16px]">analytics</span>
+                    <span>Full Telemetry Trace</span>
+                </button>
+            </div>
+            <span class="font-mono-sm text-[11px] text-outline">UTF-8 • Application/JSON</span>
+        </div>
+
+        <div class="p-4 bg-[#F5F3ED] overflow-x-auto text-mono-sm font-mono-sm text-on-surface leading-relaxed">
+            <pre class="whitespace-pre" id="json-viewer">Loading workflow state…</pre>
+        </div>
+    </div>
 </section>
-</main>
-<!-- Interactive Utility Script for Tabs and Copying -->
+{% endblock %}
+
+{% block scripts %}
 <script>
     let activeWorkflowData = null;
 
     const jsonTabs = {
-      input: `{
-  "event_type": "shopify.webhook.order_reschedule",
-  "idempotency_key": "idem-shopify-ord-1002-v1",
-  "received_at": "2025-05-16T14:22:04.000Z",
-  "payload": {
-    "order_id": "ORD-1002",
-    "customer": {
-      "id": "CUST-8492",
-      "email": "vip.client@acme-corp.com"
-    },
-    "reason": "customer_requested_delay"
-  }
-}`,
-      resolved: `{
-  "workflow_id": "{{ execution_id }}",
-  "status": "COMPLETED",
-  "execution": {
-    "initiated_at": "2025-05-16T14:22:04.000Z",
-    "settled_at": "2025-05-16T14:22:04.354Z",
-    "latency_ms": 354,
-    "worker_pool": "us-east-prod-worker-cluster"
-  },
-  "operation_context": {
-    "order_id": "ORD-1002",
-    "customer_id": "CUST-8492",
-    "customer_tier": "VIP_TIER_1",
-    "reschedule_intent": {
-      "requested_original_date": "2025-05-10",
-      "calculated_safe_dispatch": "2025-05-17",
-      "confidence_score": 0.994
-    }
-  },
-  "guardrail_audit": {
-    "policy": "safe-reorder-v2",
-    "passed": true,
-    "rules_evaluated": ["MAX_WINDOW_LIMIT_14D", "VIP_EXPEDITE_RESERVED"]
-  },
-  "llm_trace": {
-    "node_id": "dispatch_date_delay",
-    "model": "gpt-4o-mini",
-    "usage": {
-      "prompt_tokens": 380,
-      "completion_tokens": 120,
-      "total_tokens": 500,
-      "cost_usd": 0.00042
-    }
-  }
-}`,
-      telemetry: `{
-  "correlation_id": "c-8fa2981-01f",
-  "spans": [
-    { "span_id": "span_01", "name": "Validate Request", "duration_ms": 18, "status": "ok" },
-    { "span_id": "span_02", "name": "Check ERP Inventory", "duration_ms": 84, "status": "ok" },
-    { "span_id": "span_03", "name": "Verify VIP Tier SLA", "duration_ms": 14, "status": "ok" },
-    { "span_id": "span_04", "name": "Dispatch Date Delay", "duration_ms": 192, "status": "ok" },
-    { "span_id": "span_05", "name": "Notify Customer", "duration_ms": 46, "status": "ok" }
-  ],
-  "total_overhead_ms": 0.354,
-  "tracer_version": "otel-relay-node-1.2.0"
-}`
+        input: '{\n  "status": "loading"\n}',
+        resolved: '{\n  "status": "loading"\n}',
+        telemetry: '{\n  "status": "loading"\n}'
     };
 
     function switchTab(tabKey) {
-      ['input', 'resolved', 'telemetry'].forEach(t => {
-        const btn = document.getElementById('tab-' + t);
-        if (t === tabKey) {
-          btn.className = "py-3 text-mono-sm font-mono-sm font-semibold text-primary border-b-2 border-primary flex items-center gap-1.5";
-        } else {
-          btn.className = "py-3 text-mono-sm font-mono-sm text-outline hover:text-primary transition-colors flex items-center gap-1.5 border-b-2 border-transparent";
-        }
-      });
-      document.getElementById('json-viewer').textContent = jsonTabs[tabKey];
+        ['input', 'resolved', 'telemetry'].forEach(t => {
+            const btn = document.getElementById('tab-' + t);
+            if (!btn) return;
+            if (t === tabKey) {
+                btn.className = "py-3 text-mono-sm font-mono-sm font-semibold text-primary border-b-2 border-primary flex items-center gap-1.5 cursor-pointer";
+            } else {
+                btn.className = "py-3 text-mono-sm font-mono-sm text-outline hover:text-primary transition-colors flex items-center gap-1.5 border-b-2 border-transparent cursor-pointer";
+            }
+        });
+        document.getElementById('json-viewer').textContent = jsonTabs[tabKey];
     }
 
     function copyTraceId(id) {
-      navigator.clipboard.writeText(id).then(() => {
-        const btn = document.getElementById('copy-uuid-btn');
-        btn.classList.add('text-secondary');
-        setTimeout(() => btn.classList.remove('text-secondary'), 1000);
-      });
+        navigator.clipboard.writeText(id).then(() => {
+            const btn = document.getElementById('copy-uuid-btn');
+            if (btn) {
+                btn.classList.add('text-secondary');
+                setTimeout(() => btn.classList.remove('text-secondary'), 1000);
+            }
+        });
     }
 
     function copyJsonPayload() {
-      const viewer = document.getElementById('json-viewer');
-      navigator.clipboard.writeText(viewer.textContent).then(() => {
-        const text = document.getElementById('copy-json-text');
-        text.textContent = 'Copied!';
-        setTimeout(() => text.textContent = 'Copy JSON', 1200);
-      });
+        const viewer = document.getElementById('json-viewer');
+        navigator.clipboard.writeText(viewer.textContent).then(() => {
+            const text = document.getElementById('copy-json-text');
+            if (text) {
+                text.textContent = 'Copied!';
+                setTimeout(() => text.textContent = 'Copy JSON', 1200);
+            }
+        });
     }
 
     function exportWorkflowJson() {
-      const data = activeWorkflowData ? JSON.stringify(activeWorkflowData, null, 2) : document.getElementById('json-viewer').textContent;
-      const blob = new Blob([data], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `workflow-{{ execution_id }}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+        const data = activeWorkflowData ? JSON.stringify(activeWorkflowData, null, 2) : document.getElementById('json-viewer').textContent;
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `workflow-{{ execution_id }}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
     }
 
-    function rerunWorkflow() {
-      alert('Re-run workflow request submitted.');
-    }
-
-    function cancelWorkflow() {
-      alert('Cancel workflow requested.');
-    }
-
-    // Live API integration
     document.addEventListener('DOMContentLoaded', async () => {
-      const executionId = "{{ execution_id }}";
-      if (!executionId) return;
-      try {
-        const res = await fetch(`/api/v1/workflows/${executionId}`);
-        if (res.ok) {
-          const wf = await res.json();
-          activeWorkflowData = wf;
-          if (wf.workflow_type) document.getElementById('workflow-headline-title').textContent = wf.workflow_type;
-          if (wf.status) {
-            document.getElementById('workflow-status-text').textContent = wf.status.toUpperCase();
-          }
-          if (wf.source_system) document.getElementById('telemetry-trigger-source').textContent = wf.source_system;
-          if (wf.started_at) document.getElementById('telemetry-started-at').textContent = wf.started_at;
-          if (wf.completed_at) document.getElementById('telemetry-completed-at').textContent = wf.completed_at;
-          if (wf.duration_ms != null) document.getElementById('telemetry-runtime-latency').textContent = `${wf.duration_ms}ms`;
+        const executionId = "{{ execution_id }}";
+        if (!executionId) return;
 
-          if (wf.original_request) {
-            jsonTabs.input = JSON.stringify(wf.original_request, null, 2);
-            if (wf.original_request.order_id) document.getElementById('meta-order-id').textContent = wf.original_request.order_id;
-            if (wf.original_request.customer_id) document.getElementById('meta-customer-id').textContent = wf.original_request.customer_id;
-          }
-          if (wf.result) {
-            jsonTabs.resolved = JSON.stringify(wf.result, null, 2);
-          }
-          jsonTabs.telemetry = JSON.stringify(wf, null, 2);
-          document.getElementById('json-viewer').textContent = jsonTabs.resolved;
+        try {
+            const res = await fetch(`/api/v1/workflows/${executionId}`);
+            if (res.ok) {
+                const wf = await res.json();
+                activeWorkflowData = wf;
+
+                if (wf.workflow_type) document.getElementById('workflow-headline-title').textContent = wf.workflow_type;
+                if (wf.status) {
+                    const st = wf.status.toUpperCase();
+                    document.getElementById('workflow-status-text').textContent = st;
+                    const badge = document.getElementById('workflow-status-badge');
+                    if (st === 'COMPLETED') {
+                        badge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-mono-sm text-mono-sm font-semibold border border-secondary-fixed-dim";
+                    } else if (st === 'FAILED') {
+                        badge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FFE4E6] text-[#BE123C] font-mono-sm text-mono-sm font-semibold border border-[#FECDD3]";
+                    }
+                }
+
+                if (wf.source_system) document.getElementById('telemetry-trigger-source').textContent = wf.source_system;
+                if (wf.started_at) document.getElementById('telemetry-started-at').textContent = new Date(wf.started_at).toLocaleString();
+                if (wf.completed_at) document.getElementById('telemetry-completed-at').textContent = new Date(wf.completed_at).toLocaleString();
+                if (wf.duration_ms != null) document.getElementById('telemetry-runtime-latency').textContent = `${Math.round(wf.duration_ms)}ms`;
+
+                // Metadata cards
+                if (wf.workflow_type) document.getElementById('meta-workflow-type').textContent = wf.workflow_type;
+                if (wf.source_system) document.getElementById('meta-source-system').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> ${wf.source_system}`;
+                if (wf.external_event_id) document.getElementById('meta-external-ref-id').textContent = wf.external_event_id;
+                if (wf.correlation_id) document.getElementById('meta-correlation-id').textContent = wf.correlation_id;
+                if (wf.idempotency_key) document.getElementById('meta-idempotency-key').textContent = wf.idempotency_key;
+                if (wf.failure_category) document.getElementById('meta-failure-cat').textContent = wf.failure_category;
+
+                const orig = wf.original_request || {};
+                const result = wf.result || {};
+                if (wf.order_id || orig.order_id) document.getElementById('meta-order-id').textContent = wf.order_id || orig.order_id;
+                if (wf.customer_id || orig.customer_id) document.getElementById('meta-customer-id').textContent = wf.customer_id || orig.customer_id;
+                if (orig.previous_delivery_date || result.previous_delivery_date) {
+                    document.getElementById('meta-original-delivery').textContent = orig.previous_delivery_date || result.previous_delivery_date;
+                }
+                if (result.new_delivery_date || orig.requested_delivery_date) {
+                    document.getElementById('meta-adjusted-delivery').textContent = result.new_delivery_date || orig.requested_delivery_date;
+                }
+
+                // LLM Telemetry
+                const invocations = wf.llm_invocations || [];
+                if (invocations.length > 0) {
+                    const inv = invocations[0];
+                    if (inv.model) document.getElementById('meta-llm-model').textContent = inv.model;
+                    if (inv.latency_ms != null) document.getElementById('meta-llm-latency').textContent = `${Math.round(inv.latency_ms)}ms`;
+                    if (inv.total_tokens != null) document.getElementById('meta-llm-tokens').textContent = `${inv.total_tokens} tokens`;
+                    if (inv.estimated_cost_usd != null) document.getElementById('meta-llm-cost').textContent = `$${inv.estimated_cost_usd.toFixed(5)} USD`;
+                }
+
+                // Steps table & DAG summary
+                const steps = wf.steps || [];
+                document.getElementById('execution-step-count-header').textContent = `(${steps.length} Recorded Operations)`;
+                const compSteps = steps.filter(s => (s.status || '').toLowerCase() === 'completed').length;
+                document.getElementById('dag-nodes-succeeded-pill').textContent = `${compSteps}/${steps.length || 5} Nodes Succeeded`;
+
+                const tbody = document.getElementById('execution-steps-table-body');
+                if (steps.length > 0) {
+                    tbody.innerHTML = steps.map((s, idx) => {
+                        const st = (s.status || 'completed').toLowerCase();
+                        const isSuccess = st === 'completed';
+                        const badgeBg = isSuccess ? 'bg-secondary-fixed text-on-secondary-fixed' : 'bg-[#FFE4E6] text-[#BE123C]';
+                        const dotBg = isSuccess ? 'bg-secondary' : 'bg-[#E11D48]';
+                        const dur = s.duration_ms != null ? `${s.duration_ms}ms` : '—';
+                        const started = s.started_at ? new Date(s.started_at).toLocaleTimeString() : '—';
+                        const diag = s.error_category ? `[${s.error_category}]` : (s.step_metadata ? JSON.stringify(s.step_metadata) : 'None');
+
+                        return `
+                            <tr class="hover:bg-surface-container-low/40 transition-colors">
+                                <td class="py-3 px-4 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-secondary text-[16px]">rule</span>
+                                    <span class="font-medium text-primary">${s.step_name}</span>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-mono-sm font-mono-sm ${badgeBg}">
+                                        <span class="w-1.5 h-1.5 rounded-full ${dotBg}"></span> ${st.toUpperCase()}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">${started}</td>
+                                <td class="py-3 px-4 text-right font-mono-sm text-mono-sm font-medium text-primary">${dur}</td>
+                                <td class="py-3 px-4 text-center font-mono-sm text-mono-sm text-outline">${s.attempt_number || 1} / 1</td>
+                                <td class="py-3 px-4 text-right font-mono-sm text-mono-sm text-outline truncate max-w-xs">${diag}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                } else {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="py-6 text-center text-outline">
+                                No discrete step attempts recorded for this execution.
+                            </td>
+                        </tr>
+                    `;
+                }
+
+                // JSON Tabs
+                jsonTabs.input = JSON.stringify(wf.original_request || {}, null, 2);
+                jsonTabs.resolved = JSON.stringify(wf.result || wf.error_details || {}, null, 2);
+                jsonTabs.telemetry = JSON.stringify(wf, null, 2);
+                switchTab('resolved');
+            }
+        } catch (e) {
+            console.error('Error fetching workflow detail:', e);
         }
-      } catch (e) {
-        console.debug('Using default visual mockup state', e);
-      }
     });
-  </script>
-</body>
-</html>
+</script>
+{% endblock %}

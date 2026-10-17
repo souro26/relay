@@ -1,176 +1,158 @@
 {% extends "base.html" %}
 
-{% block title %}Workflow Execution History - Relay{% endblock %}
+{% block title %}Relay — Workflow Execution History{% endblock %}
 
 {% block content %}
-<div id="workflow-history-view">
-    <!-- Page Header -->
-    <div class="page-header">
-        <div class="page-title-group">
-            <h1>Workflow Execution History</h1>
-            <p>Immutable audit trail of automated business workflow orchestrations.</p>
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-outline-variant/30">
+    <div class="space-y-1">
+        <h1 class="text-headline-lg font-headline-lg text-[#0F172A] tracking-tight">
+            Workflow Execution History
+        </h1>
+        <p class="text-body-md font-body-md text-on-surface-variant max-w-3xl">
+            Comprehensive audit trail of automated business event orchestrations and state mutations.
+        </p>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+        <button id="btn-export-csv" class="px-3 py-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface hover:bg-surface-container-high transition-all text-label-caps font-label-caps flex items-center gap-1 shadow-xs" type="button">
+            <span class="material-symbols-outlined text-[16px]">download</span>
+            <span>Export CSV</span>
+        </button>
+        <button id="btn-export-json" class="px-3 py-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface hover:bg-surface-container-high transition-all text-label-caps font-label-caps flex items-center gap-1 shadow-xs" type="button">
+            <span class="material-symbols-outlined text-[16px]">code</span>
+            <span>Export JSON</span>
+        </button>
+    </div>
+</div>
+
+<!-- 5 Top Metric Cards -->
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+    <!-- 1. Total Traces -->
+    <div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
+        <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Total Traces</span>
+        <div class="text-[24px] font-semibold tracking-tight text-[#0B0E14] font-headline-lg mt-2" id="history-total-traces">0</div>
+        <div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
+            <div class="bg-[#0F172A] h-1 rounded-full" style="width: 100%"></div>
         </div>
-        <div class="header-actions">
-            <button type="button" class="btn btn-secondary" id="btn-export-csv" title="Export current records as CSV">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-                <span>Export CSV</span>
+    </div>
+
+    <!-- 2. Completed -->
+    <div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+            <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Completed</span>
+            <span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+        </div>
+        <div class="text-[24px] font-semibold tracking-tight text-[#059669] font-headline-lg mt-2" id="history-completed-cnt">0</div>
+        <div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
+            <div class="bg-[#10B981] h-1 rounded-full" style="width: 100%"></div>
+        </div>
+    </div>
+
+    <!-- 3. Running -->
+    <div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+            <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Running</span>
+            <span class="w-2 h-2 rounded-full bg-[#0284C7] animate-pulse"></span>
+        </div>
+        <div class="text-[24px] font-semibold tracking-tight text-[#0369A1] font-headline-lg mt-2" id="history-running-cnt">0</div>
+        <div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
+            <div class="bg-[#0284C7] h-1 rounded-full" style="width: 100%"></div>
+        </div>
+    </div>
+
+    <!-- 4. Uncertain -->
+    <div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+            <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Uncertain</span>
+            <span class="w-2 h-2 rounded-full bg-[#D97706]"></span>
+        </div>
+        <div class="text-[24px] font-semibold tracking-tight text-[#D97706] font-headline-lg mt-2" id="history-uncertain-cnt">0</div>
+        <div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
+            <div class="bg-[#D97706] h-1 rounded-full" style="width: 100%"></div>
+        </div>
+    </div>
+
+    <!-- 5. Failed -->
+    <div class="p-4 rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col justify-between col-span-2 sm:col-span-1">
+        <div class="flex items-center justify-between">
+            <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Failed</span>
+            <span class="w-2 h-2 rounded-full bg-[#E11D48]"></span>
+        </div>
+        <div class="text-[24px] font-semibold tracking-tight text-[#BE123C] font-headline-lg mt-2" id="history-failed-cnt">0</div>
+        <div class="w-full bg-[#F1F5F9] h-1 rounded-full mt-3 overflow-hidden">
+            <div class="bg-[#BE123C] h-1 rounded-full" style="width: 100%"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Ledger Card Container -->
+<div class="rounded-xl bg-surface-container-lowest hairline-border shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] overflow-hidden">
+    <!-- Controls Bar -->
+    <div class="p-4 border-b border-outline-variant/30 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-container-lowest">
+        <div class="relative w-full md:w-80">
+            <span class="material-symbols-outlined absolute left-2.5 top-2 text-outline text-[18px]">search</span>
+            <input id="history-search-input" class="w-full pl-8 pr-3 py-1.5 text-body-sm font-body-sm rounded bg-surface-container-low border border-outline-variant/40 focus:outline-none focus:ring-1 focus:ring-[#0F172A] text-on-surface placeholder:text-outline" placeholder="Search by Workflow ID, Order ID, or Event ID..." type="text">
+        </div>
+
+        <!-- Status Filter Pills -->
+        <div class="flex items-center gap-1.5 overflow-x-auto" id="history-status-pills">
+            <button data-status="all" class="history-pill px-3 py-1 rounded-full text-mono-sm font-mono-sm bg-[#0F172A] text-white flex items-center gap-1.5 cursor-pointer">
+                <span>All</span> <span class="opacity-80 text-[10px]" id="pill-all-count">0</span>
             </button>
-            <button type="button" class="btn btn-secondary" id="btn-export-json" title="Export current records as JSON">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="16 18 22 12 16 6"/>
-                    <polyline points="8 6 2 12 8 18"/>
-                </svg>
-                <span>Export JSON</span>
+            <button data-status="completed" class="history-pill px-3 py-1 rounded-full text-mono-sm font-mono-sm bg-surface-container-low text-on-surface hover:bg-surface-container-high flex items-center gap-1.5 cursor-pointer">
+                <span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+                <span>Completed</span> <span class="opacity-80 text-[10px]" id="pill-comp-count">0</span>
+            </button>
+            <button data-status="running" class="history-pill px-3 py-1 rounded-full text-mono-sm font-mono-sm bg-surface-container-low text-on-surface hover:bg-surface-container-high flex items-center gap-1.5 cursor-pointer">
+                <span class="w-2 h-2 rounded-full bg-[#0284C7]"></span>
+                <span>Running</span> <span class="opacity-80 text-[10px]" id="pill-run-count">0</span>
+            </button>
+            <button data-status="uncertain" class="history-pill px-3 py-1 rounded-full text-mono-sm font-mono-sm bg-surface-container-low text-on-surface hover:bg-surface-container-high flex items-center gap-1.5 cursor-pointer">
+                <span class="w-2 h-2 rounded-full bg-[#D97706]"></span>
+                <span>Uncertain</span> <span class="opacity-80 text-[10px]" id="pill-unc-count">0</span>
+            </button>
+            <button data-status="failed" class="history-pill px-3 py-1 rounded-full text-mono-sm font-mono-sm bg-surface-container-low text-on-surface hover:bg-surface-container-high flex items-center gap-1.5 cursor-pointer">
+                <span class="w-2 h-2 rounded-full bg-[#E11D48]"></span>
+                <span>Failed</span> <span class="opacity-80 text-[10px]" id="pill-fail-count">0</span>
             </button>
         </div>
     </div>
 
-    <!-- 5 Top Metric Cards -->
-    <div class="metrics-grid-5">
-        <!-- 1. Total Traces -->
-        <div class="metric-card">
-            <div class="metric-header">
-                <span class="metric-label">Total Executions</span>
-            </div>
-            <div class="metric-value" id="history-total-traces">—</div>
-            <div class="metric-bar-track">
-                <div class="metric-bar-fill dark" style="width: 100%;"></div>
-            </div>
-        </div>
-
-        <!-- 2. Completed -->
-        <div class="metric-card">
-            <div class="metric-header">
-                <span class="metric-label">Completed</span>
-            </div>
-            <div class="metric-value-row">
-                <span class="metric-value" id="history-completed-cnt" style="color: var(--color-success);">—</span>
-                <span class="metric-subtext">Successful</span>
-            </div>
-            <div class="metric-bar-track">
-                <div class="metric-bar-fill success" style="width: 100%;"></div>
-            </div>
-        </div>
-
-        <!-- 3. Running -->
-        <div class="metric-card">
-            <div class="metric-header">
-                <span class="metric-label">Running</span>
-            </div>
-            <div class="metric-value-row">
-                <span class="metric-value" id="history-running-cnt" style="color: var(--color-info);">0</span>
-                <span class="metric-subtext">In-flight</span>
-            </div>
-            <div class="metric-bar-track">
-                <div class="metric-bar-fill accent" style="width: 100%;"></div>
-            </div>
-        </div>
-
-        <!-- 4. Uncertain -->
-        <div class="metric-card">
-            <div class="metric-header">
-                <span class="metric-label">Uncertain</span>
-            </div>
-            <div class="metric-value-row">
-                <span class="metric-value" id="history-uncertain-cnt" style="color: var(--color-warning);">0</span>
-                <span class="metric-subtext">Requires attention</span>
-            </div>
-            <div class="metric-bar-track">
-                <div class="metric-bar-fill dark" style="width: 100%; background: var(--color-warning);"></div>
-            </div>
-        </div>
-
-        <!-- 5. Failed -->
-        <div class="metric-card">
-            <div class="metric-header">
-                <span class="metric-label">Failed</span>
-            </div>
-            <div class="metric-value-row">
-                <span class="metric-value" id="history-failed-cnt" style="color: var(--color-error);">0</span>
-                <span class="metric-subtext">Execution error</span>
-            </div>
-            <div class="metric-bar-track">
-                <div class="metric-bar-fill error" style="width: 100%;"></div>
-            </div>
-        </div>
+    <!-- Table Element -->
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-surface-container-low/80 border-b border-outline-variant/30 font-label-caps text-label-caps text-outline uppercase tracking-wider">
+                    <th class="py-2.5 px-4 font-semibold">Workflow ID</th>
+                    <th class="py-2.5 px-4 font-semibold">Order &amp; Customer</th>
+                    <th class="py-2.5 px-4 font-semibold">Workflow Type</th>
+                    <th class="py-2.5 px-4 font-semibold">Status</th>
+                    <th class="py-2.5 px-4 font-semibold text-right">Duration</th>
+                    <th class="py-2.5 px-4 font-semibold text-right">Created</th>
+                    <th class="py-2.5 px-4 font-semibold text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-outline-variant/20 text-body-sm font-body-sm" id="history-tbody">
+                <tr>
+                    <td colspan="7" class="py-12 text-center text-outline">
+                        Loading persistent workflow history…
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
-    <!-- Ledger Table Card -->
-    <div class="ledger-card">
-        <!-- Search Controls Bar -->
-        <div class="ledger-controls-bar">
-            <div class="search-input-wrapper">
-                <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"/>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                <input type="text" id="workflow-search-input" class="search-input" placeholder="Search by Workflow ID, Order ID, or Event ID&hellip;">
-                <span class="search-shortcut">Filter</span>
-            </div>
-        </div>
-
-        <!-- Status Filter Pills Row -->
-        <div class="filter-pills-row" id="workflow-status-filters">
-            <span class="filter-pills-label">Status:</span>
-            <button type="button" class="filter-pill-btn active" data-status="all">
-                <span>All</span> <span class="badge" id="pill-cnt-all" style="padding: 1px 5px; font-size: 10px;">—</span>
-            </button>
-            <button type="button" class="filter-pill-btn" data-status="completed">
-                <span class="legend-dot" style="background: var(--color-success);"></span>
-                <span>Completed</span> <span class="badge" id="pill-cnt-completed" style="padding: 1px 5px; font-size: 10px;">—</span>
-            </button>
-            <button type="button" class="filter-pill-btn" data-status="running">
-                <span class="legend-dot" style="background: var(--color-info);"></span>
-                <span>Running</span> <span class="badge" id="pill-cnt-running" style="padding: 1px 5px; font-size: 10px;">—</span>
-            </button>
-            <button type="button" class="filter-pill-btn" data-status="uncertain">
-                <span class="legend-dot" style="background: var(--color-warning);"></span>
-                <span>Uncertain</span> <span class="badge" id="pill-cnt-uncertain" style="padding: 1px 5px; font-size: 10px;">—</span>
-            </button>
-            <button type="button" class="filter-pill-btn" data-status="failed">
-                <span class="legend-dot" style="background: var(--color-error);"></span>
-                <span>Failed</span> <span class="badge" id="pill-cnt-failed" style="padding: 1px 5px; font-size: 10px;">—</span>
-            </button>
-        </div>
-
-        <!-- Data Table -->
-        <div class="data-table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Workflow ID</th>
-                        <th>Order &amp; Customer</th>
-                        <th>Workflow Type</th>
-                        <th>Status</th>
-                        <th>Duration</th>
-                        <th>Created</th>
-                        <th style="text-align: right;">Action</th>
-                    </tr>
-                </thead>
-                <tbody id="workflow-list-body">
-                    <tr>
-                        <td colspan="7" style="text-align: center; padding: var(--spacing-xl); color: var(--color-text-muted);">
-                            <span class="spinner"></span> Loading persistent workflow records&hellip;
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Table Footer with Pagination -->
-        <div class="ledger-footer">
-            <div id="history-entry-count">Showing entries&hellip;</div>
-            <div style="display: flex; align-items: center; gap: var(--spacing-md);">
-                <select id="history-page-size" class="dropdown-select" style="padding: 2px 8px; font-size: 11px;">
-                    <option value="10">Show 10 per page</option>
-                    <option value="25" selected>Show 25 per page</option>
-                    <option value="50">Show 50 per page</option>
-                </select>
-                <div id="history-pagination" style="display: flex; gap: 4px;"></div>
+    <!-- Table Footer with Pagination Controls -->
+    <div class="p-4 bg-surface-container-low/50 border-t border-outline-variant/30 flex flex-col sm:flex-row items-center justify-between text-mono-sm font-mono-sm text-outline gap-3">
+        <div id="history-count-summary">Showing 0 of 0 entries</div>
+        <div class="flex items-center gap-4">
+            <select id="history-page-size" class="px-2 py-1 rounded bg-surface-container-lowest border border-outline-variant/40 text-on-surface cursor-pointer text-mono-sm">
+                <option value="10">10 per page</option>
+                <option value="25" selected>25 per page</option>
+                <option value="50">50 per page</option>
+            </select>
+            <div class="flex items-center gap-1" id="history-pagination-buttons">
+                <!-- Pagination buttons inserted by JS -->
             </div>
         </div>
     </div>
@@ -179,10 +161,232 @@
 
 {% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        if (typeof window.initWorkflowHistory === 'function') {
-            window.initWorkflowHistory();
+    const historyState = {
+        page: 1,
+        pageSize: 25,
+        status: 'all',
+        search: '',
+        workflows: [],
+        total: 0,
+        pages: 1
+    };
+
+    async function loadHistoryMetrics() {
+        try {
+            const res = await fetch('/api/v1/metrics');
+            if (!res.ok) return;
+            const data = await res.json();
+            const numFmt = new Intl.NumberFormat('en-US');
+
+            const tot = data.total_workflows || 0;
+            const comp = data.completed_workflows || 0;
+            const run = data.running_workflows || 0;
+            const unc = data.uncertain_workflows || 0;
+            const fail = data.failed_workflows || 0;
+
+            document.getElementById('history-total-traces').textContent = numFmt.format(tot);
+            document.getElementById('history-completed-cnt').textContent = numFmt.format(comp);
+            document.getElementById('history-running-cnt').textContent = numFmt.format(run);
+            document.getElementById('history-uncertain-cnt').textContent = numFmt.format(unc);
+            document.getElementById('history-failed-cnt').textContent = numFmt.format(fail);
+
+            document.getElementById('pill-all-count').textContent = numFmt.format(tot);
+            document.getElementById('pill-comp-count').textContent = numFmt.format(comp);
+            document.getElementById('pill-run-count').textContent = numFmt.format(run);
+            document.getElementById('pill-unc-count').textContent = numFmt.format(unc);
+            document.getElementById('pill-fail-count').textContent = numFmt.format(fail);
+        } catch (e) {
+            console.error('Error loading history metrics:', e);
         }
+    }
+
+    async function loadHistoryTable() {
+        try {
+            let url = `/api/v1/workflows?page=${historyState.page}&page_size=${historyState.pageSize}`;
+            if (historyState.status !== 'all') {
+                url += `&status=${encodeURIComponent(historyState.status)}`;
+            }
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('Failed to fetch workflows');
+            const data = await res.json();
+
+            historyState.workflows = data.items || [];
+            historyState.total = data.total || 0;
+            historyState.pages = data.total_pages || 1;
+
+            renderHistoryRows();
+            renderPagination();
+        } catch (e) {
+            const tbody = document.getElementById('history-tbody');
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-[#BE123C]">Error: ${e.message}</td></tr>`;
+            }
+        }
+    }
+
+    function renderHistoryRows() {
+        const tbody = document.getElementById('history-tbody');
+        const summary = document.getElementById('history-count-summary');
+        if (!tbody) return;
+
+        let items = historyState.workflows;
+        if (historyState.search) {
+            const q = historyState.search.toLowerCase();
+            items = items.filter(w => {
+                const idMatch = (w.id || '').toLowerCase().includes(q);
+                const typeMatch = (w.workflow_type || '').toLowerCase().includes(q);
+                const orderMatch = (w.order_id || '').toLowerCase().includes(q);
+                const eventMatch = (w.external_event_id || '').toLowerCase().includes(q);
+                return idMatch || typeMatch || orderMatch || eventMatch;
+            });
+        }
+
+        if (summary) {
+            summary.textContent = `Showing ${items.length} of ${historyState.total} entries`;
+        }
+
+        if (items.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="py-12 text-center text-outline">No workflows match the selected criteria.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = items.map(w => {
+            const shortId = (w.id || '').substring(0, 11);
+            const st = (w.status || 'pending').toLowerCase();
+            const badgeCls = st === 'completed' ? 'bg-[#D1FAE5] text-[#065F46] border-[#A7F3D0]' : (st === 'failed' ? 'bg-[#FFE4E6] text-[#BE123C] border-[#FECDD3]' : 'bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]');
+            const dotCls = st === 'completed' ? 'bg-[#059669]' : (st === 'failed' ? 'bg-[#E11D48]' : 'bg-[#0284C7]');
+            const dur = w.duration_ms != null ? `${Math.round(w.duration_ms)}ms` : '—';
+            const created = w.created_at ? new Date(w.created_at).toLocaleString() : '—';
+
+            return `
+                <tr class="hover:bg-[#F8F7F3] transition-colors group">
+                    <td class="py-2.5 px-4 font-mono-sm text-mono-sm text-[#0F172A] whitespace-nowrap">
+                        <div class="flex items-center gap-1.5">
+                            <span class="select-all font-medium">${shortId}</span>
+                        </div>
+                    </td>
+                    <td class="py-2.5 px-4 font-mono-sm text-mono-sm">
+                        <span class="font-semibold text-primary block">${w.order_id || '—'}</span>
+                        ${w.customer_id ? `<span class="text-outline text-[10px] block">${w.customer_id}</span>` : ''}
+                    </td>
+                    <td class="py-2.5 px-4 font-medium text-[#0F172A]">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[16px] text-slate-500">alt_route</span>
+                            <span>${w.workflow_type || 'order_change'}</span>
+                        </div>
+                    </td>
+                    <td class="py-2.5 px-4 whitespace-nowrap">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-mono-sm font-mono-sm ${badgeCls} font-medium border">
+                            <span class="w-1.5 h-1.5 rounded-full ${dotCls}"></span>
+                            <span>${(w.status || 'PENDING').toUpperCase()}</span>
+                        </span>
+                    </td>
+                    <td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-on-surface-variant">${dur}</td>
+                    <td class="py-2.5 px-4 text-right font-mono-sm text-mono-sm text-outline">${created}</td>
+                    <td class="py-2.5 px-4 text-center whitespace-nowrap">
+                        <a class="inline-flex items-center gap-1 font-mono-sm text-mono-sm text-[#0F172A] font-medium hover:underline bg-surface-container-high px-2.5 py-1 rounded" href="/workflows/${w.id}">
+                            <span class="material-symbols-outlined text-[14px]">schema</span>
+                            <span>Inspect</span>
+                        </a>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function renderPagination() {
+        const container = document.getElementById('history-pagination-buttons');
+        if (!container) return;
+
+        if (historyState.pages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+
+        let html = '';
+        for (let i = 1; i <= historyState.pages; i++) {
+            const active = i === historyState.page ? 'bg-[#0F172A] text-white font-semibold' : 'bg-surface-container-low text-on-surface hover:bg-surface-container-high';
+            html += `<button class="px-2.5 py-1 rounded text-mono-sm ${active}" onclick="setPage(${i})">${i}</button>`;
+        }
+        container.innerHTML = html;
+    }
+
+    function setPage(p) {
+        historyState.page = p;
+        loadHistoryTable();
+    }
+
+    // Export helpers
+    function downloadBlob(content, filename, type) {
+        const blob = new Blob([content], { type });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadHistoryMetrics();
+        loadHistoryTable();
+
+        // Status pill filters
+        const pills = document.querySelectorAll('.history-pill');
+        pills.forEach(p => {
+            p.addEventListener('click', () => {
+                pills.forEach(b => {
+                    b.className = 'history-pill px-3 py-1 rounded-full text-mono-sm font-mono-sm bg-surface-container-low text-on-surface hover:bg-surface-container-high flex items-center gap-1.5 cursor-pointer';
+                });
+                p.className = 'history-pill px-3 py-1 rounded-full text-mono-sm font-mono-sm bg-[#0F172A] text-white flex items-center gap-1.5 cursor-pointer';
+                historyState.status = p.dataset.status;
+                historyState.page = 1;
+                loadHistoryTable();
+            });
+        });
+
+        // Search
+        const searchInput = document.getElementById('history-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                historyState.search = e.target.value.trim();
+                renderHistoryRows();
+            });
+        }
+
+        // Page size
+        const pageSizeSelect = document.getElementById('history-page-size');
+        if (pageSizeSelect) {
+            pageSizeSelect.addEventListener('change', (e) => {
+                historyState.pageSize = parseInt(e.target.value, 10);
+                historyState.page = 1;
+                loadHistoryTable();
+            });
+        }
+
+        // CSV Export
+        document.getElementById('btn-export-csv').addEventListener('click', () => {
+            if (historyState.workflows.length === 0) return alert('No records to export');
+            const headers = ['id', 'workflow_type', 'status', 'created_at', 'duration_ms', 'order_id'];
+            const rows = historyState.workflows.map(w => [
+                `"${w.id}"`,
+                `"${w.workflow_type || ''}"`,
+                `"${w.status || ''}"`,
+                `"${w.created_at || ''}"`,
+                w.duration_ms != null ? w.duration_ms : '',
+                `"${w.order_id || ''}"`
+            ].join(','));
+            const csv = [headers.join(','), ...rows].join('\n');
+            downloadBlob(csv, `relay-workflows-${Date.now()}.csv`, 'text/csv');
+        });
+
+        // JSON Export
+        document.getElementById('btn-export-json').addEventListener('click', () => {
+            if (historyState.workflows.length === 0) return alert('No records to export');
+            downloadBlob(JSON.stringify(historyState.workflows, null, 2), `relay-workflows-${Date.now()}.json`, 'application/json');
+        });
     });
 </script>
 {% endblock %}
