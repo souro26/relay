@@ -35,19 +35,19 @@
 
         <!-- Textarea in Cream Well -->
         <div>
-            <textarea id="nl-prompt-text" rows="5" style="width: 100%; padding: 14px; font-size: 13px; font-family: inherit; border-radius: 8px; background: #F5EFEB; border: 1px solid #E8DFD5; color: #2C1D14; outline: none; resize: none; line-height: 1.6;" placeholder="Enter an order modification request (e.g., 'Please postpone delivery for order ORD-136D6350 to December 15, 2026')">Please postpone delivery for order ORD-136D6350 to 2026-12-15 for customer customer-101</textarea>
+            <textarea id="nl-prompt-text" rows="5" style="width: 100%; padding: 14px; font-size: 13px; font-family: inherit; border-radius: 8px; background: #F5EFEB; border: 1px solid #E8DFD5; color: #2C1D14; outline: none; resize: none; line-height: 1.6;" placeholder="Enter an order modification request...">Please postpone delivery for order ORD-61964039 to 2026-12-28 for customer customer-101</textarea>
         </div>
 
         <!-- Prompt Suggestions -->
         <div>
             <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase; color: #7A5A47; font-weight: 600; display: block; margin-bottom: 8px;">Example Requests (Active in Order Service)</span>
             <div style="display: flex; flex-direction: column; gap: 8px;">
-                <button class="prompt-chip" data-prompt="Please postpone delivery for order ORD-136D6350 to 2026-12-15 for customer customer-101" type="button" style="text-align: left; padding: 10px 12px; border-radius: 8px; background: #F5EFEB; border: 1px solid #E8DFD5; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 12px; color: #573D2F; font-weight: 500;">Please postpone delivery for order ORD-136D6350 to 2026-12-15 for customer customer-101</span>
+                <button class="prompt-chip" data-prompt="Please postpone delivery for order ORD-61964039 to 2026-12-28 for customer customer-101" type="button" style="text-align: left; padding: 10px 12px; border-radius: 8px; background: #F5EFEB; border: 1px solid #E8DFD5; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 12px; color: #573D2F; font-weight: 500;">Please postpone delivery for order ORD-61964039 to 2026-12-28 for customer customer-101</span>
                     <span class="material-symbols-outlined" style="font-size: 16px; color: #C68B59;">arrow_forward</span>
                 </button>
-                <button class="prompt-chip" data-prompt="Reschedule delivery for order ORD-61964039 to 2026-12-25 for customer customer-101" type="button" style="text-align: left; padding: 10px 12px; border-radius: 8px; background: #F5EFEB; border: 1px solid #E8DFD5; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 12px; color: #573D2F; font-weight: 500;">Reschedule delivery for order ORD-61964039 to 2026-12-25 for customer customer-101</span>
+                <button class="prompt-chip" data-prompt="Reschedule delivery for order ORD-136D6350 to 2026-12-24 for customer customer-101" type="button" style="text-align: left; padding: 10px 12px; border-radius: 8px; background: #F5EFEB; border: 1px solid #E8DFD5; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 12px; color: #573D2F; font-weight: 500;">Reschedule delivery for order ORD-136D6350 to 2026-12-24 for customer customer-101</span>
                     <span class="material-symbols-outlined" style="font-size: 16px; color: #C68B59;">arrow_forward</span>
                 </button>
             </div>
@@ -55,17 +55,17 @@
 
         <!-- Action Buttons -->
         <div style="padding-top: 12px; border-top: 1px solid #E8DFD5; display: flex; gap: 10px;">
-            <button id="btn-submit-nl" style="flex: 1; padding: 10px 16px; border-radius: 8px; background: #121D33; color: #FFFFFF; font-weight: 600; font-size: 12px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 8px rgba(18,29,51,0.15);" type="button">
+            <button id="btn-submit-nl" style="flex: 1; padding: 12px 16px; border-radius: 8px; background: #121D33; color: #FFFFFF; font-weight: 600; font-size: 13px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 8px rgba(18,29,51,0.15);" type="button">
                 <span class="material-symbols-outlined" style="font-size: 18px; color: #C68B59;">play_arrow</span>
                 <span id="btn-submit-text">Interpret &amp; Execute Workflow</span>
             </button>
-            <button id="btn-clear-nl" style="padding: 10px 16px; border-radius: 8px; background: #FFFFFF; border: 1px solid #E8DFD5; color: #573D2F; font-weight: 600; font-size: 12px; cursor: pointer;" type="button">
+            <button id="btn-clear-nl" style="padding: 12px 16px; border-radius: 8px; background: #FFFFFF; border: 1px solid #E8DFD5; color: #573D2F; font-weight: 600; font-size: 12px; cursor: pointer;" type="button">
                 Clear
             </button>
         </div>
 
-        <!-- Error Banner -->
-        <div id="nl-error-box" class="hidden" style="padding: 12px; border-radius: 8px; background: #FCE8E6; border: 1px solid #FAD2CF; color: #C5221F; font-family: 'JetBrains Mono', monospace; font-size: 12px;"></div>
+        <!-- Error Banner: Hidden by default with display: none -->
+        <div id="nl-error-box" style="display: none; padding: 12px; border-radius: 8px; background: #FCE8E6; border: 1px solid #FAD2CF; color: #C5221F; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.5;"></div>
     </div>
 
     <!-- Right Column: Real-time Extraction Preview & Outcome -->
@@ -83,16 +83,16 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                 <div style="padding: 12px; background: #F5EFEB; border: 1px solid #E8DFD5; border-radius: 8px;">
                     <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; color: #7A5A47; font-weight: 600; display: block;">Order ID</span>
-                    <span id="preview-order-id" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #2C1D14; margin-top: 4px; display: block;">ORD-12345678</span>
+                    <span id="preview-order-id" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #2C1D14; margin-top: 4px; display: block;">ORD-61964039</span>
                 </div>
                 <div style="padding: 12px; background: #F5EFEB; border: 1px solid #E8DFD5; border-radius: 8px;">
                     <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; color: #7A5A47; font-weight: 600; display: block;">Target Date</span>
-                    <span id="preview-target-date" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #137333; margin-top: 4px; display: block;">2026-12-15</span>
+                    <span id="preview-target-date" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #137333; margin-top: 4px; display: block;">2026-12-28</span>
                 </div>
             </div>
             <div style="padding: 12px; background: #F5EFEB; border: 1px solid #E8DFD5; border-radius: 8px;">
                 <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; color: #7A5A47; font-weight: 600; display: block;">Customer Context</span>
-                <span id="preview-customer-id" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #7A5A47; margin-top: 4px; display: block;">Optional in prompt</span>
+                <span id="preview-customer-id" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #2C1D14; font-weight: 600; margin-top: 4px; display: block;">customer-101</span>
             </div>
         </div>
 
@@ -108,14 +108,16 @@
                 </span>
             </div>
 
+            <!-- Empty State (Shown initially) -->
             <div id="outcome-empty-state" style="padding: 32px 0; text-align: center; color: #7A5A47; font-size: 12px; font-family: 'JetBrains Mono', monospace;">
                 Submit a prompt to trigger model interpretation and live workflow execution.
             </div>
 
-            <div id="outcome-details" class="hidden" style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- Result Box: Hidden initially with display: none -->
+            <div id="outcome-details" style="display: none; flex-direction: column; gap: 12px;">
                 <div style="padding: 14px; background: #E6F4EA; border: 1px solid #CEEAD6; border-radius: 8px;">
                     <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; color: #137333; font-weight: 700; display: block;">Workflow Orchestrated</span>
-                    <div id="outcome-workflow-id" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; color: #2C1D14; margin-top: 4px; user-select: all;">—</div>
+                    <div id="outcome-workflow-id" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #2C1D14; margin-top: 4px; user-select: all;">—</div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px;">
@@ -164,10 +166,10 @@
         previewOrderId.textContent = ordMatch ? ordMatch[0].toUpperCase() : 'None detected';
 
         const dateMatch = val.match(/\b\d{4}-\d{2}-\d{2}\b/);
-        previewTargetDate.textContent = dateMatch ? dateMatch[0] : (val.toLowerCase().includes('december') ? '2026-12-15' : 'Parsed on submit');
+        previewTargetDate.textContent = dateMatch ? dateMatch[0] : (val.toLowerCase().includes('december') ? '2026-12-28' : 'Parsed on submit');
 
-        const custMatch = val.match(/CUST-[A-Za-z0-9]+/i);
-        previewCustId.textContent = custMatch ? custMatch[0].toUpperCase() : 'None detected';
+        const custMatch = val.match(/customer-\w+|CUST-\w+/i);
+        previewCustId.textContent = custMatch ? custMatch[0] : 'customer-101';
     }
 
     promptText.addEventListener('input', () => updateClientPreview(promptText.value));
@@ -195,7 +197,10 @@
 
     btnSubmit.addEventListener('click', async () => {
         const text = promptText.value.trim();
-        if (!text) return alert('Please enter a request');
+        if (!text) {
+            alert('Please enter a request in the prompt input console.');
+            return;
+        }
 
         errorBox.style.display = 'none';
         btnSubmit.disabled = true;
@@ -206,7 +211,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    text,
+                    text: text,
                     source_system: 'studio-web',
                     external_event_id: `evt-studio-${Date.now()}`
                 })
@@ -214,7 +219,13 @@
 
             const data = await res.json();
             if (!res.ok) {
-                const msg = data.detail?.error || (typeof data.detail === 'string' ? data.detail : 'Execution failed');
+                let msg = 'Execution failed';
+                if (data.detail) {
+                    if (typeof data.detail === 'string') msg = data.detail;
+                    else if (data.detail.error) msg = data.detail.error;
+                    else if (data.detail.message) msg = data.detail.message;
+                    else if (Array.isArray(data.detail) && data.detail.length > 0) msg = data.detail[0].msg || JSON.stringify(data.detail);
+                }
                 throw new Error(msg);
             }
 
@@ -239,7 +250,7 @@
 
             if (data.workflow_id) {
                 outcomeAction.innerHTML = `
-                    <a href="/workflows/${data.workflow_id}" style="width: 100%; padding: 10px 16px; border-radius: 8px; background: #121D33; color: #FFFFFF; font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; box-shadow: 0 2px 8px rgba(18,29,51,0.15);">
+                    <a href="/workflows/${data.workflow_id}" style="width: 100%; padding: 12px 16px; border-radius: 8px; background: #121D33; color: #FFFFFF; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; box-shadow: 0 2px 8px rgba(18,29,51,0.2);">
                         <span>Inspect Execution Detail &amp; DAG</span>
                         <span class="material-symbols-outlined" style="font-size: 16px; color: #C68B59;">arrow_forward</span>
                     </a>
