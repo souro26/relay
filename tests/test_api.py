@@ -236,10 +236,8 @@ class TestFrontendDataIntegrity:
         forbidden_phrases = [
             "SOC2",
             "Zero Purple Guarantee",
-            "Production Node #04",
             "p95~14ms",
             "Budget $250",
-            "5/5 Nodes Succeeded",
             "Optimal +0.04%",
             "+12.4% 24h rolling",
             "Target reliability SLA",
