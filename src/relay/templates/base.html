@@ -13,94 +13,38 @@
     <!-- Material Symbols Outlined -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Local Bulletproof Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
 
-    <!-- Tailwind Custom Configuration: Caramel Chocolate, Cream White, & Navy Blue -->
-    <script id="tailwind-config">
-        tailwind.config = {
-          darkMode: "class",
-          theme: {
-            extend: {
-              colors: {
-                // Cream White canvas & surfaces
-                "cream": {
-                  DEFAULT: "#FAF7F2",
-                  canvas: "#FAF7F2",
-                  surface: "#FFFFFF",
-                  well: "#F5EFEB",
-                  subtle: "#EFE8E1",
-                  border: "#E8DFD5",
-                  borderDark: "#D8CEBE"
-                },
-                // Caramel Chocolate tones
-                "chocolate": {
-                  DEFAULT: "#2C1D14",
-                  dark: "#2C1D14",
-                  warm: "#3D271D",
-                  milk: "#573D2F",
-                  muted: "#7A5A47"
-                },
-                "caramel": {
-                  DEFAULT: "#C68B59",
-                  rich: "#B87333",
-                  deep: "#B45309",
-                  golden: "#D97706",
-                  pastel: "#F8EDE2",
-                  border: "#E5CCA8",
-                  ink: "#78350F"
-                },
-                // Navy Blue anchors
-                "navy": {
-                  DEFAULT: "#121D33",
-                  deep: "#0B1324",
-                  primary: "#16223B",
-                  slate: "#1E2E4E",
-                  pastel: "#E8F0FE",
-                  border: "#C7D8F8",
-                  ink: "#1A365D"
-                },
-                // Soft Pastel Semantic States
-                "pastel-mint": {
-                  bg: "#E6F4EA",
-                  border: "#CEEAD6",
-                  text: "#137333",
-                  dot: "#1E8E3E"
-                },
-                "pastel-sky": {
-                  bg: "#E8F0FE",
-                  border: "#D2E3FC",
-                  text: "#1A73E8",
-                  dot: "#1967D2"
-                },
-                "pastel-amber": {
-                  bg: "#FEF7E0",
-                  border: "#FEEFC3",
-                  text: "#B06000",
-                  dot: "#F9AB00"
-                },
-                "pastel-rose": {
-                  bg: "#FCE8E6",
-                  border: "#FAD2CF",
-                  text: "#C5221F",
-                  dot: "#D93025"
-                }
-              },
-              fontFamily: {
-                sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
-                mono: ["JetBrains Mono", "SFMono-Regular", "Menlo", "monospace"]
-              },
-              boxShadow: {
-                subtle: "0 1px 3px rgba(44, 29, 20, 0.04), 0 1px 2px rgba(44, 29, 20, 0.02)",
-                card: "0 2px 8px -1px rgba(44, 29, 20, 0.05), 0 1px 3px -1px rgba(44, 29, 20, 0.03)",
-                elevated: "0 10px 25px -3px rgba(18, 29, 51, 0.08), 0 4px 6px -2px rgba(18, 29, 51, 0.04)"
-              }
-            }
-          }
-        };
-    </script>
-
+    <!-- Self-Contained Styles: Guarantees 100% styled layout even if any external script fails -->
     <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #FAF7F2;
+            color: #2C1D14;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
         .material-symbols-outlined {
             font-family: 'Material Symbols Outlined';
             font-weight: normal;
@@ -111,6 +55,7 @@
             white-space: nowrap;
             -webkit-font-smoothing: antialiased;
         }
+
         @keyframes pulseGlow {
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.4; transform: scale(1.15); }
@@ -118,7 +63,8 @@
         .pulse-dot {
             animation: pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
-        /* Custom delicate scrollbar */
+
+        /* Custom Scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -136,94 +82,90 @@
     </style>
     {% block head %}{% endblock %}
 </head>
-<body class="min-h-full bg-cream-canvas text-chocolate antialiased flex flex-col font-sans selection:bg-caramel-pastel selection:text-chocolate-dark">
-    <!-- TopNavBar in Rich Navy with Caramel & Cream Highlights -->
-    <header class="bg-navy text-white sticky top-0 z-50 border-b border-navy-deep/40 shadow-card">
-        <div class="w-full max-w-[2560px] mx-auto px-6 h-14 flex items-center justify-between">
+<body>
+    <!-- TopNavBar: Deep Navy with Caramel & Cream Highlights -->
+    <header style="background-color: #121D33; color: #FFFFFF; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #0B1324; box-shadow: 0 2px 8px rgba(11,19,36,0.15);">
+        <div style="max-width: 1380px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between;">
             <!-- Brand & Navigation Links -->
-            <div class="flex items-center gap-8 h-full">
-                <div class="flex items-center gap-3">
-                    <a class="text-lg font-bold tracking-tight text-white flex items-center gap-2.5 transition-transform active:scale-95" href="{{ url_for('dashboard') }}">
-                        <div class="w-7 h-7 rounded-lg bg-chocolate-warm border border-caramel/40 flex items-center justify-center text-caramel shadow-xs">
-                            <span class="material-symbols-outlined text-[18px]">polyline</span>
-                        </div>
-                        <span class="font-semibold text-cream tracking-wide">Relay</span>
-                    </a>
-                    <span class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-navy-slate text-caramel-pastel border border-caramel/20">
-                        v2.0-caramel
-                    </span>
-                </div>
+            <div style="display: flex; align-items: center; gap: 32px; height: 100%;">
+                <a href="{{ url_for('dashboard') }}" style="display: flex; align-items: center; gap: 10px; color: #FFFFFF; font-weight: 700; font-size: 18px; text-decoration: none;">
+                    <div style="width: 28px; height: 28px; border-radius: 8px; background-color: #3D271D; border: 1px solid rgba(198,139,89,0.4); display: flex; align-items: center; justify-content: center; color: #C68B59;">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">polyline</span>
+                    </div>
+                    <span>Relay</span>
+                </a>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 2px 7px; border-radius: 4px; background-color: #1E2E4E; color: #F8EDE2; border: 1px solid rgba(198,139,89,0.25);">
+                    v2.0-caramel
+                </span>
 
-                <nav class="hidden md:flex items-center gap-6 h-full text-sm font-medium">
-                    <a class="{% if request.url.path == '/' %}text-caramel border-b-2 border-caramel font-semibold{% else %}text-slate-300 hover:text-white{% endif %} py-3 transition-colors flex items-center gap-1.5" href="{{ url_for('dashboard') }}">
+                <nav style="display: flex; align-items: center; gap: 20px; height: 100%;">
+                    <a href="{{ url_for('dashboard') }}" style="color: {% if request.url.path == '/' %}#C68B59; border-bottom: 2px solid #C68B59; font-weight: 600{% else %}#CBD5E1{% endif %}; font-size: 13px; text-decoration: none; padding: 18px 0;">
                         Overview
                     </a>
-                    <a class="{% if '/workflows' in request.url.path and not '/workflows/new' in request.url.path %}text-caramel border-b-2 border-caramel font-semibold{% else %}text-slate-300 hover:text-white{% endif %} py-3 transition-colors flex items-center gap-1.5" href="{{ url_for('workflow_history') }}">
+                    <a href="{{ url_for('workflow_history') }}" style="color: {% if '/workflows' in request.url.path and not '/workflows/new' in request.url.path %}#C68B59; border-bottom: 2px solid #C68B59; font-weight: 600{% else %}#CBD5E1{% endif %}; font-size: 13px; text-decoration: none; padding: 18px 0;">
                         Workflow History
                     </a>
-                    <a class="{% if '/request' in request.url.path or '/workflows/new' in request.url.path %}text-caramel border-b-2 border-caramel font-semibold{% else %}text-slate-300 hover:text-white{% endif %} py-3 transition-colors flex items-center gap-1.5" href="{{ url_for('nl_request_form') }}">
+                    <a href="{{ url_for('nl_request_form') }}" style="color: {% if '/request' in request.url.path or '/workflows/new' in request.url.path %}#C68B59; border-bottom: 2px solid #C68B59; font-weight: 600{% else %}#CBD5E1{% endif %}; font-size: 13px; text-decoration: none; padding: 18px 0;">
                         NL Request Studio
                     </a>
-                    <a class="text-slate-300 hover:text-white py-3 transition-colors flex items-center gap-1" href="/ready" target="_blank">
+                    <a href="/ready" target="_blank" style="color: #CBD5E1; font-size: 13px; text-decoration: none; padding: 18px 0; display: flex; align-items: center; gap: 4px;">
                         System Health
-                        <span class="material-symbols-outlined text-[13px] opacity-70">open_in_new</span>
+                        <span class="material-symbols-outlined" style="font-size: 13px; opacity: 0.7;">open_in_new</span>
                     </a>
                 </nav>
             </div>
 
             <!-- Right Status & Action Cluster -->
-            <div class="flex items-center gap-3">
+            <div style="display: flex; align-items: center; gap: 12px;">
                 <!-- Pastel Mint Operational Pill -->
-                <div class="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-full bg-pastel-mint-bg border border-pastel-mint-border text-pastel-mint-text font-mono text-[11px]">
-                    <span class="relative flex h-2 w-2">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-pastel-mint-dot opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-pastel-mint-dot"></span>
-                    </span>
-                    <span class="font-medium" id="header-system-status">System: Ready</span>
+                <div style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; background: #E6F4EA; border: 1px solid #CEEAD6; color: #137333; font-family: 'JetBrains Mono', monospace; font-size: 11px;">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #1E8E3E;" class="pulse-dot"></span>
+                    <span id="header-system-status">System: Ready</span>
                 </div>
 
                 <!-- Latency Pill -->
-                <div class="hidden lg:flex items-center gap-1 px-2.5 py-1 rounded-full bg-navy-slate border border-navy-border/30 text-caramel-pastel font-mono text-[11px]">
-                    <span class="opacity-70">p95</span>
-                    <span class="font-semibold text-white" id="header-latency-text">~14ms</span>
+                <div style="display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 9999px; background: #1E2E4E; border: 1px solid rgba(199,216,248,0.3); color: #F8EDE2; font-family: 'JetBrains Mono', monospace; font-size: 11px;">
+                    <span style="opacity: 0.7;">p95</span>
+                    <span id="header-latency-text" style="font-weight: 600; color: #FFFFFF;">~14ms</span>
                 </div>
 
-                <div class="h-4 w-[1px] bg-slate-700 mx-1"></div>
+                <div style="width: 1px; height: 16px; background-color: #334155; margin: 0 4px;"></div>
 
-                <!-- Quick Action CTA -->
-                <a href="{{ url_for('nl_request_form') }}" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-caramel text-chocolate-dark hover:bg-caramel-rich font-semibold text-xs transition-all shadow-xs cursor-pointer">
-                    <span class="material-symbols-outlined text-[16px]">add_circle</span>
+                <!-- New Workflow CTA -->
+                <a href="{{ url_for('nl_request_form') }}" style="background-color: #C68B59; color: #2C1D14; font-weight: 600; font-size: 12px; padding: 6px 12px; border-radius: 6px; text-decoration: none; display: flex; align-items: center; gap: 6px; transition: opacity 0.15s ease;">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">add_circle</span>
                     <span>New Workflow</span>
                 </a>
 
                 <!-- Docs Action -->
-                <a class="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-navy-slate transition-colors" href="https://github.com/souro26/relay" target="_blank" title="Repository Docs">
-                    <span class="material-symbols-outlined text-[18px]">menu_book</span>
+                <a href="https://github.com/souro26/relay" target="_blank" style="color: #CBD5E1; padding: 6px; border-radius: 6px; text-decoration: none; display: flex; align-items: center;" title="Repository Docs">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">menu_book</span>
                 </a>
             </div>
         </div>
     </header>
 
     <!-- Main Content Container with Cream White Canvas -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-6 sm:px-8 py-8 space-y-8">
+    <main style="flex: 1 0 auto; max-width: 1380px; width: 100%; margin: 0 auto; padding: 32px 24px; display: flex; flex-direction: column; gap: 28px;">
         {% block content %}{% endblock %}
     </main>
 
     <!-- Tactile Footer Bar in Warm Cream & Caramel Chocolate -->
-    <footer class="mt-auto border-t border-cream-border bg-cream-surface py-5 px-8 text-xs font-mono text-chocolate-muted">
-        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div class="flex items-center gap-2">
-                <span class="font-bold text-chocolate-dark font-sans text-sm">Relay</span>
+    <footer style="border-top: 1px solid #E8DFD5; background: #FFFFFF; padding: 20px 24px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #7A5A47;">
+        <div style="max-width: 1380px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-family: 'Inter', sans-serif; font-weight: 700; font-size: 13px; color: #2C1D14;">Relay</span>
                 <span>— Event Orchestration &amp; Automation Platform</span>
             </div>
-            <div class="flex items-center gap-3">
-                <span class="inline-flex items-center gap-1.5 text-pastel-mint-text bg-pastel-mint-bg px-2 py-0.5 rounded border border-pastel-mint-border">
-                    <span class="w-1.5 h-1.5 rounded-full bg-pastel-mint-dot"></span> Production Engine
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="display: inline-flex; align-items: center; gap: 6px; color: #137333; background: #E6F4EA; border: 1px solid #CEEAD6; padding: 2px 8px; border-radius: 4px;">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #1E8E3E;"></span>
+                    <span>Production Engine</span>
                 </span>
                 <span>•</span>
-                <span class="text-chocolate-milk">PostgreSQL Ledger</span>
+                <span style="color: #573D2F;">PostgreSQL Ledger</span>
                 <span>•</span>
-                <span class="text-caramel-deep font-medium">Node #01</span>
+                <span style="color: #B45309; font-weight: 600;">Node #01</span>
             </div>
         </div>
     </footer>
