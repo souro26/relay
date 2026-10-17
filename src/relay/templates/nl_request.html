@@ -21,6 +21,68 @@
     </div>
 </div>
 
+<!-- Inline Synchronous Keystroke Tracker (Defined before DOM elements) -->
+<script>
+    function updateCounter(el) {
+        var val = (el && typeof el.value === 'string') ? el.value : (document.getElementById('nl-prompt-text') ? document.getElementById('nl-prompt-text').value : '');
+        var len = val.length;
+
+        // 1. Dynamic character counter: 0 -> 1 -> 2 -> ... on every keypress
+        var counter = document.getElementById('nl-char-counter');
+        if (counter) {
+            counter.textContent = len + ' / 2000 chars';
+            if (len > 2000) {
+                counter.style.color = '#C5221F';
+                counter.style.fontWeight = '700';
+            } else if (len > 1800) {
+                counter.style.color = '#B06000';
+                counter.style.fontWeight = '600';
+            } else {
+                counter.style.color = '#7A5A47';
+                counter.style.fontWeight = '600';
+            }
+        }
+
+        // 2. Real-time parameter extraction
+        var ordMatch = val.match(/ORD-[A-Za-z0-9]+/i);
+        var pOrder = document.getElementById('preview-order-id');
+        if (pOrder) {
+            pOrder.textContent = ordMatch ? ordMatch[0].toUpperCase() : 'None detected';
+            pOrder.style.color = ordMatch ? '#2C1D14' : '#7A5A47';
+        }
+
+        var dateMatch = val.match(/\b\d{4}-\d{2}-\d{2}\b/);
+        var pDate = document.getElementById('preview-target-date');
+        if (pDate) {
+            if (dateMatch) {
+                pDate.textContent = dateMatch[0];
+                pDate.style.color = '#137333';
+            } else {
+                var monthMatch = val.match(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}\b/i);
+                if (monthMatch) {
+                    pDate.textContent = monthMatch[0];
+                    pDate.style.color = '#137333';
+                } else {
+                    pDate.textContent = val.trim() ? 'Parsed on submit' : 'None detected';
+                    pDate.style.color = '#7A5A47';
+                }
+            }
+        }
+
+        var custMatch = val.match(/customer-\w+|CUST-\w+/i);
+        var pCust = document.getElementById('preview-customer-id');
+        if (pCust) {
+            if (custMatch) {
+                pCust.textContent = custMatch[0];
+                pCust.style.color = '#2C1D14';
+            } else {
+                pCust.textContent = val.trim() ? 'Optional in prompt' : 'None detected';
+                pCust.style.color = '#7A5A47';
+            }
+        }
+    }
+</script>
+
 <!-- 2-Column Studio Grid -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px; margin-top: 24px;">
     <!-- Left Column: Input Console -->
@@ -30,17 +92,17 @@
                 <span class="material-symbols-outlined" style="color: #C68B59; font-size: 20px;">chat</span>
                 <h2 style="font-size: 16px; font-weight: 700; color: #2C1D14; margin: 0;">Prompt Input Console</h2>
             </div>
-            <span id="nl-char-counter" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #7A5A47; font-weight: 600;">86 / 2000 chars</span>
+            <span id="nl-char-counter" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #7A5A47; font-weight: 600;">0 / 2000 chars</span>
         </div>
 
-        <!-- Textarea in Cream Well with Real-time Keystroke Tracking -->
+        <!-- Textarea Starts Clean and Empty with Real-Time Synchronous Listeners -->
         <div>
-            <textarea id="nl-prompt-text" rows="5" oninput="window.updateClientPreview(this.value)" onkeyup="window.updateClientPreview(this.value)" onchange="window.updateClientPreview(this.value)" style="width: 100%; padding: 14px; font-size: 13px; font-family: inherit; border-radius: 8px; background: #F5EFEB; border: 1px solid #E8DFD5; color: #2C1D14; outline: none; resize: none; line-height: 1.6;" placeholder="Enter an order modification request...">Please postpone delivery for order ORD-61964039 to 2026-12-28 for customer customer-101</textarea>
+            <textarea id="nl-prompt-text" rows="5" oninput="updateCounter(this)" onkeyup="updateCounter(this)" onpaste="updateCounter(this)" oncut="updateCounter(this)" style="width: 100%; padding: 14px; font-size: 13px; font-family: inherit; border-radius: 8px; background: #F5EFEB; border: 1px solid #E8DFD5; color: #2C1D14; outline: none; resize: none; line-height: 1.6;" placeholder="Enter an order modification request (e.g., 'Please postpone delivery for order ORD-61964039 to 2026-12-28 for customer customer-101')"></textarea>
         </div>
 
         <!-- Prompt Suggestions -->
         <div>
-            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase; color: #7A5A47; font-weight: 600; display: block; margin-bottom: 8px;">Example Requests (Active in Order Service)</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase; color: #7A5A47; font-weight: 600; display: block; margin-bottom: 8px;">Example Requests (Click to Populate)</span>
             <div style="display: flex; flex-direction: column; gap: 8px;">
                 <button class="prompt-chip" data-prompt="Please postpone delivery for order ORD-61964039 to 2026-12-28 for customer customer-101" type="button" style="text-align: left; padding: 10px 12px; border-radius: 8px; background: #F5EFEB; border: 1px solid #E8DFD5; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
                     <span style="font-size: 12px; color: #573D2F; font-weight: 500;">Please postpone delivery for order ORD-61964039 to 2026-12-28 for customer customer-101</span>
@@ -59,7 +121,7 @@
                 <span class="material-symbols-outlined" style="font-size: 18px; color: #C68B59;">play_arrow</span>
                 <span id="btn-submit-text">Interpret &amp; Execute Workflow</span>
             </button>
-            <button id="btn-clear-nl" style="padding: 12px 16px; border-radius: 8px; background: #FFFFFF; border: 1px solid #E8DFD5; color: #573D2F; font-weight: 600; font-size: 12px; cursor: pointer;" type="button">
+            <button id="btn-clear-nl" onclick="clearPrompt()" style="padding: 12px 16px; border-radius: 8px; background: #FFFFFF; border: 1px solid #E8DFD5; color: #573D2F; font-weight: 600; font-size: 12px; cursor: pointer;" type="button">
                 Clear
             </button>
         </div>
@@ -83,16 +145,16 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                 <div style="padding: 12px; background: #F5EFEB; border: 1px solid #E8DFD5; border-radius: 8px;">
                     <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; color: #7A5A47; font-weight: 600; display: block;">Order ID</span>
-                    <span id="preview-order-id" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #2C1D14; margin-top: 4px; display: block;">ORD-61964039</span>
+                    <span id="preview-order-id" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #7A5A47; margin-top: 4px; display: block;">None detected</span>
                 </div>
                 <div style="padding: 12px; background: #F5EFEB; border: 1px solid #E8DFD5; border-radius: 8px;">
                     <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; color: #7A5A47; font-weight: 600; display: block;">Target Date</span>
-                    <span id="preview-target-date" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #137333; margin-top: 4px; display: block;">2026-12-28</span>
+                    <span id="preview-target-date" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #7A5A47; margin-top: 4px; display: block;">None detected</span>
                 </div>
             </div>
             <div style="padding: 12px; background: #F5EFEB; border: 1px solid #E8DFD5; border-radius: 8px;">
                 <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; color: #7A5A47; font-weight: 600; display: block;">Customer Context</span>
-                <span id="preview-customer-id" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #2C1D14; font-weight: 600; margin-top: 4px; display: block;">customer-101</span>
+                <span id="preview-customer-id" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #7A5A47; margin-top: 4px; display: block;">None detected</span>
             </div>
         </div>
 
@@ -142,124 +204,73 @@
 
 {% block scripts %}
 <script>
-    const promptText = document.getElementById('nl-prompt-text');
-    const charCounter = document.getElementById('nl-char-counter');
-    const previewOrderId = document.getElementById('preview-order-id');
-    const previewTargetDate = document.getElementById('preview-target-date');
-    const previewCustId = document.getElementById('preview-customer-id');
-    const btnSubmit = document.getElementById('btn-submit-nl');
-    const btnClear = document.getElementById('btn-clear-nl');
-    const errorBox = document.getElementById('nl-error-box');
+    var promptText = document.getElementById('nl-prompt-text');
+    var btnSubmit = document.getElementById('btn-submit-nl');
+    var errorBox = document.getElementById('nl-error-box');
 
-    const outcomeEmpty = document.getElementById('outcome-empty-state');
-    const outcomeDetails = document.getElementById('outcome-details');
-    const outcomeBadge = document.getElementById('outcome-status-badge');
-    const outcomeWfId = document.getElementById('outcome-workflow-id');
-    const outcomeTokens = document.getElementById('outcome-tokens');
-    const outcomeCost = document.getElementById('outcome-cost');
-    const outcomeAction = document.getElementById('outcome-action-container');
+    var outcomeEmpty = document.getElementById('outcome-empty-state');
+    var outcomeDetails = document.getElementById('outcome-details');
+    var outcomeBadge = document.getElementById('outcome-status-badge');
+    var outcomeWfId = document.getElementById('outcome-workflow-id');
+    var outcomeTokens = document.getElementById('outcome-tokens');
+    var outcomeCost = document.getElementById('outcome-cost');
+    var outcomeAction = document.getElementById('outcome-action-container');
 
-    window.updateClientPreview = function(val) {
-        if (typeof val !== 'string') {
-            const el = document.getElementById('nl-prompt-text');
-            val = el ? el.value : '';
+    // Run initial counter check on load
+    updateCounter(promptText);
+
+    function clearPrompt() {
+        if (promptText) {
+            promptText.value = '';
+            updateCounter(promptText);
         }
-        val = val || '';
-        const len = val.length;
-
-        const counter = document.getElementById('nl-char-counter');
-        if (counter) {
-            counter.textContent = `${len} / 2000 chars`;
-            if (len > 2000) {
-                counter.style.color = '#C5221F';
-                counter.style.fontWeight = '700';
-            } else if (len > 1800) {
-                counter.style.color = '#B06000';
-                counter.style.fontWeight = '600';
-            } else {
-                counter.style.color = '#7A5A47';
-                counter.style.fontWeight = '600';
-            }
+        if (errorBox) errorBox.style.display = 'none';
+        if (outcomeEmpty) outcomeEmpty.style.display = 'block';
+        if (outcomeDetails) outcomeDetails.style.display = 'none';
+        if (outcomeBadge) {
+            outcomeBadge.textContent = 'IDLE';
+            outcomeBadge.style.background = '#F5EFEB';
+            outcomeBadge.style.color = '#7A5A47';
+            outcomeBadge.style.border = '1px solid #E8DFD5';
         }
-
-        const ordMatch = val.match(/ORD-[A-Za-z0-9]+/i);
-        const pOrder = document.getElementById('preview-order-id');
-        if (pOrder) pOrder.textContent = ordMatch ? ordMatch[0].toUpperCase() : 'None detected';
-
-        const dateMatch = val.match(/\b\d{4}-\d{2}-\d{2}\b/);
-        const pDate = document.getElementById('preview-target-date');
-        if (pDate) {
-            if (dateMatch) {
-                pDate.textContent = dateMatch[0];
-            } else {
-                const monthMatch = val.match(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}\b/i);
-                pDate.textContent = monthMatch ? monthMatch[0] : (val ? 'Parsed on submit' : 'None detected');
-            }
-        }
-
-        const custMatch = val.match(/customer-\w+|CUST-\w+/i);
-        const pCust = document.getElementById('preview-customer-id');
-        if (pCust) pCust.textContent = custMatch ? custMatch[0] : (val ? 'Optional in prompt' : 'None detected');
-    };
-
-    if (promptText) {
-        ['input', 'keyup', 'keydown', 'keypress', 'change', 'paste', 'cut'].forEach(evt => {
-            promptText.addEventListener(evt, (e) => window.updateClientPreview(e.target ? e.target.value : promptText.value));
-        });
     }
 
-    // Initialize immediately and on window load
-    window.updateClientPreview();
-    document.addEventListener('DOMContentLoaded', () => window.updateClientPreview());
-    window.addEventListener('load', () => window.updateClientPreview());
-
-    // Suggestion chips
-    document.querySelectorAll('.prompt-chip').forEach(chip => {
-        chip.addEventListener('click', () => {
+    // Suggestion chips: populate textarea and trigger counter
+    document.querySelectorAll('.prompt-chip').forEach(function(chip) {
+        chip.addEventListener('click', function() {
             if (promptText) {
                 promptText.value = chip.dataset.prompt;
-                updateClientPreview(promptText.value);
+                updateCounter(promptText);
             }
         });
     });
 
-    btnClear.addEventListener('click', () => {
-        promptText.value = '';
-        updateClientPreview('');
-        errorBox.style.display = 'none';
-        outcomeEmpty.style.display = 'block';
-        outcomeDetails.style.display = 'none';
-        outcomeBadge.textContent = 'IDLE';
-        outcomeBadge.style.background = '#F5EFEB';
-        outcomeBadge.style.color = '#7A5A47';
-        outcomeBadge.style.border = '1px solid #E8DFD5';
-    });
-
-    btnSubmit.addEventListener('click', async () => {
-        const text = promptText.value.trim();
+    btnSubmit.addEventListener('click', async function() {
+        var text = promptText ? promptText.value.trim() : '';
         if (!text) {
             alert('Please enter a request in the prompt input console.');
             return;
         }
 
-        errorBox.style.display = 'none';
+        if (errorBox) errorBox.style.display = 'none';
         btnSubmit.disabled = true;
-        document.getElementById('btn-submit-text').textContent = 'Interpreting & Executing…';
+        var btnTextEl = document.getElementById('btn-submit-text');
+        if (btnTextEl) btnTextEl.textContent = 'Interpreting & Executing…';
 
         try {
-            const res = await fetch('/api/v1/order-change-requests/nl', {
+            var res = await fetch('/api/v1/order-change-requests/nl', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     text: text,
                     source_system: 'studio-web',
-                    external_event_id: `evt-studio-${Date.now()}`
+                    external_event_id: 'evt-studio-' + Date.now()
                 })
             });
 
-            const data = await res.json();
+            var data = await res.json();
             if (!res.ok) {
-                let msg = 'Execution failed';
+                var msg = 'Execution failed';
                 if (data.detail) {
                     if (typeof data.detail === 'string') msg = data.detail;
                     else if (data.detail.error) msg = data.detail.error;
@@ -269,8 +280,8 @@
                 throw new Error(msg);
             }
 
-            outcomeEmpty.style.display = 'none';
-            outcomeDetails.style.display = 'flex';
+            if (outcomeEmpty) outcomeEmpty.style.display = 'none';
+            if (outcomeDetails) outcomeDetails.style.display = 'flex';
 
             if (data.success) {
                 outcomeBadge.textContent = 'COMPLETED';
@@ -284,24 +295,25 @@
                 outcomeBadge.style.border = '1px solid #FAD2CF';
             }
 
-            outcomeWfId.textContent = data.workflow_id || 'None';
-            outcomeTokens.textContent = data.total_tokens != null ? new Intl.NumberFormat('en-US').format(data.total_tokens) : '—';
-            outcomeCost.textContent = data.estimated_cost_usd != null ? `$${data.estimated_cost_usd.toFixed(4)}` : '—';
+            if (outcomeWfId) outcomeWfId.textContent = data.workflow_id || 'None';
+            if (outcomeTokens) outcomeTokens.textContent = data.total_tokens != null ? new Intl.NumberFormat('en-US').format(data.total_tokens) : '—';
+            if (outcomeCost) outcomeCost.textContent = data.estimated_cost_usd != null ? '$' + data.estimated_cost_usd.toFixed(4) : '—';
 
-            if (data.workflow_id) {
-                outcomeAction.innerHTML = `
-                    <a href="/workflows/${data.workflow_id}" style="width: 100%; padding: 12px 16px; border-radius: 8px; background: #121D33; color: #FFFFFF; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; box-shadow: 0 2px 8px rgba(18,29,51,0.2);">
-                        <span>Inspect Execution Detail &amp; DAG</span>
-                        <span class="material-symbols-outlined" style="font-size: 16px; color: #C68B59;">arrow_forward</span>
-                    </a>
-                `;
+            if (data.workflow_id && outcomeAction) {
+                outcomeAction.innerHTML = 
+                    '<a href="/workflows/' + data.workflow_id + '" style="width: 100%; padding: 12px 16px; border-radius: 8px; background: #121D33; color: #FFFFFF; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; box-shadow: 0 2px 8px rgba(18,29,51,0.2);">' +
+                        '<span>Inspect Execution Detail &amp; DAG</span>' +
+                        '<span class="material-symbols-outlined" style="font-size: 16px; color: #C68B59;">arrow_forward</span>' +
+                    '</a>';
             }
         } catch (err) {
-            errorBox.textContent = `Error: ${err.message}`;
-            errorBox.style.display = 'block';
+            if (errorBox) {
+                errorBox.textContent = 'Error: ' + err.message;
+                errorBox.style.display = 'block';
+            }
         } finally {
             btnSubmit.disabled = false;
-            document.getElementById('btn-submit-text').textContent = 'Interpret & Execute Workflow';
+            if (btnTextEl) btnTextEl.textContent = 'Interpret & Execute Workflow';
         }
     });
 </script>
