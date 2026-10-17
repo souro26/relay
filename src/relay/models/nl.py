@@ -60,6 +60,7 @@ class NLInterpretationResponse(BaseModel):
     ambiguities: list["AmbiguityDetail"] = Field(default_factory=list)
     error: str | None = None
     error_code: str | None = None
+    workflow_id: str | None = None
     invocation_id: str | None = None
     prompt_tokens: int | None = None
     completion_tokens: int | None = None

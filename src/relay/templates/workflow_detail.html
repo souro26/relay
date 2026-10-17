@@ -97,7 +97,7 @@
 
     <!-- Stepper Canvas in Warm Sunken Well -->
     <div style="background: rgba(245, 239, 235, 0.7); border: 1px solid #E8DFD5; border-radius: 12px; padding: 24px; overflow-x: auto; box-shadow: inset 0 1px 2px rgba(44,29,20,0.03);">
-        <div style="min-width: 980px; display: flex; justify-content: space-between; align-items: center; position: relative; padding: 12px 0;">
+        <div id="dag-stepper-track" style="min-width: 980px; display: flex; justify-content: space-between; align-items: center; position: relative; padding: 12px 0;">
             <!-- Step 1 -->
             <div style="display: flex; flex-direction: column; align-items: center; width: 170px; z-index: 2;">
                 <div style="width: 36px; height: 36px; border-radius: 50%; background: #FFFFFF; border: 2px solid #1E8E3E; display: flex; align-items: center; justify-content: center; color: #137333; box-shadow: 0 1px 3px rgba(44,29,20,0.04);">
@@ -480,6 +480,28 @@
         }
     }
 
+    window.selectDagStep = function(idx) {
+        if (!activeWorkflowData || !activeWorkflowData.steps) return;
+        const step = activeWorkflowData.steps[idx];
+        if (!step) return;
+
+        activeWorkflowData.steps.forEach((_, i) => {
+            const box = document.getElementById(`dag-step-box-${i}`);
+            if (box) {
+                box.style.borderColor = (i === idx) ? '#C68B59' : '#E8DFD5';
+                box.style.boxShadow = (i === idx) ? '0 0 0 2px #F8EDE2' : '0 1px 3px rgba(44,29,20,0.04)';
+            }
+        });
+
+        jsonTabs.resolved = JSON.stringify(step, null, 2);
+        switchTab('resolved');
+        const heading = document.getElementById('tab-resolved');
+        if (heading) {
+            const textSpan = heading.querySelector('span:last-child');
+            if (textSpan) textSpan.textContent = `Step: ${step.step_name}`;
+        }
+    };
+
     document.addEventListener('DOMContentLoaded', async () => {
         const executionId = "{{ execution_id }}";
         if (!executionId) return;
@@ -549,6 +571,41 @@
                 document.getElementById('execution-step-count-header').textContent = `(${steps.length} Operations)`;
                 const compSteps = steps.filter(s => (s.status || '').toLowerCase() === 'completed').length;
                 document.getElementById('dag-nodes-succeeded-pill').textContent = `${compSteps}/${steps.length || 5} Nodes Succeeded`;
+
+                // Dynamically render actual execution DAG nodes
+                if (steps.length > 0) {
+                    const track = document.getElementById('dag-stepper-track');
+                    if (track) {
+                        track.innerHTML = steps.map((s, idx) => {
+                            const isCompleted = (s.status || '').toLowerCase() === 'completed';
+                            const isRunning = (s.status || '').toLowerCase() === 'running';
+                            const isFailed = (s.status || '').toLowerCase() === 'failed';
+                            
+                            const borderColor = isCompleted ? '#1E8E3E' : (isFailed ? '#D93025' : (isRunning ? '#1967D2' : '#E8DFD5'));
+                            const icon = isCompleted ? 'check' : (isFailed ? 'close' : (isRunning ? 'sync' : 'pending'));
+                            const iconColor = isCompleted ? '#137333' : (isFailed ? '#C5221F' : '#1A73E8');
+                            const dur = s.duration_ms != null ? `${Math.round(s.duration_ms)}ms` : '—';
+                            const isAI = s.step_name.includes('intent') || s.step_name.includes('nl') || s.step_name.includes('ai');
+
+                            return `
+                                <div onclick="selectDagStep(${idx})" style="display: flex; flex-direction: column; align-items: center; width: 170px; z-index: 2; cursor: pointer;">
+                                    <div style="width: 36px; height: 36px; border-radius: 50%; background: #FFFFFF; border: 2px solid ${borderColor}; display: flex; align-items: center; justify-content: center; color: ${iconColor}; box-shadow: 0 1px 3px rgba(44,29,20,0.04);">
+                                        <span class="material-symbols-outlined" style="font-size: 18px;">${icon}</span>
+                                    </div>
+                                    <div id="dag-step-box-${idx}" style="margin-top: 10px; background: #FFFFFF; border: 1px solid #E8DFD5; border-radius: 8px; padding: 10px; width: 100%; text-align: center; box-shadow: 0 1px 3px rgba(44,29,20,0.04); transition: all 0.15s ease;">
+                                        <div style="display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #7A5A47; margin-bottom: 4px;">
+                                            <span>0${idx + 1}${isAI ? ' (AI)' : ''}</span>
+                                            <span style="background: ${isCompleted ? '#E6F4EA' : '#FCE8E6'}; color: ${isCompleted ? '#137333' : '#C5221F'}; padding: 1px 4px; border-radius: 2px; font-weight: 600;">${dur}</span>
+                                        </div>
+                                        <div style="font-weight: 600; font-size: 11px; color: #2C1D14; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${s.step_name}">${s.step_name}</div>
+                                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #7A5A47; margin-top: 2px;">Attempt ${s.attempt_number || 1}/1</div>
+                                    </div>
+                                </div>
+                                ${idx < steps.length - 1 ? '<span class="material-symbols-outlined" style="color: #C68B59; font-size: 18px;">arrow_forward</span>' : ''}
+                            `;
+                        }).join('');
+                    }
+                }
 
                 const tbody = document.getElementById('execution-steps-table-body');
                 if (steps.length > 0) {

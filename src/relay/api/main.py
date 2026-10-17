@@ -386,6 +386,7 @@ async def create_order_change_request_nl(
             correlation_id=correlation_id,
             interpreted_request=interpretation.draft.model_dump(mode="json"),
         )
+        interpretation.workflow_id = str(execution.id)
         # Link LLM invocation with newly created workflow execution
         if interpretation.invocation_id:
             try:
