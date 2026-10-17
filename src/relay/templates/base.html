@@ -1,32 +1,111 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Relay - Business Workflow Integration{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+    
+    <!-- Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js for High-Performance Visual Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+    
+    <!-- Script to prevent theme flash -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('relay-theme') || 
+                (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
 </head>
 <body>
     <header class="header" role="banner">
         <div class="container header-content">
-            <a href="{{ url_for('dashboard') }}" class="logo" aria-label="Relay Home">
-                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path d="M4 7V4h16v3"/>
-                    <path d="M9 20h6"/>
-                    <path d="M12 4v16"/>
-                </svg>
-                <span class="logo-text">Relay</span>
-            </a>
-            <nav class="nav" role="navigation" aria-label="Main navigation">
-                <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.url.path == '/' %}active{% endif %}">Dashboard</a>
-                <a href="{{ url_for('workflow_history') }}" class="nav-link {% if request.url.path.startswith('/workflows') and request.url.path != '/request' %}active{% endif %}">Workflows</a>
-                <a href="{{ url_for('nl_request_form') }}" class="nav-link {% if request.url.path == '/request' %}active{% endif %}">New Request</a>
-            </nav>
-            <div class="header-status">
-                <span class="badge badge-info">Demo</span>
+            <div class="header-left">
+                <a href="{{ url_for('dashboard') }}" class="logo" aria-label="Relay Home">
+                    <div class="logo-mark">
+                        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                    </div>
+                    <div class="logo-text-group">
+                        <span class="logo-text">Relay</span>
+                        <span class="logo-tag">Orchestrator</span>
+                    </div>
+                </a>
+
+                <nav class="nav" role="navigation" aria-label="Main navigation">
+                    <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.url.path == '/' or request.url.path == '/dashboard' %}active{% endif %}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="{{ url_for('workflow_history') }}" class="nav-link {% if request.url.path.startswith('/workflows') and request.url.path != '/request' %}active{% endif %}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="8" y1="6" x2="21" y2="6"></line>
+                            <line x1="8" y1="12" x2="21" y2="12"></line>
+                            <line x1="8" y1="18" x2="21" y2="18"></line>
+                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                        </svg>
+                        <span>Workflows</span>
+                    </a>
+                    <a href="{{ url_for('nl_request_form') }}" class="nav-link {% if request.url.path == '/request' %}active{% endif %}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            <path d="M12 7v4"></path>
+                            <path d="M10 9h4"></path>
+                        </svg>
+                        <span>New Request</span>
+                    </a>
+                </nav>
+            </div>
+
+            <div class="header-right">
+                <!-- System Status Indicator Pill -->
+                <div id="system-health-pill" class="status-pill status-healthy" title="Live System Health">
+                    <span class="status-dot"></span>
+                    <span class="status-pill-text">API Live</span>
+                </div>
+
+                <!-- Dark / Light Theme Toggle -->
+                <button type="button" id="theme-toggle-btn" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle theme">
+                    <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+
+                <!-- API Docs Link -->
+                <a href="/docs" target="_blank" class="header-btn" title="Open FastAPI Interactive Swagger Documentation">
+                    <span>API Docs</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                </a>
             </div>
         </div>
     </header>
@@ -38,13 +117,33 @@
     </main>
 
     <footer class="footer" role="contentinfo">
-        <div class="container">
-            <p class="footer-text">
-                <strong>Relay</strong> - Business Workflow Integration Prototype
-            </p>
-            <p class="footer-notice">This is a prototype demonstration. Uses demonstration data only.</p>
+        <div class="container footer-content">
+            <div class="footer-left">
+                <div class="footer-logo">
+                    <span class="footer-brand">Relay</span>
+                    <span class="footer-env-badge">Production-Ready</span>
+                </div>
+                <p class="footer-desc">
+                    Deterministic Business Workflow Orchestration & Observability Engine.
+                </p>
+            </div>
+            <div class="footer-right">
+                <div class="footer-links">
+                    <a href="/docs" target="_blank">Swagger OpenAPI</a>
+                    <span class="footer-divider">•</span>
+                    <a href="/health" target="_blank">Health Liveness</a>
+                    <span class="footer-divider">•</span>
+                    <a href="/ready" target="_blank">Readiness Probe</a>
+                    <span class="footer-divider">•</span>
+                    <a href="https://github.com/souro26/relay" target="_blank">GitHub</a>
+                </div>
+                <p class="footer-copy">© 2026 Relay Systems. Distributed under MIT License.</p>
+            </div>
         </div>
     </footer>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
     <script src="{{ url_for('static', path='app.js') }}"></script>
     {% block scripts %}{% endblock %}

@@ -7,4 +7,17 @@ if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     alembic upgrade head
 fi
 
+# In free-tier / single-container deployment (like Render free tier),
+# start the simulated order_service in the background if enabled
+if [ "${START_INTERNAL_ORDER_SERVICE:-false}" = "true" ]; then
+    echo "Starting internal order service on 127.0.0.1:8001..."
+    uvicorn order_service.main:app --host 127.0.0.1 --port 8001 &
+fi
+
+# Handle dynamic $PORT if set (common in cloud environments like Render)
+if [ -n "$PORT" ] && [ "$1" = "uvicorn" ] && [ "$2" = "relay.api.main:app" ]; then
+    echo "Starting Relay API on port ${PORT}..."
+    exec uvicorn relay.api.main:app --host 0.0.0.0 --port "${PORT}"
+fi
+
 exec "$@"
