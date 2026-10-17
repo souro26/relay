@@ -30,7 +30,7 @@
                 <span class="material-symbols-outlined" style="color: #C68B59; font-size: 20px;">chat</span>
                 <h2 style="font-size: 16px; font-weight: 700; color: #2C1D14; margin: 0;">Prompt Input Console</h2>
             </div>
-            <span id="nl-char-counter" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #7A5A47;">0 / 2000 chars</span>
+            <span id="nl-char-counter" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #7A5A47; font-weight: 600;">86 / 2000 chars</span>
         </div>
 
         <!-- Textarea in Cream Well -->
@@ -160,26 +160,62 @@
     const outcomeAction = document.getElementById('outcome-action-container');
 
     function updateClientPreview(val) {
-        if (charCounter) charCounter.textContent = `${val.length} / 2000 chars`;
+        if (typeof val !== 'string') {
+            const el = document.getElementById('nl-prompt-text');
+            val = el ? el.value : '';
+        }
+        val = val || '';
+        const len = val.length;
+
+        if (charCounter) {
+            charCounter.textContent = `${len} / 2000 chars`;
+            if (len > 2000) {
+                charCounter.style.color = '#C5221F';
+                charCounter.style.fontWeight = '700';
+            } else if (len > 1800) {
+                charCounter.style.color = '#B06000';
+                charCounter.style.fontWeight = '600';
+            } else {
+                charCounter.style.color = '#7A5A47';
+                charCounter.style.fontWeight = '600';
+            }
+        }
 
         const ordMatch = val.match(/ORD-[A-Za-z0-9]+/i);
-        previewOrderId.textContent = ordMatch ? ordMatch[0].toUpperCase() : 'None detected';
+        if (previewOrderId) previewOrderId.textContent = ordMatch ? ordMatch[0].toUpperCase() : 'None detected';
 
         const dateMatch = val.match(/\b\d{4}-\d{2}-\d{2}\b/);
-        previewTargetDate.textContent = dateMatch ? dateMatch[0] : (val.toLowerCase().includes('december') ? '2026-12-28' : 'Parsed on submit');
+        if (previewTargetDate) {
+            if (dateMatch) {
+                previewTargetDate.textContent = dateMatch[0];
+            } else {
+                const monthMatch = val.match(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}\b/i);
+                previewTargetDate.textContent = monthMatch ? monthMatch[0] : (val ? 'Parsed on submit' : 'None detected');
+            }
+        }
 
         const custMatch = val.match(/customer-\w+|CUST-\w+/i);
-        previewCustId.textContent = custMatch ? custMatch[0] : 'customer-101';
+        if (previewCustId) previewCustId.textContent = custMatch ? custMatch[0] : (val ? 'Optional in prompt' : 'None detected');
     }
 
-    promptText.addEventListener('input', () => updateClientPreview(promptText.value));
-    updateClientPreview(promptText.value);
+    if (promptText) {
+        ['input', 'keyup', 'change', 'paste', 'cut'].forEach(evt => {
+            promptText.addEventListener(evt, () => setTimeout(() => updateClientPreview(promptText.value), 0));
+        });
+    }
+
+    // Initialize immediately and on window load
+    updateClientPreview();
+    document.addEventListener('DOMContentLoaded', updateClientPreview);
+    window.addEventListener('load', updateClientPreview);
 
     // Suggestion chips
     document.querySelectorAll('.prompt-chip').forEach(chip => {
         chip.addEventListener('click', () => {
-            promptText.value = chip.dataset.prompt;
-            updateClientPreview(promptText.value);
+            if (promptText) {
+                promptText.value = chip.dataset.prompt;
+                updateClientPreview(promptText.value);
+            }
         });
     });
 
