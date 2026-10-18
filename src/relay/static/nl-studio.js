@@ -124,6 +124,12 @@
             });
         });
 
+        // Clear button handler
+        var btnClear = document.getElementById('btn-clear-nl');
+        if (btnClear) {
+            btnClear.addEventListener('click', clearPrompt);
+        }
+
         // 3. Submit Handler with Green Spinner & Live Visual Feedback
         if (btnSubmit) {
             btnSubmit.addEventListener('click', async function() {
