@@ -78,8 +78,10 @@ logger = logging.getLogger(__name__)
 # Package base directory for static assets and templates
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Jinja2 templates
+# Jinja2 templates with dynamic reload for development
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+templates.env.auto_reload = True
+templates.env.cache = None
 
 
 @asynccontextmanager
