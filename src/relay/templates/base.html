@@ -171,26 +171,7 @@
     </footer>
 
     <!-- Shared Health Probe Script -->
-    <script>
-        async function probeHealth() {
-            try {
-                const t0 = performance.now();
-                const res = await fetch('/ready');
-                const t1 = performance.now();
-                const latency = Math.round(t1 - t0);
-                if (res.ok) {
-                    const latEl = document.getElementById('header-latency-text');
-                    if (latEl) latEl.textContent = `~${latency}ms`;
-                    const stEl = document.getElementById('header-system-status');
-                    if (stEl) stEl.textContent = 'System: Ready';
-                }
-            } catch (e) {
-                const st = document.getElementById('header-system-status');
-                if (st) st.textContent = 'System: Degraded';
-            }
-        }
-        document.addEventListener('DOMContentLoaded', probeHealth);
-    </script>
+    <script src="{{ url_for('static', path='app.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

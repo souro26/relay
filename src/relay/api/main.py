@@ -110,7 +110,7 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-    # Content Security Policy
+    # Content Security Policy - strict mode, external scripts only
     csp = (
         "default-src 'self'; "
         "script-src 'self' https://fonts.googleapis.com; "
