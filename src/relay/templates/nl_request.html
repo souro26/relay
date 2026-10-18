@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Relay — Natural Language Request Studio{% endblock %}
+{% block title %}Relay - Natural Language Request Studio{% endblock %}
 
 {% block head %}
 <style>
@@ -17,6 +17,7 @@
         border-radius: 50%;
         animation: spinCircle 0.75s linear infinite;
         vertical-align: middle;
+        margin-right: 6px;
     }
     .card-spinner {
         display: inline-block;
@@ -154,17 +155,17 @@
             <div id="outcome-details" style="display: none; flex-direction: column; gap: 12px;">
                 <div style="padding: 14px; background: #E6F4EA; border: 1px solid #CEEAD6; border-radius: 8px;">
                     <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; color: #137333; font-weight: 700; display: block;">Workflow Orchestrated</span>
-                    <div id="outcome-workflow-id" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #2C1D14; margin-top: 4px; user-select: all;">—</div>
+                    <div id="outcome-workflow-id" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #2C1D14; margin-top: 4px; user-select: all;">-</div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px;">
                     <div style="padding: 10px; background: #F5EFEB; border: 1px solid #E8DFD5; border-radius: 8px;">
                         <span style="color: #7A5A47; display: block; font-size: 10px; text-transform: uppercase; font-weight: 600;">Tokens</span>
-                        <span id="outcome-tokens" style="font-weight: 700; color: #2C1D14;">—</span>
+                        <span id="outcome-tokens" style="font-weight: 700; color: #2C1D14;">-</span>
                     </div>
                     <div style="padding: 10px; background: #F5EFEB; border: 1px solid #E8DFD5; border-radius: 8px;">
                         <span style="color: #7A5A47; display: block; font-size: 10px; text-transform: uppercase; font-weight: 600;">Cost</span>
-                        <span id="outcome-cost" style="font-weight: 700; color: #137333;">—</span>
+                        <span id="outcome-cost" style="font-weight: 700; color: #137333;">-</span>
                     </div>
                 </div>
 
@@ -194,7 +195,6 @@
     var outcomeEmpty = document.getElementById('outcome-empty-state');
     var outcomeDetails = document.getElementById('outcome-details');
     var outcomeBadgeContainer = document.getElementById('outcome-badge-container');
-    var outcomeBadge = document.getElementById('outcome-status-badge');
     var outcomeWfId = document.getElementById('outcome-workflow-id');
     var outcomeTokens = document.getElementById('outcome-tokens');
     var outcomeCost = document.getElementById('outcome-cost');
@@ -262,7 +262,6 @@
     }
 
     // 2. High-Frequency Heartbeat Ticker (Runs every 40ms = 25 times per second)
-    // Ensures counter NEVER lags or misses any keystrokes, cuts, or voice dictations
     setInterval(updateCounter, 40);
 
     // Initial check
@@ -313,7 +312,7 @@
         btnSubmit.style.cursor = 'wait';
         btnSubmit.innerHTML = 
             '<span class="btn-spinner"></span>' +
-            '<span style="color: #FFFFFF; font-weight: 600;">Processing &amp; Orchestrating…</span>';
+            '<span style="color: #FFFFFF; font-weight: 600;">Processing &amp; Orchestrating...</span>';
 
         // Set Loading State on Outcome Card (Right Side)
         if (outcomeDetails) outcomeDetails.style.display = 'none';
@@ -329,7 +328,7 @@
             outcomeEmpty.innerHTML = 
                 '<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 20px 0;">' +
                     '<span class="card-spinner"></span>' +
-                    '<span style="font-weight: 600; color: #2C1D14; font-size: 13px;">Reasoning Intent &amp; Calling Order Service…</span>' +
+                    '<span style="font-weight: 600; color: #2C1D14; font-size: 13px;">Reasoning Intent &amp; Calling Order Service...</span>' +
                     '<span style="color: #7A5A47; font-size: 11px;">Validating parameters against PostgreSQL audit ledger</span>' +
                 '</div>';
         }
@@ -380,8 +379,8 @@
             }
 
             if (outcomeWfId) outcomeWfId.textContent = data.workflow_id || 'None';
-            if (outcomeTokens) outcomeTokens.textContent = data.total_tokens != null ? new Intl.NumberFormat('en-US').format(data.total_tokens) : '—';
-            if (outcomeCost) outcomeCost.textContent = data.estimated_cost_usd != null ? '$' + data.estimated_cost_usd.toFixed(4) : '—';
+            if (outcomeTokens) outcomeTokens.textContent = data.total_tokens != null ? new Intl.NumberFormat('en-US').format(data.total_tokens) : '-';
+            if (outcomeCost) outcomeCost.textContent = data.estimated_cost_usd != null ? '$' + data.estimated_cost_usd.toFixed(4) : '-';
 
             if (data.workflow_id && outcomeAction) {
                 outcomeAction.innerHTML = 
