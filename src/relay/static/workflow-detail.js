@@ -10,7 +10,7 @@
     let jsonTabs = {
         input: '{\n  "status": "loading"\n}',
         resolved: '{\n  "status": "loading"\n}',
-        telemetry: '{\n  "status": "loading\n}'
+        telemetry: '{\n  "status": "loading"\n}'
     };
 
     function switchTab(tabKey) {
