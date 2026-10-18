@@ -20,7 +20,7 @@
         </p>
     </div>
     <div style="display: flex; align-items: center; gap: 10px;">
-        <button onclick="hydrateDashboard()" style="background-color: #FFFFFF; border: 1px solid #E8DFD5; color: #573D2F; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 1px 3px rgba(44,29,20,0.04);">
+        <button id="btn-refresh-dashboard" style="background-color: #FFFFFF; border: 1px solid #E8DFD5; color: #573D2F; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 1px 3px rgba(44,29,20,0.04);">
             <span class="material-symbols-outlined" style="font-size: 16px; color: #C68B59;">refresh</span>
             <span>Refresh</span>
         </button>
@@ -492,27 +492,5 @@
         }).join('');
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        hydrateDashboard();
-
-        const searchInput = document.getElementById('dashboard-search-input');
-        const statusSelect = document.getElementById('dashboard-status-select');
-
-        function filterRuns() {
-            if (!rawMetrics || !rawMetrics.recent_workflows) return;
-            const query = (searchInput.value || '').toLowerCase().trim();
-            const status = statusSelect.value;
-
-            const filtered = rawMetrics.recent_workflows.filter(w => {
-                const matchQ = !query || (w.id || '').toLowerCase().includes(query) || (w.workflow_type || '').toLowerCase().includes(query);
-                const matchS = status === 'all' || (w.status || '').toLowerCase() === status;
-                return matchQ && matchS;
-            });
-            renderRunsTable(filtered);
-        }
-
-        if (searchInput) searchInput.addEventListener('input', filterRuns);
-        if (statusSelect) statusSelect.addEventListener('change', filterRuns);
-    });
-</script>
+<script src="{{ url_for('static', path='dashboard.js') }}"></script>
 {% endblock %}
